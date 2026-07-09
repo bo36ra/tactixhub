@@ -13,5 +13,6 @@ export interface PlayerUpdate {
   jerseyNumber?: number;
   position?: PlayerUpdatePosition;
   age?: number;
+  nationality?: string;
   status?: PlayerUpdateStatus;
 }

@@ -119,6 +119,7 @@ export const ListPlayersResponseItem = zod.object({
   "jerseyNumber": zod.number(),
   "position": zod.enum(['goalkeeper', 'defender', 'midfielder', 'forward']),
   "age": zod.number().nullish(),
+  "nationality": zod.string().nullish(),
   "status": zod.enum(['active', 'injured', 'suspended']),
   "createdAt": zod.string()
 })
@@ -140,6 +141,7 @@ export const CreatePlayerBody = zod.object({
   "jerseyNumber": zod.number(),
   "position": zod.enum(['goalkeeper', 'defender', 'midfielder', 'forward']),
   "age": zod.number().optional(),
+  "nationality": zod.string().optional(),
   "status": zod.enum(['active', 'injured', 'suspended'])
 })
 
@@ -150,6 +152,7 @@ export const CreatePlayerResponse = zod.object({
   "jerseyNumber": zod.number(),
   "position": zod.enum(['goalkeeper', 'defender', 'midfielder', 'forward']),
   "age": zod.number().nullish(),
+  "nationality": zod.string().nullish(),
   "status": zod.enum(['active', 'injured', 'suspended']),
   "createdAt": zod.string()
 })
@@ -168,6 +171,7 @@ export const UpdatePlayerBody = zod.object({
   "jerseyNumber": zod.number().optional(),
   "position": zod.enum(['goalkeeper', 'defender', 'midfielder', 'forward']).optional(),
   "age": zod.number().optional(),
+  "nationality": zod.string().optional(),
   "status": zod.enum(['active', 'injured', 'suspended']).optional()
 })
 
@@ -178,6 +182,7 @@ export const UpdatePlayerResponse = zod.object({
   "jerseyNumber": zod.number(),
   "position": zod.enum(['goalkeeper', 'defender', 'midfielder', 'forward']),
   "age": zod.number().nullish(),
+  "nationality": zod.string().nullish(),
   "status": zod.enum(['active', 'injured', 'suspended']),
   "createdAt": zod.string()
 })
@@ -207,6 +212,7 @@ export const ListMatchesResponseItem = zod.object({
   "opponent": zod.string(),
   "date": zod.string(),
   "type": zod.enum(['league', 'friendly', 'cup']),
+  "formation": zod.string().optional(),
   "ourGoals": zod.number(),
   "theirGoals": zod.number(),
   "createdAt": zod.string()
@@ -242,6 +248,7 @@ export const CreateMatchResponse = zod.object({
   "opponent": zod.string(),
   "date": zod.string(),
   "type": zod.enum(['league', 'friendly', 'cup']),
+  "formation": zod.string().optional(),
   "ourGoals": zod.number(),
   "theirGoals": zod.number(),
   "createdAt": zod.string()
@@ -257,6 +264,85 @@ export const DeleteMatchParams = zod.object({
 })
 
 export const DeleteMatchResponse = zod.void()
+
+
+/**
+ * @summary Get a player's full history — every match/training day connected in one timeline
+ */
+export const GetPlayerTimelineParams = zod.object({
+  "playerId": zod.coerce.number()
+})
+
+export const GetPlayerTimelineResponse = zod.object({
+  "player": zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "jerseyNumber": zod.number(),
+  "position": zod.string(),
+  "age": zod.number().optional(),
+  "nationality": zod.string().optional(),
+  "status": zod.string().optional()
+}),
+  "timeline": zod.array(zod.object({
+  "date": zod.string(),
+  "sessionType": zod.enum(['match', 'training']),
+  "present": zod.boolean(),
+  "matchId": zod.number().optional(),
+  "opponent": zod.string().optional(),
+  "matchType": zod.string().optional(),
+  "ourGoals": zod.number().optional(),
+  "theirGoals": zod.number().optional(),
+  "minutesPlayed": zod.number().optional(),
+  "goalsScored": zod.number().optional(),
+  "yellowCards": zod.number().optional(),
+  "redCards": zod.number().optional()
+}))
+})
+
+
+/**
+ * @summary Get a match's formation and assigned players
+ */
+export const GetLineupParams = zod.object({
+  "matchId": zod.coerce.number()
+})
+
+export const GetLineupResponse = zod.object({
+  "matchId": zod.number(),
+  "formation": zod.string(),
+  "entries": zod.array(zod.object({
+  "id": zod.number(),
+  "playerId": zod.number(),
+  "slotIndex": zod.number().nullable(),
+  "isCaptain": zod.boolean(),
+  "playerName": zod.string(),
+  "jerseyNumber": zod.number(),
+  "position": zod.string()
+}))
+})
+
+
+/**
+ * @summary Replace a match's formation and lineup entries
+ */
+export const SaveLineupParams = zod.object({
+  "matchId": zod.coerce.number()
+})
+
+export const SaveLineupBody = zod.object({
+  "formation": zod.string(),
+  "entries": zod.array(zod.object({
+  "playerId": zod.number(),
+  "slotIndex": zod.number().nullable(),
+  "isCaptain": zod.boolean().optional()
+}))
+})
+
+export const SaveLineupResponse = zod.object({
+  "matchId": zod.number().optional(),
+  "formation": zod.string().optional(),
+  "saved": zod.number().optional()
+})
 
 
 /**
@@ -324,6 +410,30 @@ export const GetAttendanceSummaryResponse = zod.array(GetAttendanceSummaryRespon
 
 
 /**
+ * @summary Get the attendance schedule — every training/match day with per-day presence
+ */
+export const GetAttendanceScheduleParams = zod.object({
+  "teamId": zod.coerce.number()
+})
+
+export const GetAttendanceScheduleQueryParams = zod.object({
+  "days": zod.coerce.number().optional().describe('Only include days within the last N days. Omit for full history.')
+})
+
+export const GetAttendanceScheduleResponseItem = zod.object({
+  "date": zod.string(),
+  "sessionType": zod.string(),
+  "totalPlayers": zod.number(),
+  "presentCount": zod.number(),
+  "absentCount": zod.number(),
+  "attendanceRate": zod.number(),
+  "presentPlayerNames": zod.array(zod.string()),
+  "absentPlayerNames": zod.array(zod.string())
+})
+export const GetAttendanceScheduleResponse = zod.array(GetAttendanceScheduleResponseItem)
+
+
+/**
  * @summary List all goals for a team
  */
 export const ListGoalsParams = zod.object({
@@ -338,7 +448,8 @@ export const ListGoalsResponseItem = zod.object({
   "scorerPlayerId": zod.number().nullish(),
   "scorerName": zod.string().nullish(),
   "minute": zod.number(),
-  "method": zod.enum(['open_play', 'free_kick', 'header', 'counter_attack', 'cross', 'penalty']),
+  "method": zod.enum(['open_play', 'free_kick', 'header', 'counter_attack', 'cross', 'penalty', 'own_goal']),
+  "period": zod.enum(['first_half', 'second_half', 'extra_time']).optional(),
   "createdAt": zod.string()
 })
 export const ListGoalsResponse = zod.array(ListGoalsResponseItem)
@@ -360,7 +471,8 @@ export const CreateGoalBody = zod.object({
   "type": zod.enum(['scored', 'conceded']),
   "scorerPlayerId": zod.number().optional(),
   "minute": zod.number().min(createGoalBodyMinuteMin),
-  "method": zod.enum(['open_play', 'free_kick', 'header', 'counter_attack', 'cross', 'penalty'])
+  "method": zod.enum(['open_play', 'free_kick', 'header', 'counter_attack', 'cross', 'penalty', 'own_goal']),
+  "period": zod.enum(['first_half', 'second_half', 'extra_time']).optional()
 })
 
 export const CreateGoalResponse = zod.object({
@@ -371,7 +483,8 @@ export const CreateGoalResponse = zod.object({
   "scorerPlayerId": zod.number().nullish(),
   "scorerName": zod.string().nullish(),
   "minute": zod.number(),
-  "method": zod.enum(['open_play', 'free_kick', 'header', 'counter_attack', 'cross', 'penalty']),
+  "method": zod.enum(['open_play', 'free_kick', 'header', 'counter_attack', 'cross', 'penalty', 'own_goal']),
+  "period": zod.enum(['first_half', 'second_half', 'extra_time']).optional(),
   "createdAt": zod.string()
 })
 
@@ -420,6 +533,7 @@ export const ListCardsResponseItem = zod.object({
   "playerName": zod.string().nullish(),
   "cardType": zod.enum(['yellow', 'red']),
   "minute": zod.number(),
+  "period": zod.enum(['first_half', 'second_half', 'extra_time']).optional(),
   "createdAt": zod.string()
 })
 export const ListCardsResponse = zod.array(ListCardsResponseItem)
@@ -440,7 +554,8 @@ export const CreateCardBody = zod.object({
   "matchId": zod.number(),
   "playerId": zod.number(),
   "cardType": zod.enum(['yellow', 'red']),
-  "minute": zod.number().min(createCardBodyMinuteMin)
+  "minute": zod.number().min(createCardBodyMinuteMin),
+  "period": zod.enum(['first_half', 'second_half', 'extra_time']).optional()
 })
 
 export const CreateCardResponse = zod.object({
@@ -451,6 +566,7 @@ export const CreateCardResponse = zod.object({
   "playerName": zod.string().nullish(),
   "cardType": zod.enum(['yellow', 'red']),
   "minute": zod.number(),
+  "period": zod.enum(['first_half', 'second_half', 'extra_time']).optional(),
   "createdAt": zod.string()
 })
 
@@ -566,12 +682,16 @@ export const GetDashboardResponse = zod.object({
   "losses": zod.number(),
   "goalsScored": zod.number(),
   "goalsConceded": zod.number(),
+  "cleanSheets": zod.number(),
+  "goalDifference": zod.number(),
+  "avgAttendanceRate": zod.number(),
   "recentMatches": zod.array(zod.object({
   "id": zod.number(),
   "teamId": zod.number(),
   "opponent": zod.string(),
   "date": zod.string(),
   "type": zod.enum(['league', 'friendly', 'cup']),
+  "formation": zod.string().optional(),
   "ourGoals": zod.number(),
   "theirGoals": zod.number(),
   "createdAt": zod.string()

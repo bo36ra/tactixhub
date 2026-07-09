@@ -17,6 +17,9 @@ export interface DashboardStats {
   losses: number;
   goalsScored: number;
   goalsConceded: number;
+  cleanSheets: number;
+  goalDifference: number;
+  avgAttendanceRate: number;
   recentMatches: Match[];
   topScorers: ScorerSummary[];
   cardWarnings: CardSummary[];

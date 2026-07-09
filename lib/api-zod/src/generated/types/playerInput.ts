@@ -14,5 +14,6 @@ export interface PlayerInput {
   jerseyNumber: number;
   position: PlayerInputPosition;
   age?: number;
+  nationality?: string;
   status: PlayerInputStatus;
 }

@@ -13,6 +13,7 @@ export interface Match {
   opponent: string;
   date: string;
   type: MatchType;
+  formation?: string;
   ourGoals: number;
   theirGoals: number;
   createdAt: string;

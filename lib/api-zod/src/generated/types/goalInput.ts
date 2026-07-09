@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { GoalInputMethod } from './goalInputMethod';
+import type { GoalInputPeriod } from './goalInputPeriod';
 import type { GoalInputType } from './goalInputType';
 
 export interface GoalInput {
@@ -15,4 +16,5 @@ export interface GoalInput {
   /** @minimum 0 */
   minute: number;
   method: GoalInputMethod;
+  period?: GoalInputPeriod;
 }

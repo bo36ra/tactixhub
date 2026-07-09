@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CardCardType } from './cardCardType';
+import type { CardPeriod } from './cardPeriod';
 
 export interface Card {
   id: number;
@@ -16,5 +17,6 @@ export interface Card {
   playerName?: string | null;
   cardType: CardCardType;
   minute: number;
+  period?: CardPeriod;
   createdAt: string;
 }

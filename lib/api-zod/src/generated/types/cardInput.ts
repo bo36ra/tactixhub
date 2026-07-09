@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CardInputCardType } from './cardInputCardType';
+import type { CardInputPeriod } from './cardInputPeriod';
 
 export interface CardInput {
   matchId: number;
@@ -13,4 +14,5 @@ export interface CardInput {
   cardType: CardInputCardType;
   /** @minimum 0 */
   minute: number;
+  period?: CardInputPeriod;
 }

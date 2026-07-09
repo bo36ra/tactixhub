@@ -16,4 +16,5 @@ export const GoalInputMethod = {
   counter_attack: 'counter_attack',
   cross: 'cross',
   penalty: 'penalty',
+  own_goal: 'own_goal',
 } as const;

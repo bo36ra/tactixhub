@@ -22,22 +22,28 @@ import type {
 import type {
   Attendance,
   AttendanceInput,
+  AttendanceScheduleEntry,
   AttendanceSummary,
   Card,
   CardInput,
   CardSummary,
   DashboardStats,
+  GetAttendanceScheduleParams,
   Goal,
   GoalInput,
   HealthStatus,
+  Lineup,
   Match,
   MatchInput,
   Player,
   PlayerInput,
+  PlayerTimeline,
   PlayerUpdate,
   PlayingTime,
   PlayingTimeInput,
   PlayingTimeSummary,
+  SaveLineup200,
+  SaveLineupBody,
   ScorerSummary,
   Team,
   TeamInput,
@@ -1026,6 +1032,231 @@ export const useDeleteMatch = <TError = ErrorType<unknown>,
       return useMutation(getDeleteMatchMutationOptions(options));
     }
 
+export const getGetPlayerTimelineUrl = (playerId: number,) => {
+
+
+
+
+  return `/api/players/${playerId}/timeline`
+}
+
+/**
+ * @summary Get a player's full history — every match/training day connected in one timeline
+ */
+export const getPlayerTimeline = async (playerId: number, options?: RequestInit): Promise<PlayerTimeline> => {
+
+  return customFetch<PlayerTimeline>(getGetPlayerTimelineUrl(playerId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlayerTimelineQueryKey = (playerId: number,) => {
+    return [
+    `/api/players/${playerId}/timeline`
+    ] as const;
+    }
+
+
+export const getGetPlayerTimelineQueryOptions = <TData = Awaited<ReturnType<typeof getPlayerTimeline>>, TError = ErrorType<unknown>>(playerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlayerTimeline>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlayerTimelineQueryKey(playerId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlayerTimeline>>> = ({ signal }) => getPlayerTimeline(playerId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: playerId !== null && playerId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlayerTimeline>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlayerTimelineQueryResult = NonNullable<Awaited<ReturnType<typeof getPlayerTimeline>>>
+export type GetPlayerTimelineQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get a player's full history — every match/training day connected in one timeline
+ */
+
+export function useGetPlayerTimeline<TData = Awaited<ReturnType<typeof getPlayerTimeline>>, TError = ErrorType<unknown>>(
+ playerId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlayerTimeline>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlayerTimelineQueryOptions(playerId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetLineupUrl = (matchId: number,) => {
+
+
+
+
+  return `/api/matches/${matchId}/lineup`
+}
+
+/**
+ * @summary Get a match's formation and assigned players
+ */
+export const getLineup = async (matchId: number, options?: RequestInit): Promise<Lineup> => {
+
+  return customFetch<Lineup>(getGetLineupUrl(matchId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLineupQueryKey = (matchId: number,) => {
+    return [
+    `/api/matches/${matchId}/lineup`
+    ] as const;
+    }
+
+
+export const getGetLineupQueryOptions = <TData = Awaited<ReturnType<typeof getLineup>>, TError = ErrorType<unknown>>(matchId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLineup>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLineupQueryKey(matchId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLineup>>> = ({ signal }) => getLineup(matchId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: matchId !== null && matchId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLineup>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLineupQueryResult = NonNullable<Awaited<ReturnType<typeof getLineup>>>
+export type GetLineupQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get a match's formation and assigned players
+ */
+
+export function useGetLineup<TData = Awaited<ReturnType<typeof getLineup>>, TError = ErrorType<unknown>>(
+ matchId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLineup>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLineupQueryOptions(matchId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSaveLineupUrl = (matchId: number,) => {
+
+
+
+
+  return `/api/matches/${matchId}/lineup`
+}
+
+/**
+ * @summary Replace a match's formation and lineup entries
+ */
+export const saveLineup = async (matchId: number,
+    saveLineupBody: SaveLineupBody, options?: RequestInit): Promise<SaveLineup200> => {
+
+  return customFetch<SaveLineup200>(getSaveLineupUrl(matchId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(saveLineupBody)
+  }
+);}
+
+
+
+
+export const getSaveLineupMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveLineup>>, TError,{matchId: number;data: BodyType<SaveLineupBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveLineup>>, TError,{matchId: number;data: BodyType<SaveLineupBody>}, TContext> => {
+
+const mutationKey = ['saveLineup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveLineup>>, {matchId: number;data: BodyType<SaveLineupBody>}> = (props) => {
+          const {matchId,data} = props ?? {};
+
+          return  saveLineup(matchId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveLineupMutationResult = NonNullable<Awaited<ReturnType<typeof saveLineup>>>
+    export type SaveLineupMutationBody = BodyType<SaveLineupBody>
+    export type SaveLineupMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Replace a match's formation and lineup entries
+ */
+export const useSaveLineup = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveLineup>>, TError,{matchId: number;data: BodyType<SaveLineupBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveLineup>>,
+        TError,
+        {matchId: number;data: BodyType<SaveLineupBody>},
+        TContext
+      > => {
+      return useMutation(getSaveLineupMutationOptions(options));
+    }
+
 export const getListAttendanceUrl = (teamId: number,) => {
 
 
@@ -1239,6 +1470,95 @@ export function useGetAttendanceSummary<TData = Awaited<ReturnType<typeof getAtt
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAttendanceSummaryQueryOptions(teamId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAttendanceScheduleUrl = (teamId: number,
+    params?: GetAttendanceScheduleParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/teams/${teamId}/attendance/schedule?${stringifiedParams}` : `/api/teams/${teamId}/attendance/schedule`
+}
+
+/**
+ * @summary Get the attendance schedule — every training/match day with per-day presence
+ */
+export const getAttendanceSchedule = async (teamId: number,
+    params?: GetAttendanceScheduleParams, options?: RequestInit): Promise<AttendanceScheduleEntry[]> => {
+
+  return customFetch<AttendanceScheduleEntry[]>(getGetAttendanceScheduleUrl(teamId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAttendanceScheduleQueryKey = (teamId: number,
+    params?: GetAttendanceScheduleParams,) => {
+    return [
+    `/api/teams/${teamId}/attendance/schedule`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAttendanceScheduleQueryOptions = <TData = Awaited<ReturnType<typeof getAttendanceSchedule>>, TError = ErrorType<unknown>>(teamId: number,
+    params?: GetAttendanceScheduleParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAttendanceSchedule>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAttendanceScheduleQueryKey(teamId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAttendanceSchedule>>> = ({ signal }) => getAttendanceSchedule(teamId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: teamId !== null && teamId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAttendanceSchedule>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAttendanceScheduleQueryResult = NonNullable<Awaited<ReturnType<typeof getAttendanceSchedule>>>
+export type GetAttendanceScheduleQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the attendance schedule — every training/match day with per-day presence
+ */
+
+export function useGetAttendanceSchedule<TData = Awaited<ReturnType<typeof getAttendanceSchedule>>, TError = ErrorType<unknown>>(
+ teamId: number,
+    params?: GetAttendanceScheduleParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAttendanceSchedule>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAttendanceScheduleQueryOptions(teamId,params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

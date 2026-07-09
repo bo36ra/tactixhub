@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { GoalMethod } from './goalMethod';
+import type { GoalPeriod } from './goalPeriod';
 import type { GoalType } from './goalType';
 
 export interface Goal {
@@ -19,5 +20,6 @@ export interface Goal {
   scorerName?: string | null;
   minute: number;
   method: GoalMethod;
+  period?: GoalPeriod;
   createdAt: string;
 }

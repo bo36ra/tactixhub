@@ -61,6 +61,8 @@ export interface Player {
   position: PlayerPosition;
   /** @nullable */
   age?: number | null;
+  /** @nullable */
+  nationality?: string | null;
   status: PlayerStatus;
   createdAt: string;
 }
@@ -90,6 +92,7 @@ export interface PlayerInput {
   jerseyNumber: number;
   position: PlayerInputPosition;
   age?: number;
+  nationality?: string;
   status: PlayerInputStatus;
 }
 
@@ -117,6 +120,7 @@ export interface PlayerUpdate {
   jerseyNumber?: number;
   position?: PlayerUpdatePosition;
   age?: number;
+  nationality?: string;
   status?: PlayerUpdateStatus;
 }
 
@@ -135,9 +139,64 @@ export interface Match {
   opponent: string;
   date: string;
   type: MatchType;
+  formation?: string;
   ourGoals: number;
   theirGoals: number;
   createdAt: string;
+}
+
+export type PlayerTimelineEntrySessionType = typeof PlayerTimelineEntrySessionType[keyof typeof PlayerTimelineEntrySessionType];
+
+
+export const PlayerTimelineEntrySessionType = {
+  match: 'match',
+  training: 'training',
+} as const;
+
+export interface PlayerTimelineEntry {
+  date: string;
+  sessionType: PlayerTimelineEntrySessionType;
+  present: boolean;
+  matchId?: number;
+  opponent?: string;
+  matchType?: string;
+  ourGoals?: number;
+  theirGoals?: number;
+  minutesPlayed?: number;
+  goalsScored?: number;
+  yellowCards?: number;
+  redCards?: number;
+}
+
+export type PlayerTimelinePlayer = {
+  id: number;
+  name: string;
+  jerseyNumber: number;
+  position: string;
+  age?: number;
+  nationality?: string;
+  status?: string;
+};
+
+export interface PlayerTimeline {
+  player: PlayerTimelinePlayer;
+  timeline: PlayerTimelineEntry[];
+}
+
+export interface LineupEntry {
+  id: number;
+  playerId: number;
+  slotIndex: number | null;
+  isCaptain: boolean;
+  playerName: string;
+  jerseyNumber: number;
+  position: string;
+}
+
+export interface Lineup {
+  matchId: number;
+  formation: string;
+  entries: LineupEntry[];
 }
 
 export type MatchInputType = typeof MatchInputType[keyof typeof MatchInputType];
@@ -206,6 +265,17 @@ export interface AttendanceSummary {
   attendanceRate: number;
 }
 
+export interface AttendanceScheduleEntry {
+  date: string;
+  sessionType: string;
+  totalPlayers: number;
+  presentCount: number;
+  absentCount: number;
+  attendanceRate: number;
+  presentPlayerNames: string[];
+  absentPlayerNames: string[];
+}
+
 export type GoalType = typeof GoalType[keyof typeof GoalType];
 
 
@@ -224,6 +294,16 @@ export const GoalMethod = {
   counter_attack: 'counter_attack',
   cross: 'cross',
   penalty: 'penalty',
+  own_goal: 'own_goal',
+} as const;
+
+export type GoalPeriod = typeof GoalPeriod[keyof typeof GoalPeriod];
+
+
+export const GoalPeriod = {
+  first_half: 'first_half',
+  second_half: 'second_half',
+  extra_time: 'extra_time',
 } as const;
 
 export interface Goal {
@@ -237,6 +317,7 @@ export interface Goal {
   scorerName?: string | null;
   minute: number;
   method: GoalMethod;
+  period?: GoalPeriod;
   createdAt: string;
 }
 
@@ -258,6 +339,16 @@ export const GoalInputMethod = {
   counter_attack: 'counter_attack',
   cross: 'cross',
   penalty: 'penalty',
+  own_goal: 'own_goal',
+} as const;
+
+export type GoalInputPeriod = typeof GoalInputPeriod[keyof typeof GoalInputPeriod];
+
+
+export const GoalInputPeriod = {
+  first_half: 'first_half',
+  second_half: 'second_half',
+  extra_time: 'extra_time',
 } as const;
 
 export interface GoalInput {
@@ -267,6 +358,7 @@ export interface GoalInput {
   /** @minimum 0 */
   minute: number;
   method: GoalInputMethod;
+  period?: GoalInputPeriod;
 }
 
 export interface ScorerSummary {
@@ -286,6 +378,15 @@ export const CardCardType = {
   red: 'red',
 } as const;
 
+export type CardPeriod = typeof CardPeriod[keyof typeof CardPeriod];
+
+
+export const CardPeriod = {
+  first_half: 'first_half',
+  second_half: 'second_half',
+  extra_time: 'extra_time',
+} as const;
+
 export interface Card {
   id: number;
   teamId: number;
@@ -295,6 +396,7 @@ export interface Card {
   playerName?: string | null;
   cardType: CardCardType;
   minute: number;
+  period?: CardPeriod;
   createdAt: string;
 }
 
@@ -306,12 +408,22 @@ export const CardInputCardType = {
   red: 'red',
 } as const;
 
+export type CardInputPeriod = typeof CardInputPeriod[keyof typeof CardInputPeriod];
+
+
+export const CardInputPeriod = {
+  first_half: 'first_half',
+  second_half: 'second_half',
+  extra_time: 'extra_time',
+} as const;
+
 export interface CardInput {
   matchId: number;
   playerId: number;
   cardType: CardInputCardType;
   /** @minimum 0 */
   minute: number;
+  period?: CardInputPeriod;
 }
 
 export type CardSummaryStatus = typeof CardSummaryStatus[keyof typeof CardSummaryStatus];
@@ -371,8 +483,35 @@ export interface DashboardStats {
   losses: number;
   goalsScored: number;
   goalsConceded: number;
+  cleanSheets: number;
+  goalDifference: number;
+  avgAttendanceRate: number;
   recentMatches: Match[];
   topScorers: ScorerSummary[];
   cardWarnings: CardSummary[];
 }
+
+export type SaveLineupBodyEntriesItem = {
+  playerId: number;
+  slotIndex: number | null;
+  isCaptain?: boolean;
+};
+
+export type SaveLineupBody = {
+  formation: string;
+  entries: SaveLineupBodyEntriesItem[];
+};
+
+export type SaveLineup200 = {
+  matchId?: number;
+  formation?: string;
+  saved?: number;
+};
+
+export type GetAttendanceScheduleParams = {
+/**
+ * Only include days within the last N days. Omit for full history.
+ */
+days?: number;
+};
 

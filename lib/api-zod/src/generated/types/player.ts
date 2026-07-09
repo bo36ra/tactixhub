@@ -16,6 +16,8 @@ export interface Player {
   position: PlayerPosition;
   /** @nullable */
   age?: number | null;
+  /** @nullable */
+  nationality?: string | null;
   status: PlayerStatus;
   createdAt: string;
 }
