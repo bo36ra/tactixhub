@@ -1,0 +1,228 @@
+import React from 'react';
+import { Link, useLocation } from 'wouter';
+import { useLanguage } from '../lib/i18n';
+import { useTeam } from '../lib/team-context';
+import { useListTeams } from '@workspace/api-client-react';
+import { 
+  LayoutDashboard, 
+  Users, 
+  CalendarCheck, 
+  Swords, 
+  Target, 
+  CreditCard, 
+  Clock,
+  Layers,
+  BarChart2,
+  Menu,
+  Globe,
+  Plus,
+  ChevronsUpDown,
+  Check
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useClerk } from '@clerk/react';
+
+export function Sidebar() {
+  const { t, lang, setLang, isRtl } = useLanguage();
+  const [location] = useLocation();
+  const { activeTeamId, setActiveTeamId } = useTeam();
+  const { data: teams } = useListTeams();
+  const { signOut } = useClerk();
+
+  const navSections = [
+    {
+      label: t('nav.section.overview'),
+      links: [
+        { href: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
+      ],
+    },
+    {
+      label: t('nav.section.squad'),
+      links: [
+        { href: '/players', label: t('nav.players'), icon: Users },
+        { href: '/attendance', label: t('nav.attendance'), icon: CalendarCheck },
+      ],
+    },
+    {
+      label: t('nav.section.competition'),
+      links: [
+        { href: '/matches', label: t('nav.matches'), icon: Swords },
+        { href: '/goals', label: t('nav.goals'), icon: Target },
+        { href: '/cards', label: t('nav.cards'), icon: CreditCard },
+        { href: '/playing-time', label: t('nav.playingTime'), icon: Clock },
+      ],
+    },
+    {
+      label: t('nav.section.manage'),
+      links: [
+        { href: '/teams', label: t('nav.teams'), icon: Layers },
+        { href: '/reports', label: t('nav.reports'), icon: BarChart2 },
+      ],
+    },
+  ];
+
+  const activeTeam = teams?.find(team => team.id === activeTeamId);
+
+  const navLinkClass = (active: boolean) =>
+    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+      active
+        ? 'bg-primary/15 text-primary'
+        : 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground'
+    }`;
+
+  const content = (
+    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground w-64">
+      {/* Logo */}
+      <div className="p-5 flex items-center justify-between border-b border-white/[0.06]">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center shrink-0">
+            <span className="font-display font-bold text-primary-foreground text-xs leading-none">CP</span>
+          </div>
+          <h1 className="font-display font-bold text-[15px] text-foreground tracking-tight">{t('app.title')}</h1>
+        </div>
+        <Button 
+          variant="ghost" 
+          size="icon"
+          aria-label="Toggle language"
+          className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-white/[0.05]"
+          onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}
+        >
+          <Globe className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Active team switcher - prominent card */}
+      <div className="p-3 border-b border-white/[0.06]">
+        {teams && teams.length > 0 ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="w-full flex items-center gap-2.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] px-3 py-2.5 text-start transition-colors">
+                <div className="w-8 h-8 rounded-md bg-primary/15 text-primary flex items-center justify-center shrink-0 font-display font-bold text-xs">
+                  {activeTeam?.name?.slice(0, 2).toUpperCase() || '--'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground truncate">{activeTeam?.name || t('team.select')}</p>
+                  {activeTeam?.season && (
+                    <p className="text-xs text-muted-foreground truncate">{activeTeam.season}</p>
+                  )}
+                </div>
+                <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" dir={isRtl ? 'rtl' : 'ltr'} className="w-56">
+              {teams.map((team) => (
+                <DropdownMenuItem
+                  key={team.id}
+                  onClick={() => setActiveTeamId(team.id)}
+                  className="gap-2 cursor-pointer"
+                >
+                  <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                    {team.id === activeTeamId && <Check className="h-4 w-4 text-primary" />}
+                  </div>
+                  <span className="truncate">{team.name}</span>
+                </DropdownMenuItem>
+              ))}
+              <div className="my-1 h-px bg-border" />
+              <DropdownMenuItem asChild className="gap-2 cursor-pointer text-primary">
+                <Link href="/teams">
+                  <Plus className="h-4 w-4" />
+                  {t('team.create')}
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Link href="/teams" className="flex items-center gap-2.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.07] border border-dashed border-white/[0.12] px-3 py-2.5 transition-colors">
+            <Plus className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-sm text-muted-foreground truncate">{t('team.createFirst')}</span>
+          </Link>
+        )}
+      </div>
+
+      {/* Nav */}
+      <div className="flex-1 px-3 py-3 overflow-y-auto">
+        {navSections.map((section, idx) => (
+          <div key={section.label} className={idx > 0 ? 'pt-4' : ''}>
+            <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+              {section.label}
+            </p>
+            <div className="space-y-0.5">
+              {section.links.map((link) => {
+                const active = location === link.href;
+                const Icon = link.icon;
+                return (
+                  <Link key={link.href} href={link.href} className={navLinkClass(active)}>
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer: logout */}
+      <div className="p-3 border-t border-white/[0.06]">
+        <Button
+          variant="ghost"
+          className="w-full h-9 justify-start text-xs text-muted-foreground hover:text-foreground hover:bg-white/[0.04] px-3"
+          onClick={() => signOut({ redirectUrl: '/' })}
+        >
+          {t('nav.logout')}
+        </Button>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <div className="hidden md:block h-screen fixed inset-y-0 z-50">
+        {content}
+      </div>
+      <div className="md:hidden fixed top-0 inset-x-0 h-14 bg-sidebar border-b border-white/[0.06] flex items-center px-4 justify-between z-40">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center">
+            <span className="font-display font-bold text-primary-foreground text-[10px] leading-none">CP</span>
+          </div>
+          <h1 className="font-display font-bold text-sm text-foreground tracking-tight">{t('app.title')}</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}>
+            <Globe className="h-4 w-4" />
+          </Button>
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-white">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side={isRtl ? "right" : "left"} className="p-0 border-r-white/10 w-64">
+              {content}
+            </SheetContent>
+          </Sheet>
+        </div>
+      </div>
+    </>
+  );
+}
+
+export function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-background">
+      <Sidebar />
+      <div className="md:ms-64 pt-16 md:pt-0 min-h-screen flex flex-col rtl:md:mr-64 rtl:md:ms-0">
+        <main className="flex-1 p-4 md:p-8">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}

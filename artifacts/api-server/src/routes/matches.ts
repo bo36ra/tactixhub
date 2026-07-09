@@ -1,0 +1,103 @@
+import { Router } from "express";
+import { eq, and, desc } from "drizzle-orm";
+import { db, matchesTable, teamsTable } from "@workspace/db";
+import { requireAuth } from "../middlewares/requireAuth";
+
+const router = Router();
+
+async function verifyTeamOwnership(userId: string, teamId: number): Promise<boolean> {
+  const [team] = await db
+    .select()
+    .from(teamsTable)
+    .where(and(eq(teamsTable.id, teamId), eq(teamsTable.userId, userId)));
+  return !!team;
+}
+
+// List matches
+router.get("/teams/:teamId/matches", requireAuth, async (req, res) => {
+  const userId = (req as any).userId as string;
+  const teamId = parseInt(req.params.teamId as string);
+  if (!(await verifyTeamOwnership(userId, teamId))) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  try {
+    const matches = await db
+      .select()
+      .from(matchesTable)
+      .where(eq(matchesTable.teamId, teamId))
+      .orderBy(desc(matchesTable.date));
+    res.json(matches.map(mapMatch));
+  } catch (err) {
+    req.log.error({ err }, "Failed to list matches");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Create match
+router.post("/teams/:teamId/matches", requireAuth, async (req, res) => {
+  const userId = (req as any).userId as string;
+  const teamId = parseInt(req.params.teamId as string);
+  if (!(await verifyTeamOwnership(userId, teamId))) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  const { opponent, date, type, ourGoals, theirGoals } = req.body;
+  if (!opponent || !date || !type) {
+    res.status(400).json({ error: "opponent, date, and type are required" });
+    return;
+  }
+  try {
+    const [match] = await db
+      .insert(matchesTable)
+      .values({
+        teamId,
+        opponent,
+        date,
+        type,
+        ourGoals: ourGoals ?? 0,
+        theirGoals: theirGoals ?? 0,
+      })
+      .returning();
+    res.status(201).json(mapMatch(match));
+  } catch (err) {
+    req.log.error({ err }, "Failed to create match");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Delete match
+router.delete("/teams/:teamId/matches/:matchId", requireAuth, async (req, res) => {
+  const userId = (req as any).userId as string;
+  const teamId = parseInt(req.params.teamId as string);
+  const matchId = parseInt(req.params.matchId as string);
+  if (!(await verifyTeamOwnership(userId, teamId))) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  try {
+    await db
+      .delete(matchesTable)
+      .where(and(eq(matchesTable.id, matchId), eq(matchesTable.teamId, teamId)));
+    res.status(204).send();
+  } catch (err) {
+    req.log.error({ err }, "Failed to delete match");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+function mapMatch(m: typeof matchesTable.$inferSelect) {
+  return {
+    id: m.id,
+    teamId: m.teamId,
+    opponent: m.opponent,
+    date: m.date,
+    type: m.type,
+    formation: m.formation,
+    ourGoals: m.ourGoals,
+    theirGoals: m.theirGoals,
+    createdAt: m.createdAt.toISOString(),
+  };
+}
+
+export default router;

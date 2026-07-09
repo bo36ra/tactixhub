@@ -1,0 +1,207 @@
+# Coach Planner — Lovable Prompt
+
+---
+
+Build a **bilingual (Arabic/English) football team management web app** called **Coach Planner**.
+
+## Core Requirements
+
+- Full RTL support for Arabic, LTR for English
+- Toggle language button (AR ↔ EN) that switches the entire UI instantly
+- Clean black & white design — sidebar dark (#111), content area light (#F5F5F5), white cards
+- All data persists in a database (Supabase)
+- Mobile responsive
+
+---
+
+## App Structure
+
+### Sidebar (always visible)
+- App logo: "Coach Planner"
+- Language toggle button (AR/EN)
+- Navigation links:
+  - 📊 Dashboard
+  - 👤 Players
+  - ✅ Attendance
+  - ⚽ Matches
+  - 🎯 Goals
+  - 🟨 Cards
+  - ⏱️ Playing Time
+- Team selector dropdown at the bottom (user can have multiple teams)
+
+---
+
+## Pages & Features
+
+### 1. Dashboard
+Stats row (4 cards):
+- Total players in squad
+- Wins / Total matches
+- Goals scored
+- Goals conceded
+
+Below stats:
+- Recent matches list (last 3) with result pill (Win/Loss/Draw)
+- Top scorers list
+- Card warnings list (players with 2+ yellow cards or any red)
+
+---
+
+### 2. Players
+Table with columns: # (jersey number), Name, Position, Age, Status, Delete button
+
+Add Player modal with fields:
+- Full name (text)
+- Jersey number (number)
+- Position (select: Goalkeeper / Defender / Midfielder / Forward)
+- Age (number)
+- Status (select: Active / Injured / Suspended)
+
+Delete player with confirmation.
+
+---
+
+### 3. Attendance
+Session form at top:
+- Date picker
+- Session type (Training / Match)
+- Save button
+
+Player list below with two buttons per player: Present ✅ / Absent ❌  
+Toggle behavior — clicking same state deselects.
+
+Below: Attendance summary table showing each player's total present, absent, and attendance rate % with color-coded pill (green ≥80%, yellow ≥60%, red <60%).
+
+---
+
+### 4. Matches
+List of all matches (most recent first), each card shows:
+- Opponent name
+- Date and match type (League / Friendly / Cup)
+- Score (our goals – their goals)
+- Result pill: Win (green) / Loss (red) / Draw (yellow)
+- Goal events (scorer name + minute)
+- Card events (yellow/red card + player name)
+- Delete button
+
+Add Match modal:
+- Opponent name
+- Date
+- Match type (League / Friendly / Cup)
+- Our goals (number)
+- Their goals (number)
+
+---
+
+### 5. Goals
+Two sections:
+
+**Top Scorers table:**
+Columns: Rank, Player, Goals Scored, Goals Conceded (only shown for goalkeeper)
+
+**Goals Conceded log table:**
+Columns: Match, Method, Minute, Label ("Conceded")
+
+Add Goal modal:
+- Type: Goal Scored / Goal Conceded
+- Match (select from existing matches)
+- Scorer (select from players — only shown if type = scored)
+- Minute
+- Method (select: Open Play / Free Kick / Header / Counter Attack / Cross / Penalty)
+
+---
+
+### 6. Cards & Discipline
+Table: Player, Yellow cards count, Red cards count, Status pill
+
+Status logic:
+- Red card → "Suspended" (red pill)
+- 3+ yellows → "Warning" (yellow pill)
+- 1-2 yellows → "Caution" (yellow pill)
+- 0 cards → "Clean" (green pill)
+
+Add Card modal:
+- Player (select)
+- Match (select)
+- Card type (Yellow / Red)
+- Minute
+
+---
+
+### 7. Playing Time
+Table: Player, Total Minutes, Matches Played, Avg per Match, Participation % (progress bar)
+
+Participation % = total minutes / (matches count × 90) × 100
+
+Progress bar color: green ≥70%, yellow ≥40%, red <40%
+
+Sorted by total minutes descending.
+
+Add Minutes modal:
+- Match (select)
+- List of all players with a number input (minutes played) next to each name
+
+---
+
+## Database Schema (Supabase)
+
+```
+teams: id, name, age_group, season, user_id, created_at
+players: id, team_id, name, jersey_number, position, age, status, created_at
+matches: id, team_id, opponent, date, type, our_goals, their_goals, created_at
+attendance: id, team_id, player_id, date, session_type, present, created_at
+goals: id, team_id, match_id, type (scored/conceded), scorer_player_id, minute, method, created_at
+cards: id, team_id, match_id, player_id, card_type (yellow/red), minute, created_at
+playing_time: id, team_id, match_id, player_id, minutes, created_at
+```
+
+---
+
+## Design Tokens
+
+```
+--bg: #F5F5F5
+--surface: #FFFFFF
+--border: #D0D0D0
+--text: #111111
+--dim: #444444
+--mute: #888888
+--sidebar: #111111
+--pill-green-bg: #DCFCE7 / color: #166534
+--pill-red-bg: #FEE2E2 / color: #991B1B
+--pill-yellow-bg: #FEF9C3 / color: #854D0E
+--pill-gray-bg: #F3F4F6 / color: #6B7280
+```
+
+Font: Inter for English, Tajawal for Arabic
+
+---
+
+## Auth
+- Simple email/password auth (Supabase Auth)
+- Each coach sees only their own teams and data
+- Redirect to login if not authenticated
+
+---
+
+## Translation Keys (bilingual)
+The app must support full AR/EN switch including:
+- All navigation labels
+- All table headers
+- All modal labels and placeholders
+- All status pills text
+- All button labels
+- Page titles
+- Empty state messages
+- Alert/confirm messages
+
+Arabic is RTL (dir="rtl"), English is LTR (dir="ltr"). Switching language changes direction instantly without page reload.
+
+---
+
+## Extra Notes
+- Multiple teams per coach (team selector in sidebar)
+- When no team is selected, show prompt to create first team
+- Confirm dialog before any delete action
+- All forms clear after successful submission
+- Show empty state with CTA button when lists are empty

@@ -1,0 +1,1274 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Coach Planner API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: teams
+    description: Team management
+  - name: players
+    description: Player management
+  - name: matches
+    description: Match management
+  - name: attendance
+    description: Attendance management
+  - name: goals
+    description: Goals management
+  - name: cards
+    description: Cards and discipline
+  - name: playing-time
+    description: Playing time management
+  - name: dashboard
+    description: Dashboard statistics
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # Teams
+  /teams:
+    get:
+      operationId: listTeams
+      tags: [teams]
+      summary: List all teams for authenticated user
+      responses:
+        "200":
+          description: List of teams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Team"
+    post:
+      operationId: createTeam
+      tags: [teams]
+      summary: Create a new team
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamInput"
+      responses:
+        "201":
+          description: Created team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+
+  /teams/{teamId}:
+    get:
+      operationId: getTeam
+      tags: [teams]
+      summary: Get a single team
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+    patch:
+      operationId: updateTeam
+      tags: [teams]
+      summary: Update a team
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamUpdate"
+      responses:
+        "200":
+          description: Updated team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+    delete:
+      operationId: deleteTeam
+      tags: [teams]
+      summary: Delete a team
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # Players
+  /teams/{teamId}/players:
+    get:
+      operationId: listPlayers
+      tags: [players]
+      summary: List all players for a team
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of players
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Player"
+    post:
+      operationId: createPlayer
+      tags: [players]
+      summary: Add a player to a team
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayerInput"
+      responses:
+        "201":
+          description: Created player
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+
+  /teams/{teamId}/players/{playerId}:
+    patch:
+      operationId: updatePlayer
+      tags: [players]
+      summary: Update a player
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayerUpdate"
+      responses:
+        "200":
+          description: Updated player
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+    delete:
+      operationId: deletePlayer
+      tags: [players]
+      summary: Delete a player
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # Matches
+  /teams/{teamId}/matches:
+    get:
+      operationId: listMatches
+      tags: [matches]
+      summary: List all matches for a team
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Match"
+    post:
+      operationId: createMatch
+      tags: [matches]
+      summary: Add a match to a team
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchInput"
+      responses:
+        "201":
+          description: Created match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+
+  /teams/{teamId}/matches/{matchId}:
+    delete:
+      operationId: deleteMatch
+      tags: [matches]
+      summary: Delete a match
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # Player profile
+  /players/{playerId}/timeline:
+    get:
+      operationId: getPlayerTimeline
+      tags: [players]
+      summary: Get a player's full history — every match/training day connected in one timeline
+      parameters:
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Player profile with chronological timeline
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerTimeline"
+
+  # Lineups
+  /matches/{matchId}/lineup:
+    get:
+      operationId: getLineup
+      tags: [matches]
+      summary: Get a match's formation and assigned players
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Formation and lineup entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lineup"
+    put:
+      operationId: saveLineup
+      tags: [matches]
+      summary: Replace a match's formation and lineup entries
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [formation, entries]
+              properties:
+                formation:
+                  type: string
+                entries:
+                  type: array
+                  items:
+                    type: object
+                    required: [playerId, slotIndex]
+                    properties:
+                      playerId:
+                        type: integer
+                      slotIndex:
+                        type: integer
+                        nullable: true
+                      isCaptain:
+                        type: boolean
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matchId:
+                    type: integer
+                  formation:
+                    type: string
+                  saved:
+                    type: integer
+
+  # Attendance
+  /teams/{teamId}/attendance:
+    get:
+      operationId: listAttendance
+      tags: [attendance]
+      summary: List attendance records for a team
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of attendance records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Attendance"
+    post:
+      operationId: createAttendance
+      tags: [attendance]
+      summary: Record attendance for a session
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceInput"
+      responses:
+        "201":
+          description: Created attendance record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attendance"
+
+  /teams/{teamId}/attendance/summary:
+    get:
+      operationId: getAttendanceSummary
+      tags: [attendance]
+      summary: Get attendance summary per player
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Attendance summary per player
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendanceSummary"
+
+  /teams/{teamId}/attendance/schedule:
+    get:
+      operationId: getAttendanceSchedule
+      tags: [attendance]
+      summary: Get the attendance schedule — every training/match day with per-day presence
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: days
+          in: query
+          required: false
+          description: Only include days within the last N days. Omit for full history.
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Attendance grouped by day, connecting raw records to per-session presence
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendanceScheduleEntry"
+
+  # Goals
+  /teams/{teamId}/goals:
+    get:
+      operationId: listGoals
+      tags: [goals]
+      summary: List all goals for a team
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of goals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Goal"
+    post:
+      operationId: createGoal
+      tags: [goals]
+      summary: Add a goal record
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoalInput"
+      responses:
+        "201":
+          description: Created goal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Goal"
+
+  /teams/{teamId}/goals/{goalId}:
+    delete:
+      operationId: deleteGoal
+      tags: [goals]
+      summary: Delete a goal record
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: goalId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /teams/{teamId}/goals/scorers:
+    get:
+      operationId: getTopScorers
+      tags: [goals]
+      summary: Get top scorers list for a team
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Top scorers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScorerSummary"
+
+  # Cards
+  /teams/{teamId}/cards:
+    get:
+      operationId: listCards
+      tags: [cards]
+      summary: List all cards for a team
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of cards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Card"
+    post:
+      operationId: createCard
+      tags: [cards]
+      summary: Record a card event
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardInput"
+      responses:
+        "201":
+          description: Created card record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Card"
+
+  /teams/{teamId}/cards/{cardId}:
+    delete:
+      operationId: deleteCard
+      tags: [cards]
+      summary: Delete a card record
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /teams/{teamId}/cards/summary:
+    get:
+      operationId: getCardsSummary
+      tags: [cards]
+      summary: Get card summary per player
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Cards summary per player
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CardSummary"
+
+  # Playing Time
+  /teams/{teamId}/playing-time:
+    get:
+      operationId: listPlayingTime
+      tags: [playing-time]
+      summary: List playing time records for a team
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of playing time records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlayingTime"
+    post:
+      operationId: recordPlayingTime
+      tags: [playing-time]
+      summary: Record playing time for a match
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayingTimeInput"
+      responses:
+        "201":
+          description: Recorded playing time
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlayingTime"
+
+  /teams/{teamId}/playing-time/summary:
+    get:
+      operationId: getPlayingTimeSummary
+      tags: [playing-time]
+      summary: Get playing time summary per player
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Playing time summary per player
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlayingTimeSummary"
+
+  # Dashboard
+  /teams/{teamId}/dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Get dashboard stats for a team
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    Team:
+      type: object
+      required: [id, name, userId, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        ageGroup:
+          type: ["string", "null"]
+        season:
+          type: ["string", "null"]
+        userId:
+          type: string
+        createdAt:
+          type: string
+
+    TeamInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        ageGroup:
+          type: string
+        season:
+          type: string
+
+    TeamUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        ageGroup:
+          type: string
+        season:
+          type: string
+
+    Player:
+      type: object
+      required: [id, teamId, name, jerseyNumber, position, status, createdAt]
+      properties:
+        id:
+          type: integer
+        teamId:
+          type: integer
+        name:
+          type: string
+        jerseyNumber:
+          type: integer
+        position:
+          type: string
+          enum: [goalkeeper, defender, midfielder, forward]
+        age:
+          type: ["integer", "null"]
+        nationality:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [active, injured, suspended]
+        createdAt:
+          type: string
+
+    PlayerInput:
+      type: object
+      required: [name, jerseyNumber, position, status]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        jerseyNumber:
+          type: integer
+        position:
+          type: string
+          enum: [goalkeeper, defender, midfielder, forward]
+        age:
+          type: integer
+        nationality:
+          type: string
+        status:
+          type: string
+          enum: [active, injured, suspended]
+
+    PlayerUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        jerseyNumber:
+          type: integer
+        position:
+          type: string
+          enum: [goalkeeper, defender, midfielder, forward]
+        age:
+          type: integer
+        nationality:
+          type: string
+        status:
+          type: string
+          enum: [active, injured, suspended]
+
+    Match:
+      type: object
+      required: [id, teamId, opponent, date, type, ourGoals, theirGoals, createdAt]
+      properties:
+        id:
+          type: integer
+        teamId:
+          type: integer
+        opponent:
+          type: string
+        date:
+          type: string
+        type:
+          type: string
+          enum: [league, friendly, cup]
+        formation:
+          type: string
+        ourGoals:
+          type: integer
+        theirGoals:
+          type: integer
+        createdAt:
+          type: string
+
+    PlayerTimelineEntry:
+      type: object
+      required: [date, sessionType, present]
+      properties:
+        date:
+          type: string
+        sessionType:
+          type: string
+          enum: [match, training]
+        present:
+          type: boolean
+        matchId:
+          type: integer
+        opponent:
+          type: string
+        matchType:
+          type: string
+        ourGoals:
+          type: integer
+        theirGoals:
+          type: integer
+        minutesPlayed:
+          type: integer
+        goalsScored:
+          type: integer
+        yellowCards:
+          type: integer
+        redCards:
+          type: integer
+
+    PlayerTimeline:
+      type: object
+      required: [player, timeline]
+      properties:
+        player:
+          type: object
+          required: [id, name, jerseyNumber, position]
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            jerseyNumber:
+              type: integer
+            position:
+              type: string
+            age:
+              type: integer
+            nationality:
+              type: string
+            status:
+              type: string
+        timeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlayerTimelineEntry"
+
+    LineupEntry:
+      type: object
+      required: [id, playerId, slotIndex, isCaptain, playerName, jerseyNumber, position]
+      properties:
+        id:
+          type: integer
+        playerId:
+          type: integer
+        slotIndex:
+          type: integer
+          nullable: true
+        isCaptain:
+          type: boolean
+        playerName:
+          type: string
+        jerseyNumber:
+          type: integer
+        position:
+          type: string
+
+    Lineup:
+      type: object
+      required: [matchId, formation, entries]
+      properties:
+        matchId:
+          type: integer
+        formation:
+          type: string
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/LineupEntry"
+
+    MatchInput:
+      type: object
+      required: [opponent, date, type, ourGoals, theirGoals]
+      properties:
+        opponent:
+          type: string
+          minLength: 1
+        date:
+          type: string
+        type:
+          type: string
+          enum: [league, friendly, cup]
+        ourGoals:
+          type: integer
+          minimum: 0
+        theirGoals:
+          type: integer
+          minimum: 0
+
+    Attendance:
+      type: object
+      required: [id, teamId, playerId, date, sessionType, present, createdAt]
+      properties:
+        id:
+          type: integer
+        teamId:
+          type: integer
+        playerId:
+          type: integer
+        date:
+          type: string
+        sessionType:
+          type: string
+          enum: [training, match]
+        present:
+          type: boolean
+        createdAt:
+          type: string
+
+    AttendanceInput:
+      type: object
+      required: [date, sessionType, records]
+      properties:
+        date:
+          type: string
+        sessionType:
+          type: string
+          enum: [training, match]
+        records:
+          type: array
+          items:
+            type: object
+            required: [playerId, present]
+            properties:
+              playerId:
+                type: integer
+              present:
+                type: boolean
+
+    AttendanceSummary:
+      type: object
+      required: [playerId, playerName, jerseyNumber, totalPresent, totalAbsent, attendanceRate]
+      properties:
+        playerId:
+          type: integer
+        playerName:
+          type: string
+        jerseyNumber:
+          type: integer
+        totalPresent:
+          type: integer
+        totalAbsent:
+          type: integer
+        attendanceRate:
+          type: number
+
+    AttendanceScheduleEntry:
+      type: object
+      required: [date, sessionType, totalPlayers, presentCount, absentCount, attendanceRate, presentPlayerNames, absentPlayerNames]
+      properties:
+        date:
+          type: string
+        sessionType:
+          type: string
+        totalPlayers:
+          type: integer
+        presentCount:
+          type: integer
+        absentCount:
+          type: integer
+        attendanceRate:
+          type: number
+        presentPlayerNames:
+          type: array
+          items:
+            type: string
+        absentPlayerNames:
+          type: array
+          items:
+            type: string
+
+    Goal:
+      type: object
+      required: [id, teamId, matchId, type, minute, method, createdAt]
+      properties:
+        id:
+          type: integer
+        teamId:
+          type: integer
+        matchId:
+          type: integer
+        type:
+          type: string
+          enum: [scored, conceded]
+        scorerPlayerId:
+          type: ["integer", "null"]
+        scorerName:
+          type: ["string", "null"]
+        minute:
+          type: integer
+        method:
+          type: string
+          enum: [open_play, free_kick, header, counter_attack, cross, penalty, own_goal]
+        period:
+          type: string
+          enum: [first_half, second_half, extra_time]
+        createdAt:
+          type: string
+
+    GoalInput:
+      type: object
+      required: [matchId, type, minute, method]
+      properties:
+        matchId:
+          type: integer
+        type:
+          type: string
+          enum: [scored, conceded]
+        scorerPlayerId:
+          type: integer
+        minute:
+          type: integer
+          minimum: 0
+        method:
+          type: string
+          enum: [open_play, free_kick, header, counter_attack, cross, penalty, own_goal]
+        period:
+          type: string
+          enum: [first_half, second_half, extra_time]
+
+    ScorerSummary:
+      type: object
+      required: [playerId, playerName, jerseyNumber, position, goalsScored, goalsConceded]
+      properties:
+        playerId:
+          type: integer
+        playerName:
+          type: string
+        jerseyNumber:
+          type: integer
+        position:
+          type: string
+        goalsScored:
+          type: integer
+        goalsConceded:
+          type: integer
+
+    Card:
+      type: object
+      required: [id, teamId, matchId, playerId, cardType, minute, createdAt]
+      properties:
+        id:
+          type: integer
+        teamId:
+          type: integer
+        matchId:
+          type: integer
+        playerId:
+          type: integer
+        playerName:
+          type: ["string", "null"]
+        cardType:
+          type: string
+          enum: [yellow, red]
+        minute:
+          type: integer
+        period:
+          type: string
+          enum: [first_half, second_half, extra_time]
+        createdAt:
+          type: string
+
+    CardInput:
+      type: object
+      required: [matchId, playerId, cardType, minute]
+      properties:
+        matchId:
+          type: integer
+        playerId:
+          type: integer
+        cardType:
+          type: string
+          enum: [yellow, red]
+        minute:
+          type: integer
+          minimum: 0
+        period:
+          type: string
+          enum: [first_half, second_half, extra_time]
+
+    CardSummary:
+      type: object
+      required: [playerId, playerName, jerseyNumber, yellowCards, redCards, status]
+      properties:
+        playerId:
+          type: integer
+        playerName:
+          type: string
+        jerseyNumber:
+          type: integer
+        yellowCards:
+          type: integer
+        redCards:
+          type: integer
+        status:
+          type: string
+          enum: [clean, caution, warning, suspended]
+
+    PlayingTime:
+      type: object
+      required: [id, teamId, matchId, playerId, minutes, createdAt]
+      properties:
+        id:
+          type: integer
+        teamId:
+          type: integer
+        matchId:
+          type: integer
+        playerId:
+          type: integer
+        minutes:
+          type: integer
+        createdAt:
+          type: string
+
+    PlayingTimeInput:
+      type: object
+      required: [matchId, entries]
+      properties:
+        matchId:
+          type: integer
+        entries:
+          type: array
+          items:
+            type: object
+            required: [playerId, minutes]
+            properties:
+              playerId:
+                type: integer
+              minutes:
+                type: integer
+                minimum: 0
+
+    PlayingTimeSummary:
+      type: object
+      required: [playerId, playerName, jerseyNumber, totalMinutes, matchesPlayed, avgPerMatch, participationPct]
+      properties:
+        playerId:
+          type: integer
+        playerName:
+          type: string
+        jerseyNumber:
+          type: integer
+        totalMinutes:
+          type: integer
+        matchesPlayed:
+          type: integer
+        avgPerMatch:
+          type: number
+        participationPct:
+          type: number
+
+    DashboardStats:
+      type: object
+      required: [totalPlayers, totalMatches, wins, draws, losses, goalsScored, goalsConceded, cleanSheets, goalDifference, avgAttendanceRate, recentMatches, topScorers, cardWarnings]
+      properties:
+        totalPlayers:
+          type: integer
+        totalMatches:
+          type: integer
+        wins:
+          type: integer
+        draws:
+          type: integer
+        losses:
+          type: integer
+        goalsScored:
+          type: integer
+        goalsConceded:
+          type: integer
+        cleanSheets:
+          type: integer
+        goalDifference:
+          type: integer
+        avgAttendanceRate:
+          type: number
+        recentMatches:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+        topScorers:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScorerSummary"
+        cardWarnings:
+          type: array
+          items:
+            $ref: "#/components/schemas/CardSummary"

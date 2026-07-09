@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Coach Planner"
+version = "1.0.0"
+id = "artifacts/coach-planner"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26106
+
+[services.development]
+run = "pnpm --filter @workspace/coach-planner run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/coach-planner", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/coach-planner/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26106"
+BASE_PATH = "/"

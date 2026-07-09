@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "dcjPdH8Jkl6I-T39Z2Ozz"
+uri = "file://attached_assets/Pasted--Coach-Planner-Lovable-Prompt-Build-a-bilingual-Arabic-_1783287886707.txt"
+type = "text"
+title = "Coach Planner — Original Prompt"
