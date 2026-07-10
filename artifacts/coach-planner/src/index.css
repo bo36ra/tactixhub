@@ -36,6 +36,8 @@
 
   --color-brand-yellow: hsl(var(--brand-yellow));
   --color-brand-yellow-foreground: hsl(var(--brand-yellow-foreground));
+  --color-brand-green: hsl(var(--brand-green));
+  --color-brand-green-foreground: hsl(var(--brand-green-foreground));
   --color-accent-border: var(--accent-border);
 
   --color-destructive: hsl(var(--destructive));
@@ -86,10 +88,10 @@
   --popover-foreground:  140 18% 90%;
   --popover-border:      150 8% 17%;
 
-  /* Primary – pitch green from the logo badge, chalk text on top
-     (like the white X on the green board) */
-  --primary:             147 55% 38%; /* #2C9657 */
-  --primary-foreground:  140 30% 97%;
+  /* Primary – the run-arrow yellow from the logo. Dark text on top:
+     white on yellow is unreadable, so buttons read like the arrow itself. */
+  --primary:             48 100% 65%; /* #FFD84D */
+  --primary-foreground:  45 60% 10%;  /* near-black warm */
 
   /* Secondary surface */
   --secondary:           150 8% 13%;
@@ -108,12 +110,16 @@
   --brand-yellow:        48 100% 65%; /* #FFD84D */
   --brand-yellow-foreground: 45 60% 12%;
 
+  /* Logo pitch green, kept available for occasional use (wins, success) */
+  --brand-green:         147 55% 40%; /* #2E9E5B */
+  --brand-green-foreground: 140 30% 97%;
+
   /* Danger */
   --destructive:         0 72% 51%;
   --destructive-foreground: 0 0% 100%;
 
   --input:               150 8% 16%;
-  --ring:                147 55% 44%;
+  --ring:                48 100% 60%;
 
   /* Fonts */
   --app-font-sans:    'Space Grotesk', sans-serif;
@@ -187,10 +193,10 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 .pill-beige {
-  /* Renamed in spirit only: now the logo's pitch green */
-  background-color: rgba(53, 194, 104, 0.12);
-  color: #4FCB7E;
-  border: 1px solid rgba(53, 194, 104, 0.22);
+  /* Renamed in spirit only: now the logo's run-arrow yellow */
+  background-color: rgba(255, 216, 77, 0.12);
+  color: #FFD84D;
+  border: 1px solid rgba(255, 216, 77, 0.25);
 }
 .pill-yellow {
   /* The logo's run-arrow yellow, for highlight moments */
