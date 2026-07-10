@@ -33,6 +33,9 @@
 
   --color-accent: hsl(var(--accent));
   --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-brand-yellow: hsl(var(--brand-yellow));
+  --color-brand-yellow-foreground: hsl(var(--brand-yellow-foreground));
   --color-accent-border: var(--accent-border);
 
   --color-destructive: hsl(var(--destructive));
@@ -60,48 +63,57 @@
   --button-outline: rgba(255, 255, 255, 0.06);
   --badge-outline: rgba(255, 255, 255, 0.04);
 
-  /* Backgrounds */
-  --background:          30 8% 7%;   /* #100F0D – main surface */
-  --foreground:          35 25% 88%; /* #EAE0D0 – warm off-white */
-  --border:              30 7% 16%;  /* #2B2926 – subtle border */
+  /* Palette derived from the TactixHub logo: pitch green badge,
+     chalk-white markings, and the yellow run-arrow as a sparing accent. */
+
+  /* Backgrounds – deep "night pitch" green-black */
+  --background:          150 12% 6%;  /* #0D1210 – main surface */
+  --foreground:          140 18% 90%; /* #E1EBE4 – chalk white */
+  --border:              150 8% 15%;  /* subtle green-gray border */
 
   /* Cards */
-  --card:                30 8% 10%;  /* #181613 – card surface */
-  --card-foreground:     35 25% 88%;
-  --card-border:         30 7% 16%;
+  --card:                150 10% 9%;  /* #141B17 – card surface */
+  --card-foreground:     140 18% 90%;
+  --card-border:         150 8% 15%;
 
-  /* Sidebar – deepest black */
-  --sidebar:             30 8% 4%;   /* #0A0908 */
-  --sidebar-foreground:  35 25% 88%;
-  --sidebar-border:      30 8% 4%;
+  /* Sidebar – deepest green-black */
+  --sidebar:             150 14% 4%;  /* #080D0A */
+  --sidebar-foreground:  140 18% 90%;
+  --sidebar-border:      150 14% 4%;
 
   /* Popovers / dropdowns */
-  --popover:             30 8% 10%;
-  --popover-foreground:  35 25% 88%;
-  --popover-border:      30 7% 18%;
+  --popover:             150 10% 9%;
+  --popover-foreground:  140 18% 90%;
+  --popover-border:      150 8% 17%;
 
-  /* Primary – warm beige as the accent */
-  --primary:             35 30% 68%; /* #C9AF8E – sandy beige */
-  --primary-foreground:  30 8% 6%;
+  /* Primary – pitch green from the logo badge, chalk text on top
+     (like the white X on the green board) */
+  --primary:             147 55% 38%; /* #2C9657 */
+  --primary-foreground:  140 30% 97%;
 
   /* Secondary surface */
-  --secondary:           30 7% 14%;
-  --secondary-foreground: 35 25% 88%;
+  --secondary:           150 8% 13%;
+  --secondary-foreground: 140 18% 90%;
 
   /* Muted */
-  --muted:               30 7% 14%;
-  --muted-foreground:    35 8% 50%;  /* #807670 – warm gray */
+  --muted:               150 8% 13%;
+  --muted-foreground:    145 8% 52%;  /* mossy gray */
 
   /* Accent hover */
-  --accent:              30 7% 17%;
-  --accent-foreground:   35 25% 88%;
+  --accent:              150 8% 16%;
+  --accent-foreground:   140 18% 90%;
+
+  /* Brand yellow – the run-arrow. Use sparingly: highlights, pills,
+     "star" moments. Not for large surfaces. */
+  --brand-yellow:        48 100% 65%; /* #FFD84D */
+  --brand-yellow-foreground: 45 60% 12%;
 
   /* Danger */
   --destructive:         0 72% 51%;
   --destructive-foreground: 0 0% 100%;
 
-  --input:               30 7% 17%;
-  --ring:                35 30% 68%;
+  --input:               150 8% 16%;
+  --ring:                147 55% 44%;
 
   /* Fonts */
   --app-font-sans:    'Space Grotesk', sans-serif;
@@ -175,7 +187,14 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 .pill-beige {
-  background-color: rgba(201, 175, 142, 0.12);
-  color: #C9AF8E;
-  border: 1px solid rgba(201, 175, 142, 0.20);
+  /* Renamed in spirit only: now the logo's pitch green */
+  background-color: rgba(53, 194, 104, 0.12);
+  color: #4FCB7E;
+  border: 1px solid rgba(53, 194, 104, 0.22);
+}
+.pill-yellow {
+  /* The logo's run-arrow yellow, for highlight moments */
+  background-color: rgba(255, 216, 77, 0.12);
+  color: #FFD84D;
+  border: 1px solid rgba(255, 216, 77, 0.25);
 }

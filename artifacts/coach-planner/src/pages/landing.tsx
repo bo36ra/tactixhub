@@ -54,7 +54,7 @@ export function Landing() {
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
             <div
               className="absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full opacity-[0.07]"
-              style={{ background: 'radial-gradient(circle, #C9AF8E 0%, transparent 70%)' }}
+              style={{ background: 'radial-gradient(circle, #2C9657 0%, transparent 70%)' }}
             />
           </div>
 
