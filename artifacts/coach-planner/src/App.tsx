@@ -42,7 +42,11 @@ const queryClient = new QueryClient({
 // subdomains); that lookup returns nothing on any other host (Vercel, etc.)
 // and silently crashes the whole app before it renders. Just use the key.
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+// If this resolves to an empty string (as opposed to being fully unset),
+// passing it straight to ClerkProvider builds a broken URL with no
+// hostname ("https:///npm/...") and Clerk fails to load with zero
+// visible error on screen. Only pass it through if it's a real value.
+const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL || undefined;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 function stripBase(path: string): string {
