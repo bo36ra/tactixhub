@@ -20,6 +20,9 @@ if (import.meta.env.VITE_API_URL) {
   setBaseUrl(import.meta.env.VITE_API_URL);
 }
 window.__logBoot?.('3. setBaseUrl done, VITE_API_URL=' + (import.meta.env.VITE_API_URL || '(unset)'));
+const _pk = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || '';
+window.__logBoot?.('3b. CLERK_KEY len=' + _pk.length + ' value=[' + _pk + ']');
+window.__logBoot?.('3c. CLERK_PROXY_URL=[' + (import.meta.env.VITE_CLERK_PROXY_URL || '') + ']');
 
 // Without this, any error thrown while loading/rendering the app (missing
 // env var, bad Clerk key, etc.) crashes silently and leaves a blank/black
