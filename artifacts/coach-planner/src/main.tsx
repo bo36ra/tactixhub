@@ -4,6 +4,13 @@ import { setBaseUrl } from '@workspace/api-client-react';
 
 import './index.css';
 
+declare global {
+  interface Window {
+    __logBoot?: (msg: string) => void;
+  }
+}
+window.__logBoot?.('2. main.tsx module started');
+
 // When the frontend and backend are deployed as two separate services
 // (e.g. frontend on Vercel, backend on Railway/Render), point every
 // relative `/api/...` call at the backend's own domain. Leave VITE_API_URL
@@ -11,6 +18,7 @@ import './index.css';
 if (import.meta.env.VITE_API_URL) {
   setBaseUrl(import.meta.env.VITE_API_URL);
 }
+window.__logBoot?.('3. setBaseUrl done, VITE_API_URL=' + (import.meta.env.VITE_API_URL || '(unset)'));
 
 // Without this, any error thrown while loading/rendering the app (missing
 // env var, bad Clerk key, etc.) crashes silently and leaves a blank/black
@@ -60,16 +68,20 @@ function ErrorScreen({ error }: { error: Error }) {
 }
 
 const root = createRoot(document.getElementById('root')!);
+window.__logBoot?.('4. root created, importing App...');
 
 import('./App')
   .then(({ default: App }) => {
+    window.__logBoot?.('5. App module loaded, rendering...');
     root.render(
       <RootErrorBoundary>
         <App />
       </RootErrorBoundary>,
     );
+    window.__logBoot?.('6. render() called');
   })
   .catch((error: Error) => {
+    window.__logBoot?.('FAILED importing App: ' + error.message);
     console.error('Failed to load App:', error);
     root.render(<ErrorScreen error={error} />);
   });

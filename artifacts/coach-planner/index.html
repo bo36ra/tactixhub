@@ -28,17 +28,18 @@
       </div>
     </div>
     <script>
-      // Last-resort net: if the module script below fails outright (404,
-      // wrong MIME type, syntax error before React even loads), this plain
-      // script still runs and writes the error where it's actually visible,
-      // instead of leaving a silent blank page.
-      window.addEventListener('error', function (e) {
+      window.__bootLog = [];
+      window.__logBoot = function (msg) {
+        window.__bootLog.push(msg);
         var el = document.getElementById('pre-boot-error');
-        if (el) el.textContent = 'window error: ' + (e.message || e) + '\n' + (e.filename ? e.filename + ':' + e.lineno : '');
+        if (el) el.textContent = window.__bootLog.join('\n');
+      };
+      window.__logBoot('1. inline script ran');
+      window.addEventListener('error', function (e) {
+        window.__logBoot('window error: ' + (e.message || e) + ' @ ' + (e.filename || '') + ':' + (e.lineno || ''));
       });
       window.addEventListener('unhandledrejection', function (e) {
-        var el = document.getElementById('pre-boot-error');
-        if (el) el.textContent = 'unhandled rejection: ' + (e.reason && e.reason.message ? e.reason.message : e.reason);
+        window.__logBoot('unhandled rejection: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
       });
     </script>
     <script type="module" src="/src/main.tsx"></script>
