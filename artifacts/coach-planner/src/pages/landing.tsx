@@ -26,9 +26,7 @@ export function Landing() {
       {/* ── Nav ── */}
       <header className="fixed inset-x-0 top-0 z-50 h-14 flex items-center px-6 md:px-10 border-b border-border/60 bg-background/80 backdrop-blur-sm">
         <div className="flex-1 flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center shrink-0">
-            <span className="font-display font-bold text-primary-foreground text-xs leading-none">CP</span>
-          </div>
+          <img src="/logo-icon.svg" alt="TactixHub" className="w-7 h-7 shrink-0" />
           <span className="font-display font-bold text-base tracking-tight">{t('app.title')}</span>
         </div>
         <div className="flex items-center gap-3">

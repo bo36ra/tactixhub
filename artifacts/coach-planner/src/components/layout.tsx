@@ -82,9 +82,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="p-5 flex items-center justify-between border-b border-white/[0.06]">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center shrink-0">
-            <span className="font-display font-bold text-primary-foreground text-xs leading-none">CP</span>
-          </div>
+          <img src="/logo-icon.svg" alt="TactixHub" className="w-7 h-7 shrink-0" />
           <h1 className="font-display font-bold text-[15px] text-foreground tracking-tight">{t('app.title')}</h1>
         </div>
         <Button 
@@ -189,9 +187,7 @@ export function Sidebar() {
       </div>
       <div className="md:hidden fixed top-0 inset-x-0 h-14 bg-sidebar border-b border-white/[0.06] flex items-center px-4 justify-between z-40">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center">
-            <span className="font-display font-bold text-primary-foreground text-[10px] leading-none">CP</span>
-          </div>
+          <img src="/logo-icon.svg" alt="TactixHub" className="w-6 h-6" />
           <h1 className="font-display font-bold text-sm text-foreground tracking-tight">{t('app.title')}</h1>
         </div>
         <div className="flex items-center gap-2">

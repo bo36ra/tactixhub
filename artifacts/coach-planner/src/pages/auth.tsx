@@ -1,7 +1,6 @@
 import React from 'react';
 import { SignIn, SignUp } from '@clerk/react';
 import { useLanguage } from '@/lib/i18n';
-import { ShieldHalf } from 'lucide-react';
 import { Link } from 'wouter';
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -12,7 +11,7 @@ export function SignInPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       <div className="absolute top-8 left-8">
         <Link href="/" className="flex items-center gap-2 text-foreground hover:opacity-80">
-          <ShieldHalf className="w-6 h-6" />
+          <img src="/logo-icon.svg" alt="TactixHub" className="w-6 h-6" />
           <span className="font-bold tracking-tight">TactixHub</span>
         </Link>
       </div>
@@ -27,7 +26,7 @@ export function SignUpPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       <div className="absolute top-8 left-8">
         <Link href="/" className="flex items-center gap-2 text-foreground hover:opacity-80">
-          <ShieldHalf className="w-6 h-6" />
+          <img src="/logo-icon.svg" alt="TactixHub" className="w-6 h-6" />
           <span className="font-bold tracking-tight">TactixHub</span>
         </Link>
       </div>
