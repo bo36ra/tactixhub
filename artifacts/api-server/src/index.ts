@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
-import { pool } from "@workspace/db";
+import { db } from "@workspace/db";
+import { sql } from "drizzle-orm";
 
 const rawPort = process.env["PORT"];
 
@@ -16,14 +17,13 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-// Neon's free tier suspends its compute when idle, so the very first real
-// request after a deploy/restart can hit a cold database and time out.
-// Ping it a few times right at boot so it's already awake before traffic
-// arrives, instead of making a user's first request eat that delay.
+// Confirms the database is reachable right at boot (and surfaces a clear
+// error immediately if not), rather than letting a user's first request
+// be the one that discovers a connectivity problem.
 async function warmDatabase() {
   for (let attempt = 1; attempt <= 5; attempt++) {
     try {
-      await pool.query("select 1");
+      await db.execute(sql`select 1`);
       logger.info({ attempt }, "Database warmed up");
       return;
     } catch (err) {
