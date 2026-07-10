@@ -51,9 +51,11 @@ function stripBase(path: string): string {
     : path;
 }
 
-if (!clerkPubKey) {
-  throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
-}
+// If this key is missing, don't crash the whole module at import time —
+// that kind of top-level throw happens before React (or even our own
+// error-logging code) gets a chance to run, and produces a totally silent
+// blank page with nothing on screen. Render a real, visible message instead.
+const clerkKeyMissing = !clerkPubKey;
 
 const clerkAppearance = {
   cssLayerName: "clerk",
@@ -182,6 +184,28 @@ function ClerkProviderWithRoutes() {
 }
 
 function App() {
+  if (clerkKeyMissing) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#181613',
+        color: '#EAE0D0',
+        fontFamily: 'monospace',
+        padding: '24px',
+        direction: 'ltr',
+        textAlign: 'left',
+      }}>
+        <h1 style={{ color: '#f87171', fontSize: '18px', marginBottom: '12px' }}>
+          Configuration error
+        </h1>
+        <p style={{ fontSize: '13px', lineHeight: 1.6 }}>
+          VITE_CLERK_PUBLISHABLE_KEY is missing from this deployment's environment variables.
+          Add it in your hosting platform's project settings, then redeploy.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <WouterRouter base={basePath}>
       <TooltipProvider>
