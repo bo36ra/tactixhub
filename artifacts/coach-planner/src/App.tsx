@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
-import { ClerkProvider, Show, useClerk } from '@clerk/react';
+import { ClerkProvider, Show, useClerk, useAuth } from '@clerk/react';
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wouter';
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { setAuthTokenGetter } from '@workspace/api-client-react';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
@@ -86,6 +87,22 @@ const clerkAppearance = {
   },
 };
 
+// Frontend and backend now live on different domains (Render), so the
+// browser won't automatically attach Clerk's session cookie to API calls
+// the way it did when both were served from the same Replit origin. This
+// explicitly fetches a fresh token from Clerk and attaches it as an
+// `Authorization: Bearer <token>` header on every request instead.
+function AuthTokenSync() {
+  const { getToken } = useAuth();
+
+  useEffect(() => {
+    setAuthTokenGetter(() => getToken());
+    return () => setAuthTokenGetter(null);
+  }, [getToken]);
+
+  return null;
+}
+
 function ClerkQueryClientCacheInvalidator() {
   const { addListener } = useClerk();
   const qc = useQueryClient();
@@ -156,6 +173,7 @@ function ClerkProviderWithRoutes() {
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
       <QueryClientProvider client={queryClient}>
+        <AuthTokenSync />
         <ClerkQueryClientCacheInvalidator />
         <LanguageProvider>
           <TeamProvider>
