@@ -1,10 +1,49 @@
 import { useEffect, useRef } from "react";
 import { ClerkProvider, useClerk, useAuth } from '@clerk/react';
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wouter';
-import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { setAuthTokenGetter } from '@workspace/api-client-react';
+import { QueryClient, QueryClientProvider, useQueryClient, MutationCache } from "@tanstack/react-query";
+import { setAuthTokenGetter, ApiError } from '@workspace/api-client-react';
+import { toast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
+
+// Every save/create/delete in the app used to fail in complete silence when
+// the API call errored (backend asleep, network, auth, validation) — the
+// dialog just stayed open and "nothing happened." This surfaces the actual
+// error as a toast for every mutation app-wide.
+function describeApiError(error: unknown): string {
+  if (error instanceof ApiError) {
+    const serverMsg =
+      error.data && typeof error.data === 'object' && 'error' in error.data
+        ? String((error.data as { error: unknown }).error)
+        : error.statusText;
+    if (error.status === 401) return 'Not signed in / session expired — try signing in again.';
+    return `Server error ${error.status}: ${serverMsg}`;
+  }
+  if (error instanceof TypeError) {
+    // fetch() network failures (server unreachable, CORS, DNS) surface as TypeError
+    return 'Could not reach the server. It may be starting up — wait ~30s and try again.';
+  }
+  return error instanceof Error ? error.message : 'Unknown error';
+}
+
+const queryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Request failed',
+        description: describeApiError(error),
+      });
+    },
+  }),
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 import { LanguageProvider } from '@/lib/i18n';
 import { TeamProvider } from '@/lib/team-context';
@@ -29,15 +68,6 @@ const Reports = lazy(() => import('@/pages/reports').then(m => ({ default: m.Rep
 const Lineup = lazy(() => import('@/pages/lineup').then(m => ({ default: m.Lineup })));
 const PlayerProfile = lazy(() => import('@/pages/player-profile').then(m => ({ default: m.PlayerProfile })));
 const NotFound = lazy(() => import('@/pages/not-found'));
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-});
 
 // The original app derived this from the Replit hostname (dynamic per-deploy
 // subdomains); that lookup returns nothing on any other host (Vercel, etc.)
