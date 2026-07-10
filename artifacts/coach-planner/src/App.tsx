@@ -8,20 +8,26 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { LanguageProvider } from '@/lib/i18n';
 import { TeamProvider } from '@/lib/team-context';
 
+import { lazy, Suspense } from 'react';
+
+// Each page loads as its own small chunk on first visit instead of all
+// pages being bundled into one large file the browser must download before
+// showing anything. Landing/auth stay eager since they're the first thing
+// almost everyone sees.
 import { Landing } from '@/pages/landing';
 import { SignInPage, SignUpPage } from '@/pages/auth';
-import { Dashboard } from '@/pages/dashboard';
-import { Players } from '@/pages/players';
-import { Attendance } from '@/pages/attendance';
-import { Matches } from '@/pages/matches';
-import { Goals } from '@/pages/goals';
-import { Cards } from '@/pages/cards';
-import { PlayingTime } from '@/pages/playing-time';
-import { Teams } from '@/pages/teams';
-import { Reports } from '@/pages/reports';
-import { Lineup } from '@/pages/lineup';
-import { PlayerProfile } from '@/pages/player-profile';
-import NotFound from '@/pages/not-found';
+const Dashboard = lazy(() => import('@/pages/dashboard').then(m => ({ default: m.Dashboard })));
+const Players = lazy(() => import('@/pages/players').then(m => ({ default: m.Players })));
+const Attendance = lazy(() => import('@/pages/attendance').then(m => ({ default: m.Attendance })));
+const Matches = lazy(() => import('@/pages/matches').then(m => ({ default: m.Matches })));
+const Goals = lazy(() => import('@/pages/goals').then(m => ({ default: m.Goals })));
+const Cards = lazy(() => import('@/pages/cards').then(m => ({ default: m.Cards })));
+const PlayingTime = lazy(() => import('@/pages/playing-time').then(m => ({ default: m.PlayingTime })));
+const Teams = lazy(() => import('@/pages/teams').then(m => ({ default: m.Teams })));
+const Reports = lazy(() => import('@/pages/reports').then(m => ({ default: m.Reports })));
+const Lineup = lazy(() => import('@/pages/lineup').then(m => ({ default: m.Lineup })));
+const PlayerProfile = lazy(() => import('@/pages/player-profile').then(m => ({ default: m.PlayerProfile })));
+const NotFound = lazy(() => import('@/pages/not-found'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -96,6 +102,14 @@ function ClerkQueryClientCacheInvalidator() {
   return null;
 }
 
+function PageLoadingFallback() {
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+    </div>
+  );
+}
+
 function HomeRedirect() {
   return (
     <>
@@ -139,25 +153,27 @@ function ClerkProviderWithRoutes() {
         <ClerkQueryClientCacheInvalidator />
         <LanguageProvider>
           <TeamProvider>
-            <Switch>
-              <Route path="/" component={HomeRedirect} />
-              <Route path="/sign-in/*?" component={SignInPage} />
-              <Route path="/sign-up/*?" component={SignUpPage} />
-              
-              <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
-              <Route path="/players"><ProtectedRoute component={Players} /></Route>
-              <Route path="/players/:playerId"><ProtectedRoute component={PlayerProfile} /></Route>
-              <Route path="/attendance"><ProtectedRoute component={Attendance} /></Route>
-              <Route path="/matches"><ProtectedRoute component={Matches} /></Route>
-              <Route path="/goals"><ProtectedRoute component={Goals} /></Route>
-              <Route path="/cards"><ProtectedRoute component={Cards} /></Route>
-              <Route path="/playing-time"><ProtectedRoute component={PlayingTime} /></Route>
-              <Route path="/teams"><ProtectedRoute component={Teams} /></Route>
-              <Route path="/reports"><ProtectedRoute component={Reports} /></Route>
-              <Route path="/matches/:matchId/lineup"><ProtectedRoute component={Lineup} /></Route>
+            <Suspense fallback={<PageLoadingFallback />}>
+              <Switch>
+                <Route path="/" component={HomeRedirect} />
+                <Route path="/sign-in/*?" component={SignInPage} />
+                <Route path="/sign-up/*?" component={SignUpPage} />
 
-              <Route component={NotFound} />
-            </Switch>
+                <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
+                <Route path="/players"><ProtectedRoute component={Players} /></Route>
+                <Route path="/players/:playerId"><ProtectedRoute component={PlayerProfile} /></Route>
+                <Route path="/attendance"><ProtectedRoute component={Attendance} /></Route>
+                <Route path="/matches"><ProtectedRoute component={Matches} /></Route>
+                <Route path="/goals"><ProtectedRoute component={Goals} /></Route>
+                <Route path="/cards"><ProtectedRoute component={Cards} /></Route>
+                <Route path="/playing-time"><ProtectedRoute component={PlayingTime} /></Route>
+                <Route path="/teams"><ProtectedRoute component={Teams} /></Route>
+                <Route path="/reports"><ProtectedRoute component={Reports} /></Route>
+                <Route path="/matches/:matchId/lineup"><ProtectedRoute component={Lineup} /></Route>
+
+                <Route component={NotFound} />
+              </Switch>
+            </Suspense>
           </TeamProvider>
         </LanguageProvider>
       </QueryClientProvider>
