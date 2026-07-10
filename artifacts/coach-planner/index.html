@@ -20,7 +20,27 @@
     <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="pre-boot-fallback" style="min-height:100vh;background:#181613;color:#EAE0D0;font-family:monospace;padding:24px;">
+        <p>Loading Coach Planner…</p>
+        <p style="opacity:0.6;font-size:12px;">If this message never changes or an error appears below, JavaScript failed to start.</p>
+        <pre id="pre-boot-error" style="white-space:pre-wrap;color:#f87171;font-size:12px;margin-top:16px;"></pre>
+      </div>
+    </div>
+    <script>
+      // Last-resort net: if the module script below fails outright (404,
+      // wrong MIME type, syntax error before React even loads), this plain
+      // script still runs and writes the error where it's actually visible,
+      // instead of leaving a silent blank page.
+      window.addEventListener('error', function (e) {
+        var el = document.getElementById('pre-boot-error');
+        if (el) el.textContent = 'window error: ' + (e.message || e) + '\n' + (e.filename ? e.filename + ':' + e.lineno : '');
+      });
+      window.addEventListener('unhandledrejection', function (e) {
+        var el = document.getElementById('pre-boot-error');
+        if (el) el.textContent = 'unhandled rejection: ' + (e.reason && e.reason.message ? e.reason.message : e.reason);
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
