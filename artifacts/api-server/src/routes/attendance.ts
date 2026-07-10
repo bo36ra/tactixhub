@@ -1,3 +1,4 @@
+import { dbErrorMessage } from "../lib/dbError";
 import { Router } from "express";
 import { eq, and, sql } from "drizzle-orm";
 import { db, attendanceTable, playersTable, teamsTable } from "@workspace/db";
@@ -31,7 +32,7 @@ router.get("/teams/:teamId/attendance", requireAuth, async (req, res) => {
     res.json(records.map(mapAttendance));
   } catch (err) {
     req.log.error({ err }, "Failed to list attendance");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 
@@ -79,7 +80,7 @@ router.post("/teams/:teamId/attendance", requireAuth, async (req, res) => {
     }
   } catch (err) {
     req.log.error({ err }, "Failed to create attendance");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 
@@ -126,7 +127,7 @@ router.get("/teams/:teamId/attendance/summary", requireAuth, async (req, res) =>
     res.json(summary);
   } catch (err) {
     req.log.error({ err }, "Failed to get attendance summary");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 
@@ -145,7 +146,7 @@ router.get("/teams/:teamId/attendance/schedule", requireAuth, async (req, res) =
     res.json(schedule);
   } catch (err) {
     req.log.error({ err }, "Failed to build attendance schedule");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 

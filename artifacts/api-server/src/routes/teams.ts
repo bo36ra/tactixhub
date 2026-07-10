@@ -1,3 +1,4 @@
+import { dbErrorMessage } from "../lib/dbError";
 import { Router } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, teamsTable } from "@workspace/db";
@@ -17,7 +18,7 @@ router.get("/teams", requireAuth, async (req, res) => {
     res.json(teams.map(mapTeam));
   } catch (err) {
     req.log.error({ err }, "Failed to list teams");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 
@@ -37,7 +38,7 @@ router.post("/teams", requireAuth, async (req, res) => {
     res.status(201).json(mapTeam(team));
   } catch (err) {
     req.log.error({ err }, "Failed to create team");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 
@@ -57,7 +58,7 @@ router.get("/teams/:teamId", requireAuth, async (req, res) => {
     res.json(mapTeam(team));
   } catch (err) {
     req.log.error({ err }, "Failed to get team");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 
@@ -83,7 +84,7 @@ router.patch("/teams/:teamId", requireAuth, async (req, res) => {
     res.json(mapTeam(team));
   } catch (err) {
     req.log.error({ err }, "Failed to update team");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 
@@ -98,7 +99,7 @@ router.delete("/teams/:teamId", requireAuth, async (req, res) => {
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Failed to delete team");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 

@@ -1,3 +1,4 @@
+import { dbErrorMessage } from "../lib/dbError";
 import { Router } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, matchesTable, teamsTable, playersTable, lineupEntriesTable } from "@workspace/db";
@@ -35,7 +36,7 @@ router.get("/players/:playerId/timeline", requireAuth, async (req, res) => {
     res.json(result);
   } catch (err) {
     req.log.error({ err }, "Failed to build player timeline");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 
@@ -83,7 +84,7 @@ router.get("/matches/:matchId/lineup", requireAuth, async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get lineup");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 
@@ -124,7 +125,7 @@ router.put("/matches/:matchId/lineup", requireAuth, async (req, res) => {
     res.status(200).json({ matchId, formation, saved: entries.length });
   } catch (err) {
     req.log.error({ err }, "Failed to save lineup");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 

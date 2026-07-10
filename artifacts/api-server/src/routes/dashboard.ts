@@ -1,3 +1,4 @@
+import { dbErrorMessage } from "../lib/dbError";
 import { Router } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import {
@@ -119,7 +120,7 @@ router.get("/teams/:teamId/dashboard", requireAuth, async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get dashboard");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 

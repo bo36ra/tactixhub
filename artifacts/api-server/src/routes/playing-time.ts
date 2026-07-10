@@ -1,3 +1,4 @@
+import { dbErrorMessage } from "../lib/dbError";
 import { Router } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, playingTimeTable, playersTable, matchesTable, teamsTable } from "@workspace/db";
@@ -29,7 +30,7 @@ router.get("/teams/:teamId/playing-time", requireAuth, async (req, res) => {
     res.json(records.map(mapPlayingTime));
   } catch (err) {
     req.log.error({ err }, "Failed to list playing time");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 
@@ -77,7 +78,7 @@ router.post("/teams/:teamId/playing-time", requireAuth, async (req, res) => {
     res.status(201).json(inserted.map(mapPlayingTime));
   } catch (err) {
     req.log.error({ err }, "Failed to record playing time");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 
@@ -130,7 +131,7 @@ router.get("/teams/:teamId/playing-time/summary", requireAuth, async (req, res) 
     res.json(summary);
   } catch (err) {
     req.log.error({ err }, "Failed to get playing time summary");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 

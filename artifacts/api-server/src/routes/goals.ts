@@ -1,3 +1,4 @@
+import { dbErrorMessage } from "../lib/dbError";
 import { Router } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import { db, goalsTable, playersTable, teamsTable, matchesTable } from "@workspace/db";
@@ -34,7 +35,7 @@ router.get("/teams/:teamId/goals", requireAuth, async (req, res) => {
     res.json(goals.map(({ goal, scorerName }) => mapGoal(goal, scorerName)));
   } catch (err) {
     req.log.error({ err }, "Failed to list goals");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 
@@ -97,7 +98,7 @@ router.post("/teams/:teamId/goals", requireAuth, async (req, res) => {
     res.status(201).json(mapGoal(goal, scorerName));
   } catch (err) {
     req.log.error({ err }, "Failed to create goal");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 
@@ -117,7 +118,7 @@ router.delete("/teams/:teamId/goals/:goalId", requireAuth, async (req, res) => {
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Failed to delete goal");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 
@@ -161,7 +162,7 @@ router.get("/teams/:teamId/goals/scorers", requireAuth, async (req, res) => {
     res.json(scorers);
   } catch (err) {
     req.log.error({ err }, "Failed to get top scorers");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 

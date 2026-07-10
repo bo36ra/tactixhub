@@ -1,3 +1,4 @@
+import { dbErrorMessage } from "../lib/dbError";
 import { Router } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import { db, matchesTable, teamsTable } from "@workspace/db";
@@ -30,7 +31,7 @@ router.get("/teams/:teamId/matches", requireAuth, async (req, res) => {
     res.json(matches.map(mapMatch));
   } catch (err) {
     req.log.error({ err }, "Failed to list matches");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 
@@ -62,7 +63,7 @@ router.post("/teams/:teamId/matches", requireAuth, async (req, res) => {
     res.status(201).json(mapMatch(match));
   } catch (err) {
     req.log.error({ err }, "Failed to create match");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 
@@ -82,7 +83,7 @@ router.delete("/teams/:teamId/matches/:matchId", requireAuth, async (req, res) =
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Failed to delete match");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: dbErrorMessage(err) });
   }
 });
 
