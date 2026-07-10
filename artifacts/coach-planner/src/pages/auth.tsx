@@ -13,7 +13,7 @@ export function SignInPage() {
       <div className="absolute top-8 left-8">
         <Link href="/" className="flex items-center gap-2 text-foreground hover:opacity-80">
           <ShieldHalf className="w-6 h-6" />
-          <span className="font-bold tracking-tight">Tatixhub</span>
+          <span className="font-bold tracking-tight">TactixHub</span>
         </Link>
       </div>
       <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
@@ -28,7 +28,7 @@ export function SignUpPage() {
       <div className="absolute top-8 left-8">
         <Link href="/" className="flex items-center gap-2 text-foreground hover:opacity-80">
           <ShieldHalf className="w-6 h-6" />
-          <span className="font-bold tracking-tight">Tatixhub</span>
+          <span className="font-bold tracking-tight">TactixHub</span>
         </Link>
       </div>
       <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />

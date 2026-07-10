@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AppLayout } from '@/components/layout';
+import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
 import {
@@ -126,7 +126,7 @@ export function Reports() {
     );
   }, [matches]);
 
-  if (!activeTeamId) return null;
+  if (!activeTeamId) return <NoTeamState />;
 
   const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
     { id: 'games', label: t('report.games'), icon: FileBarChart2 },

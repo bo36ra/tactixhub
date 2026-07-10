@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRoute, Link } from 'wouter';
-import { AppLayout } from '@/components/layout';
+import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import {
   useListPlayers,
@@ -55,7 +55,8 @@ export function Lineup() {
     setCaptainSlot(captain);
   }, [lineup]);
 
-  if (!activeTeamId || !matchId) return null;
+  if (!activeTeamId) return <NoTeamState />;
+  if (!matchId) return <NoTeamState />;
 
   const slots = FORMATIONS[formation] ?? FORMATIONS['4-3-3'];
   const assignedPlayerIds = new Set(Object.values(assignments).filter(Boolean) as number[]);

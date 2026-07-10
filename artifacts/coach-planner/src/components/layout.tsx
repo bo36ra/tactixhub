@@ -101,7 +101,7 @@ export function Sidebar() {
       {/* Active team switcher - prominent card */}
       <div className="p-3 border-b border-white/[0.06]">
         {teams && teams.length > 0 ? (
-          <DropdownMenu>
+          <DropdownMenu dir={isRtl ? 'rtl' : 'ltr'}>
             <DropdownMenuTrigger asChild>
               <button className="w-full flex items-center gap-2.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] px-3 py-2.5 text-start transition-colors">
                 <div className="w-8 h-8 rounded-md bg-primary/15 text-primary flex items-center justify-center shrink-0 font-display font-bold text-xs">
@@ -116,7 +116,7 @@ export function Sidebar() {
                 <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" dir={isRtl ? 'rtl' : 'ltr'} className="w-56">
+            <DropdownMenuContent align="start" className="w-56">
               {teams.map((team) => (
                 <DropdownMenuItem
                   key={team.id}
@@ -224,5 +224,32 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
     </div>
+  );
+}
+
+// Rendered by every page when no team is active yet. Previously these pages
+// did `return null`, which painted a completely black screen (no sidebar, no
+// text) whenever the teams list was still loading, failed to load, or the
+// user simply hadn't created a team — the main source of "black pages" when
+// clicking sidebar options.
+export function NoTeamState() {
+  const { t } = useLanguage();
+  const { isLoading } = useTeam();
+
+  return (
+    <AppLayout>
+      {isLoading ? (
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center h-[60vh] gap-4 text-center">
+          <h2 className="text-2xl font-bold text-foreground">{t('team.createFirst')}</h2>
+          <Button asChild>
+            <Link href="/teams">{t('nav.teams')}</Link>
+          </Button>
+        </div>
+      )}
+    </AppLayout>
   );
 }

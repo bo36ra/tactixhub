@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'wouter';
-import { AppLayout } from '@/components/layout';
+import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { useListPlayers, useCreatePlayer, useDeletePlayer, getListPlayersQueryKey } from '@workspace/api-client-react';
@@ -77,7 +77,7 @@ export function Players() {
     });
   };
 
-  if (!activeTeamId) return null;
+  if (!activeTeamId) return <NoTeamState />;
 
   return (
     <AppLayout>

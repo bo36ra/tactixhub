@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { ClerkProvider, Show, useClerk, useAuth } from '@clerk/react';
+import { ClerkProvider, useClerk, useAuth } from '@clerk/react';
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wouter';
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { setAuthTokenGetter } from '@workspace/api-client-react';
@@ -133,30 +133,22 @@ function PageLoadingFallback() {
   );
 }
 
+// While Clerk is initializing, `<Show>` renders neither branch — which used
+// to leave a completely black screen on `/` and on every protected route
+// (a black flash on every refresh/deep-link, or a permanently black page if
+// Clerk fails to load). Use useAuth().isLoaded so there is always something
+// visible on screen.
 function HomeRedirect() {
-  return (
-    <>
-      <Show when="signed-in">
-        <Redirect to="/dashboard" />
-      </Show>
-      <Show when="signed-out">
-        <Landing />
-      </Show>
-    </>
-  );
+  const { isLoaded, isSignedIn } = useAuth();
+  if (!isLoaded) return <PageLoadingFallback />;
+  return isSignedIn ? <Redirect to="/dashboard" /> : <Landing />;
 }
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
-  return (
-    <>
-      <Show when="signed-in">
-        <Component />
-      </Show>
-      <Show when="signed-out">
-        <Redirect to="/" />
-      </Show>
-    </>
-  );
+  const { isLoaded, isSignedIn } = useAuth();
+  if (!isLoaded) return <PageLoadingFallback />;
+  if (!isSignedIn) return <Redirect to="/" />;
+  return <Component />;
 }
 
 function ClerkProviderWithRoutes() {

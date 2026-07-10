@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useListTeams } from '@workspace/api-client-react';
+import { useListTeams, getListTeamsQueryKey } from '@workspace/api-client-react';
+import { useAuth } from '@clerk/react';
 
 interface TeamContextType {
   activeTeamId: number | null;
@@ -24,9 +25,19 @@ export function TeamProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Only fetch teams once Clerk has loaded and the user is signed in.
+  // Without this gate the request fires on the public landing page and
+  // during Clerk's startup — before an auth token exists — producing 401s
+  // and caching an empty result that made pages think there was no team.
+  const { isLoaded, isSignedIn } = useAuth();
   // If we have an active team but it's not in the list, or if we don't have one and there are teams,
   // we auto-select the first one.
-  const { data: teams, isLoading } = useListTeams();
+  const { data: teams, isLoading: teamsLoading } = useListTeams({
+    query: { enabled: isLoaded && !!isSignedIn, queryKey: getListTeamsQueryKey() },
+  });
+  // Report "loading" until auth has resolved AND (if signed in) teams have
+  // arrived, so pages show a spinner instead of a premature empty state.
+  const isLoading = !isLoaded || (!!isSignedIn && teamsLoading);
 
   useEffect(() => {
     if (!isLoading && teams) {

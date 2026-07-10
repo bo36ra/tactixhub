@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { AppLayout } from '@/components/layout';
+import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { useGetPlayingTimeSummary, useRecordPlayingTime, useListMatches, useListPlayers, getGetPlayingTimeSummaryQueryKey, getListMatchesQueryKey, getListPlayersQueryKey } from '@workspace/api-client-react';
@@ -64,7 +64,7 @@ export function PlayingTime() {
     });
   };
 
-  if (!activeTeamId) return null;
+  if (!activeTeamId) return <NoTeamState />;
 
   return (
     <AppLayout>

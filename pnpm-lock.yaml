@@ -233,9 +233,6 @@ importers:
       '@clerk/themes':
         specifier: ^2.4.57
         version: 2.4.57(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      internal:
-        specifier: link:@clerk/react/internal
-        version: link:@clerk/react/internal
     devDependencies:
       '@hookform/resolvers':
         specifier: ^3.10.0

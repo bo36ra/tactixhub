@@ -1,5 +1,5 @@
 import React from 'react';
-import { useRoute, Link } from 'wouter';
+import { useRoute, Link, Redirect } from 'wouter';
 import { AppLayout } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { useGetPlayerTimeline, getGetPlayerTimelineQueryKey } from '@workspace/api-client-react';
@@ -15,7 +15,9 @@ export function PlayerProfile() {
     query: { enabled: !!playerId, queryKey: getGetPlayerTimelineQueryKey(playerId!) },
   });
 
-  if (!playerId) return null;
+  // A malformed player URL used to render a black screen; send the user back
+  // to a real page instead.
+  if (!playerId) return <Redirect to="/players" />;
 
   const BackIcon = isRtl ? ArrowRight : ArrowLeft;
   const player = data?.player;

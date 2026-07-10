@@ -1,5 +1,5 @@
 import React from 'react';
-import { AppLayout } from '@/components/layout';
+import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { 
@@ -76,7 +76,7 @@ export function Goals() {
     return map;
   }, [matches]);
 
-  if (!activeTeamId) return null;
+  if (!activeTeamId) return <NoTeamState />;
 
   return (
     <AppLayout>
