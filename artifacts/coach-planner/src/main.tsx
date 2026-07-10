@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { setBaseUrl } from '@workspace/api-client-react';
+import App from './App';
 
 import './index.css';
 
@@ -68,20 +69,11 @@ function ErrorScreen({ error }: { error: Error }) {
 }
 
 const root = createRoot(document.getElementById('root')!);
-window.__logBoot?.('4. root created, importing App...');
+window.__logBoot?.('4. root created, rendering App...');
 
-import('./App')
-  .then(({ default: App }) => {
-    window.__logBoot?.('5. App module loaded, rendering...');
-    root.render(
-      <RootErrorBoundary>
-        <App />
-      </RootErrorBoundary>,
-    );
-    window.__logBoot?.('6. render() called');
-  })
-  .catch((error: Error) => {
-    window.__logBoot?.('FAILED importing App: ' + error.message);
-    console.error('Failed to load App:', error);
-    root.render(<ErrorScreen error={error} />);
-  });
+root.render(
+  <RootErrorBoundary>
+    <App />
+  </RootErrorBoundary>,
+);
+window.__logBoot?.('5. render() called');
