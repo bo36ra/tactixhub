@@ -185,8 +185,12 @@ export function Teams() {
                       {t('team.active')}
                     </span>
                   )}
-                  {teams.length > 1 && (
-                    <AlertDialog>
+                  {/* Previously hidden when only one team existed
+                      (teams.length > 1), which made it look like there was
+                      no delete feature at all. Deleting the last team is a
+                      valid action — the page falls back to the "create your
+                      first team" state. */}
+                  <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
                           variant="ghost"
@@ -216,7 +220,6 @@ export function Teams() {
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
-                  )}
                 </div>
               </div>
             );
