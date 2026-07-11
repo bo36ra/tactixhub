@@ -10,7 +10,16 @@ export interface BoardMarker {
   side: 'us' | 'them' | 'ball';
 }
 export interface BoardArrow { x1: number; y1: number; x2: number; y2: number }
-export interface BoardData { markers: BoardMarker[]; arrows: BoardArrow[]; notes?: string }
+export interface BoardDrawing { points: { x: number; y: number }[] }
+// A frame is a snapshot of marker positions; playback interpolates between frames.
+export interface BoardFrame { markers: BoardMarker[] }
+export interface BoardData {
+  markers: BoardMarker[];
+  arrows: BoardArrow[];
+  drawings?: BoardDrawing[];
+  frames?: BoardFrame[];
+  notes?: string;
+}
 
 export type TacticKind = 'general' | 'set_piece' | 'match_plan';
 export interface Tactic {
@@ -35,9 +44,15 @@ export interface OpponentNote {
 export function parseBoard(data: string): BoardData {
   try {
     const d = JSON.parse(data);
-    return { markers: d.markers ?? [], arrows: d.arrows ?? [], notes: d.notes ?? '' };
+    return {
+      markers: d.markers ?? [],
+      arrows: d.arrows ?? [],
+      drawings: d.drawings ?? [],
+      frames: d.frames ?? [],
+      notes: d.notes ?? '',
+    };
   } catch {
-    return { markers: [], arrows: [], notes: '' };
+    return { markers: [], arrows: [], drawings: [], frames: [], notes: '' };
   }
 }
 

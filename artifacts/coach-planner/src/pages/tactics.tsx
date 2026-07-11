@@ -7,6 +7,7 @@ import {
   useTactics, useSaveTactic, useDeleteTactic,
   useOpponentNotes, useSaveOpponentNote, useDeleteOpponentNote,
   parseBoard, type BoardData, type BoardMarker, type Tactic, type TacticKind,
+  type BoardFrame,
 } from '@/lib/tactics-api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +17,7 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Trash2, Undo2, Eraser, Save, Plus, ClipboardList } from 'lucide-react';
+import { Trash2, Undo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil } from 'lucide-react';
 
 // ---------------------------------------------------------------- board
 
@@ -39,6 +40,8 @@ const DEFAULT_MARKERS: BoardMarker[] = [
 const emptyBoard = (): BoardData => ({
   markers: DEFAULT_MARKERS.map((m) => ({ ...m })),
   arrows: [],
+  drawings: [],
+  frames: [],
   notes: '',
 });
 
@@ -47,11 +50,13 @@ function TacticBoard({
 }: {
   board: BoardData;
   setBoard: (b: BoardData) => void;
-  mode: 'move' | 'arrow';
+  mode: 'move' | 'arrow' | 'pen';
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragId = useRef<string | null>(null);
   const arrowStart = useRef<{ x: number; y: number } | null>(null);
+  const penPath = useRef<{ x: number; y: number }[] | null>(null);
+  const [penPreview, setPenPreview] = useState<{ x: number; y: number }[]>([]);
   const [preview, setPreview] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
 
   const toPct = (e: React.PointerEvent) => {
@@ -64,7 +69,10 @@ function TacticBoard({
 
   const onPointerDown = (e: React.PointerEvent) => {
     const p = toPct(e);
-    if (mode === 'arrow') {
+    if (mode === 'pen') {
+      penPath.current = [p];
+      setPenPreview([p]);
+    } else if (mode === 'arrow') {
       arrowStart.current = p;
       setPreview({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
     } else {
@@ -81,7 +89,14 @@ function TacticBoard({
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
-    if (mode === 'arrow' && arrowStart.current) {
+    if (mode === 'pen' && penPath.current) {
+      const p = toPct(e);
+      const last = penPath.current[penPath.current.length - 1];
+      if (Math.hypot(p.x - last.x, p.y - last.y) > 1) {
+        penPath.current = [...penPath.current, p];
+        setPenPreview(penPath.current);
+      }
+    } else if (mode === 'arrow' && arrowStart.current) {
       const p = toPct(e);
       setPreview({ x1: arrowStart.current.x, y1: arrowStart.current.y, x2: p.x, y2: p.y });
     } else if (dragId.current) {
@@ -94,6 +109,13 @@ function TacticBoard({
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
+    if (mode === 'pen' && penPath.current) {
+      if (penPath.current.length > 2) {
+        setBoard({ ...board, drawings: [...(board.drawings ?? []), { points: penPath.current }] });
+      }
+      penPath.current = null;
+      setPenPreview([]);
+    }
     if (mode === 'arrow' && arrowStart.current) {
       const p = toPct(e);
       const a = arrowStart.current;
@@ -126,6 +148,18 @@ function TacticBoard({
         <rect x="38" y="3" width="24" height="6" />
         <rect x="38" y="131" width="24" height="6" />
       </g>
+
+      {/* freehand drawings (chalk) */}
+      {(board.drawings ?? []).map((d, i) => (
+        <polyline key={`d${i}`} fill="none" stroke="#FFFFFF" strokeWidth="0.9"
+          strokeLinecap="round" strokeLinejoin="round" opacity="0.9"
+          points={d.points.map((p) => `${p.x},${p.y * 1.4}`).join(' ')} />
+      ))}
+      {penPreview.length > 1 && (
+        <polyline fill="none" stroke="#FFFFFF" strokeWidth="0.9" opacity="0.6"
+          strokeLinecap="round" strokeLinejoin="round"
+          points={penPreview.map((p) => `${p.x},${p.y * 1.4}`).join(' ')} />
+      )}
 
       {/* arrows */}
       <defs>
@@ -172,7 +206,59 @@ function BoardsTab({ teamId, kind }: { teamId: number; kind: TacticKind }) {
 
   const [editing, setEditing] = useState<{ id?: number; name: string; matchId: number | null } | null>(null);
   const [board, setBoard] = useState<BoardData>(emptyBoard());
-  const [mode, setMode] = useState<'move' | 'arrow'>('move');
+  // (setBoard supports functional updates natively; playback relies on it)
+  const [mode, setMode] = useState<'move' | 'arrow' | 'pen'>('move');
+  const [playing, setPlaying] = useState(false);
+  const animRef = useRef<number | null>(null);
+
+  // Capture the current player positions as an animation frame
+  const addFrame = () => {
+    const frame: BoardFrame = { markers: board.markers.map((m) => ({ ...m })) };
+    setBoard({ ...board, frames: [...(board.frames ?? []), frame] });
+  };
+
+  const loadFrame = (i: number) => {
+    const f = (board.frames ?? [])[i];
+    if (f) setBoard({ ...board, markers: f.markers.map((m) => ({ ...m })) });
+  };
+
+  const removeFrame = (i: number) => {
+    setBoard({ ...board, frames: (board.frames ?? []).filter((_, idx) => idx !== i) });
+  };
+
+  // Play: interpolate marker positions between consecutive frames (like
+  // TacticalPad sequences). ~0.9s per transition, ease-in-out.
+  const play = () => {
+    const frames = board.frames ?? [];
+    if (frames.length < 2 || playing) return;
+    setPlaying(true);
+    const DURATION = 900;
+    let seg = 0;
+    let start = performance.now();
+    const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / DURATION);
+      const a = frames[seg].markers;
+      const b = frames[seg + 1].markers;
+      const k = ease(t);
+      setBoard((prev) => ({
+        ...prev,
+        markers: prev.markers.map((m) => {
+          const from = a.find((x) => x.id === m.id);
+          const to = b.find((x) => x.id === m.id);
+          if (!from || !to) return m;
+          return { ...m, x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k };
+        }),
+      }));
+      if (t >= 1) {
+        seg += 1;
+        if (seg >= frames.length - 1) { setPlaying(false); return; }
+        start = now;
+      }
+      animRef.current = requestAnimationFrame(step);
+    };
+    animRef.current = requestAnimationFrame(step);
+  };
 
   const list = (tactics ?? []).filter((x) => x.kind === kind);
 
@@ -225,8 +311,14 @@ function BoardsTab({ teamId, kind }: { teamId: number; kind: TacticKind }) {
           <Button size="sm" variant={mode === 'arrow' ? 'default' : 'secondary'} onClick={() => setMode('arrow')}>
             {t('tactics.modeArrow')}
           </Button>
+          <Button size="sm" variant={mode === 'pen' ? 'default' : 'secondary'} onClick={() => setMode('pen')}>
+            <Pencil className="w-4 h-4 me-1" />{t('tactics.modePen')}
+          </Button>
           <Button size="sm" variant="secondary"
-            onClick={() => setBoard({ ...board, arrows: board.arrows.slice(0, -1) })}>
+            onClick={() =>
+              mode === 'pen'
+                ? setBoard({ ...board, drawings: (board.drawings ?? []).slice(0, -1) })
+                : setBoard({ ...board, arrows: board.arrows.slice(0, -1) })}>
             <Undo2 className="w-4 h-4" />
           </Button>
           <Button size="sm" variant="secondary" onClick={() => setBoard(emptyBoard())}>
@@ -235,6 +327,27 @@ function BoardsTab({ teamId, kind }: { teamId: number; kind: TacticKind }) {
         </div>
 
         <TacticBoard board={board} setBoard={setBoard} mode={mode} />
+
+        {/* Animation frames (TacticalPad-style sequences) */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="secondary" onClick={addFrame} disabled={playing}>
+            <Camera className="w-4 h-4 me-1" />{t('tactics.addFrame')}
+          </Button>
+          {(board.frames ?? []).map((_, i) => (
+            <span key={i} className="inline-flex items-center gap-1 pill-beige rounded px-2 py-1 text-xs">
+              <button onClick={() => loadFrame(i)} disabled={playing}>{i + 1}</button>
+              <button onClick={() => removeFrame(i)} disabled={playing} className="opacity-70">×</button>
+            </span>
+          ))}
+          {(board.frames ?? []).length >= 2 && (
+            <Button size="sm" onClick={play} disabled={playing}>
+              <Play className="w-4 h-4 me-1" />{playing ? t('tactics.playing') : t('tactics.play')}
+            </Button>
+          )}
+          {(board.frames ?? []).length < 2 && (
+            <span className="text-xs text-muted-foreground">{t('tactics.frameHint')}</span>
+          )}
+        </div>
 
         <Textarea value={board.notes ?? ''} placeholder={t('tactics.notesPlaceholder')}
           onChange={(e) => setBoard({ ...board, notes: e.target.value })} rows={3} />
