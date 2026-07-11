@@ -33,10 +33,15 @@ router.get("/teams/:teamId/trainings", requireAuth, guarded(async (_req, res, te
     .where(eq(trainingsTable.teamId, teamId)).orderBy(desc(trainingsTable.date)));
 }));
 router.post("/teams/:teamId/trainings", requireAuth, guarded(async (req, res, teamId) => {
-  const { date, time, focus, drills, notes } = req.body;
+  const { date, time, focus, drills, notes, intensity, durationMinutes } = req.body;
+  const cleanIntensity = ["light", "medium", "high"].includes(intensity) ? intensity : null;
+  const cleanDuration =
+    Number.isFinite(Number(durationMinutes)) && Number(durationMinutes) > 0
+      ? Math.min(Math.round(Number(durationMinutes)), 600)
+      : null;
   if (!date || !focus) { res.status(400).json({ error: "date and focus are required" }); return; }
   const [row] = await db.insert(trainingsTable)
-    .values({ teamId, date, time: time || null, focus, drills: drills || null, notes: notes || null })
+    .values({ teamId, date, time: time || null, focus, drills: drills || null, notes: notes || null, intensity: cleanIntensity, durationMinutes: cleanDuration })
     .returning();
   res.status(201).json(row);
 }));

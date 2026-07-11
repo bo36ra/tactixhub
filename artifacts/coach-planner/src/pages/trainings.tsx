@@ -39,14 +39,25 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
   const { data: trainings, isLoading } = useTrainings(teamId);
   const create = useCreateTraining(teamId);
   const del = useDeleteTraining(teamId);
-  const [form, setForm] = useState<{ date: string; time: string; focus: string; drills: string; notes: string } | null>(null);
+  const [form, setForm] = useState<{ date: string; time: string; focus: string; intensity: string; duration: string; drills: string; notes: string } | null>(null);
 
   const save = () => {
     if (!form?.date || !form.focus) {
       toast({ variant: 'destructive', title: t('train.required') });
       return;
     }
-    create.mutate(form, { onSuccess: () => { toast({ title: t('tactics.saved') }); setForm(null); } });
+    create.mutate(
+      {
+        date: form.date,
+        time: form.time || undefined,
+        focus: form.focus,
+        intensity: form.intensity || undefined,
+        durationMinutes: form.duration ? Number(form.duration) : undefined,
+        drills: form.drills || undefined,
+        notes: form.notes || undefined,
+      },
+      { onSuccess: () => { toast({ title: t('tactics.saved') }); setForm(null); } },
+    );
   };
 
   return (
@@ -69,6 +80,24 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
                 {FOCUS_KEYS.map((k) => <SelectItem key={k} value={k}>{t(`train.focus.${k}`)}</SelectItem>)}
               </SelectContent>
             </Select>
+            <div className="flex gap-2">
+              <Select value={form.intensity} onValueChange={(v) => setForm({ ...form, intensity: v })}>
+                <SelectTrigger><SelectValue placeholder={t('train.intensity')} /></SelectTrigger>
+                <SelectContent>
+                  {(['light', 'medium', 'high'] as const).map((k) => (
+                    <SelectItem key={k} value={k}>{t(`train.intensity.${k}`)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                type="number"
+                min="1"
+                max="600"
+                placeholder={t('train.duration')}
+                value={form.duration}
+                onChange={(e) => setForm({ ...form, duration: e.target.value })}
+              />
+            </div>
             <Textarea rows={3} placeholder={t('train.drills')} value={form.drills}
               onChange={(e) => setForm({ ...form, drills: e.target.value })} />
             <Textarea rows={2} placeholder={t('train.notes')} value={form.notes}
@@ -79,7 +108,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
             </div>
           </div>
         ) : (
-          <Button onClick={() => setForm({ date: '', time: '', focus: '', drills: '', notes: '' })}>
+          <Button onClick={() => setForm({ date: '', time: '', focus: '', intensity: '', duration: '', drills: '', notes: '' })}>
             <Plus className="w-4 h-4 me-1" />{t('train.new')}
           </Button>
         )}
@@ -97,7 +126,21 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
                   <Trash2 className="w-4 h-4 text-destructive" />
                 </Button>
               </div>
-              <span className="pill-beige rounded px-2 py-0.5 text-xs">{t(`train.focus.${tr.focus}`)}</span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="pill-beige rounded px-2 py-0.5 text-xs">{t(`train.focus.${tr.focus}`)}</span>
+                {tr.intensity && (
+                  <span className={`rounded px-2 py-0.5 text-xs ${
+                    tr.intensity === 'high' ? 'pill-red' : tr.intensity === 'medium' ? 'pill-yellow' : 'pill-green'
+                  }`}>
+                    {t(`train.intensity.${tr.intensity}`)}
+                  </span>
+                )}
+                {tr.durationMinutes && (
+                  <span className="rounded px-2 py-0.5 text-xs bg-white/[0.06] text-muted-foreground" dir="ltr">
+                    {tr.durationMinutes} {t('train.minutes')}
+                  </span>
+                )}
+              </div>
               {tr.drills && <p className="text-xs whitespace-pre-wrap">{tr.drills}</p>}
               {tr.notes && <p className="text-xs text-muted-foreground">{tr.notes}</p>}
             </div>

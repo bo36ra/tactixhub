@@ -9,6 +9,8 @@ export const trainingsTable = pgTable("trainings", {
   date: text("date").notNull(),
   time: text("time"),
   focus: text("focus").notNull(), // e.g. tactics / fitness / finishing
+  intensity: text("intensity"), // light | medium | high — for load management
+  durationMinutes: integer("duration_minutes"),
   drills: text("drills"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

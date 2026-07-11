@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { customFetch } from '@workspace/api-client-react';
 
-export interface Training { id: number; teamId: number; date: string; time: string | null; focus: string; drills: string | null; notes: string | null; createdAt: string }
+export interface Training { id: number; teamId: number; date: string; time: string | null; focus: string; intensity: string | null; durationMinutes: number | null; drills: string | null; notes: string | null; createdAt: string }
 export interface Injury { id: number; teamId: number; playerId: number; playerName?: string; type: string; date: string; expectedReturn: string | null; status: 'out' | 'recovering' | 'recovered'; notes: string | null; createdAt: string }
 export interface Rating { id: number; teamId: number; matchId: number; playerId: number; rating: number; note: string | null }
 
@@ -13,7 +13,7 @@ export function useTrainings(teamId: number) {
 export function useCreateTraining(teamId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { date: string; time?: string; focus: string; drills?: string; notes?: string }) =>
+    mutationFn: (input: { date: string; time?: string; focus: string; intensity?: string; durationMinutes?: number; drills?: string; notes?: string }) =>
       customFetch<Training>(`/teams/${teamId}/trainings`, { method: 'POST', ...json(input) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['trainings', teamId] }),
   });
