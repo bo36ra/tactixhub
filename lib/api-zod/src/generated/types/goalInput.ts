@@ -17,4 +17,5 @@ export interface GoalInput {
   minute: number;
   method: GoalInputMethod;
   period?: GoalInputPeriod;
+  note?: string;
 }

@@ -14,6 +14,8 @@ export const goalsTable = pgTable("goals", {
   minute: integer("minute").notNull(),
   method: text("method").notNull(), // open_play, free_kick, header, counter_attack, cross, penalty, own_goal
   period: text("period"), // first_half, second_half, extra_time (nullable, derived from minute)
+  // Free-text coach note about the goal (how it happened, who assisted, …)
+  note: text("note"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

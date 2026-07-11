@@ -21,5 +21,7 @@ export interface Goal {
   minute: number;
   method: GoalMethod;
   period?: GoalPeriod;
+  /** @nullable */
+  note?: string | null;
   createdAt: string;
 }

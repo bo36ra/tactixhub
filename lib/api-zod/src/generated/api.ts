@@ -453,6 +453,7 @@ export const ListGoalsResponseItem = zod.object({
   "minute": zod.number(),
   "method": zod.enum(['open_play', 'free_kick', 'header', 'counter_attack', 'cross', 'penalty', 'own_goal']),
   "period": zod.enum(['first_half', 'second_half', 'extra_time']).optional(),
+  "note": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const ListGoalsResponse = zod.array(ListGoalsResponseItem)
@@ -475,7 +476,8 @@ export const CreateGoalBody = zod.object({
   "scorerPlayerId": zod.number().optional(),
   "minute": zod.number().min(createGoalBodyMinuteMin),
   "method": zod.enum(['open_play', 'free_kick', 'header', 'counter_attack', 'cross', 'penalty', 'own_goal']),
-  "period": zod.enum(['first_half', 'second_half', 'extra_time']).optional()
+  "period": zod.enum(['first_half', 'second_half', 'extra_time']).optional(),
+  "note": zod.string().optional()
 })
 
 export const CreateGoalResponse = zod.object({
@@ -488,6 +490,7 @@ export const CreateGoalResponse = zod.object({
   "minute": zod.number(),
   "method": zod.enum(['open_play', 'free_kick', 'header', 'counter_attack', 'cross', 'penalty', 'own_goal']),
   "period": zod.enum(['first_half', 'second_half', 'extra_time']).optional(),
+  "note": zod.string().nullish(),
   "createdAt": zod.string()
 })
 

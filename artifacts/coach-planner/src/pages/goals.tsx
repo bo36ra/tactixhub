@@ -10,6 +10,7 @@ import {
 import { GoalInputType, GoalInputMethod } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -28,7 +29,8 @@ export function Goals() {
     matchId: '',
     scorerPlayerId: 'none',
     minute: '',
-    method: 'open_play' as GoalInputMethod
+    method: 'open_play' as GoalInputMethod,
+    note: ''
   });
 
   const { data: goals } = useListGoals(activeTeamId!, { query: { enabled: !!activeTeamId, queryKey: getListGoalsQueryKey(activeTeamId!) } });
@@ -49,14 +51,15 @@ export function Goals() {
         type: formData.type,
         scorerPlayerId: formData.type === 'scored' && formData.scorerPlayerId !== 'none' ? parseInt(formData.scorerPlayerId, 10) : undefined,
         minute: parseInt(formData.minute, 10),
-        method: formData.method
+        method: formData.method,
+        ...(formData.note.trim() && { note: formData.note.trim() })
       }
     }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListGoalsQueryKey(activeTeamId) });
         queryClient.invalidateQueries({ queryKey: getGetTopScorersQueryKey(activeTeamId) });
         setOpen(false);
-        setFormData(prev => ({ ...prev, minute: '', scorerPlayerId: 'none' }));
+        setFormData(prev => ({ ...prev, minute: '', scorerPlayerId: 'none', note: '' }));
       }
     });
   };
@@ -156,6 +159,16 @@ export function Goals() {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label>{t('goal.note')}</Label>
+                  <Textarea
+                    rows={2}
+                    placeholder={t('goal.notePlaceholder')}
+                    value={formData.note}
+                    onChange={e => setFormData({...formData, note: e.target.value})}
+                  />
+                </div>
+
                 <div className="flex justify-end gap-2 pt-4">
                   <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
                   <Button type="submit" disabled={createGoal.isPending || !formData.matchId}>{t('common.save')}</Button>
@@ -232,6 +245,9 @@ export function Goals() {
                         <td className="px-4 py-3 font-medium">{match?.opponent}</td>
                         <td className="px-4 py-3">
                           {isScored ? <span className="font-semibold">{goal.scorerName || '-'}</span> : <span className="text-muted-foreground">{t(`goal.${goal.method}`)}</span>}
+                          {goal.note && (
+                            <p className="text-xs text-muted-foreground mt-1 max-w-64 whitespace-pre-wrap">{goal.note}</p>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(goal.id)}>

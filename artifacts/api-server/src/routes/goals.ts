@@ -44,7 +44,7 @@ router.post("/teams/:teamId/goals", requireAuth, async (req, res) => {
     res.status(403).json({ error: "Forbidden" });
     return;
   }
-  const { matchId, type, scorerPlayerId, minute, method, period } = req.body;
+  const { matchId, type, scorerPlayerId, minute, method, period, note } = req.body;
   if (!matchId || !type || minute === undefined || !method) {
     res.status(400).json({ error: "matchId, type, minute, and method are required" });
     return;
@@ -81,6 +81,7 @@ router.post("/teams/:teamId/goals", requireAuth, async (req, res) => {
         minute,
         method,
         period: period || null,
+        note: typeof note === "string" && note.trim() ? note.trim() : null,
       })
       .returning();
 
@@ -174,6 +175,7 @@ function mapGoal(g: typeof goalsTable.$inferSelect, scorerName: string | null | 
     minute: g.minute,
     method: g.method,
     period: g.period || null,
+    note: g.note || null,
     createdAt: g.createdAt.toISOString(),
   };
 }

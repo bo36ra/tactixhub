@@ -127,6 +127,7 @@ const STATEMENTS = [
     "created_at" timestamp DEFAULT now() NOT NULL
   )`,
   `ALTER TABLE "attendance" ADD COLUMN IF NOT EXISTS "status" text NOT NULL DEFAULT 'present'`,
+  `ALTER TABLE "goals" ADD COLUMN IF NOT EXISTS "note" text`,
   // Legacy rows only had a boolean; new writes always set both fields
   // consistently, so present=false with status='present' can only be a
   // pre-status row. Idempotent.

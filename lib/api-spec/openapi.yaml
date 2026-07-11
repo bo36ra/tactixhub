@@ -1335,6 +1335,8 @@ components:
         period:
           type: string
           enum: [first_half, second_half, extra_time]
+        note:
+          type: ["string", "null"]
         createdAt:
           type: string
 
@@ -1358,6 +1360,8 @@ components:
         period:
           type: string
           enum: [first_half, second_half, extra_time]
+        note:
+          type: string
 
     ScorerSummary:
       type: object

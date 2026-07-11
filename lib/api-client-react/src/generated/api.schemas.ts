@@ -346,6 +346,8 @@ export interface Goal {
   minute: number;
   method: GoalMethod;
   period?: GoalPeriod;
+  /** @nullable */
+  note?: string | null;
   createdAt: string;
 }
 
@@ -387,6 +389,7 @@ export interface GoalInput {
   minute: number;
   method: GoalInputMethod;
   period?: GoalInputPeriod;
+  note?: string;
 }
 
 export interface ScorerSummary {
