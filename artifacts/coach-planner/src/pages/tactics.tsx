@@ -50,7 +50,7 @@ function TacticBoard({
 }: {
   board: BoardData;
   setBoard: (b: BoardData) => void;
-  mode: 'move' | 'arrow' | 'pen';
+  mode: 'move' | 'arrow' | 'pen' | 'erase';
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragId = useRef<string | null>(null);
@@ -69,7 +69,33 @@ function TacticBoard({
 
   const onPointerDown = (e: React.PointerEvent) => {
     const p = toPct(e);
-    if (mode === 'pen') {
+    if (mode === 'erase') {
+      // Delete only the tapped arrow or drawing — nearest within reach.
+      const distToSeg = (px: number, py: number, x1: number, y1: number, x2: number, y2: number) => {
+        const dx = x2 - x1, dy = y2 - y1;
+        const len2 = dx * dx + dy * dy;
+        const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / len2));
+        return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+      };
+      let bestKind: 'arrow' | 'drawing' | null = null;
+      let bestIdx = -1;
+      let bestDist = 5; // tap tolerance in pitch percent units
+      board.arrows.forEach((a, i) => {
+        const d = distToSeg(p.x, p.y, a.x1, a.y1, a.x2, a.y2);
+        if (d < bestDist) { bestDist = d; bestKind = 'arrow'; bestIdx = i; }
+      });
+      (board.drawings ?? []).forEach((dr, i) => {
+        for (let j = 0; j < dr.points.length - 1; j++) {
+          const d = distToSeg(p.x, p.y, dr.points[j].x, dr.points[j].y, dr.points[j + 1].x, dr.points[j + 1].y);
+          if (d < bestDist) { bestDist = d; bestKind = 'drawing'; bestIdx = i; }
+        }
+      });
+      if (bestKind === 'arrow') {
+        setBoard({ ...board, arrows: board.arrows.filter((_, i) => i !== bestIdx) });
+      } else if (bestKind === 'drawing') {
+        setBoard({ ...board, drawings: (board.drawings ?? []).filter((_, i) => i !== bestIdx) });
+      }
+    } else if (mode === 'pen') {
       penPath.current = [p];
       setPenPreview([p]);
     } else if (mode === 'arrow') {
@@ -207,7 +233,7 @@ function BoardsTab({ teamId, kind }: { teamId: number; kind: TacticKind }) {
   const [editing, setEditing] = useState<{ id?: number; name: string; matchId: number | null } | null>(null);
   const [board, setBoard] = useState<BoardData>(emptyBoard());
   // (setBoard supports functional updates natively; playback relies on it)
-  const [mode, setMode] = useState<'move' | 'arrow' | 'pen'>('move');
+  const [mode, setMode] = useState<'move' | 'arrow' | 'pen' | 'erase'>('move');
   const [playing, setPlaying] = useState(false);
   const animRef = useRef<number | null>(null);
 
@@ -321,8 +347,11 @@ function BoardsTab({ teamId, kind }: { teamId: number; kind: TacticKind }) {
                 : setBoard({ ...board, arrows: board.arrows.slice(0, -1) })}>
             <Undo2 className="w-4 h-4" />
           </Button>
+          <Button size="sm" variant={mode === 'erase' ? 'default' : 'secondary'} onClick={() => setMode('erase')}>
+            <Eraser className="w-4 h-4 me-1" />{t('tactics.modeErase')}
+          </Button>
           <Button size="sm" variant="secondary" onClick={() => setBoard(emptyBoard())}>
-            <Eraser className="w-4 h-4" />
+            {t('tactics.clearAll')}
           </Button>
         </div>
 
