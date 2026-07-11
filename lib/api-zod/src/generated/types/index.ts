@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './appNotification';
 export * from './attendance';
 export * from './attendanceInput';
 export * from './attendanceInputRecordsItem';
@@ -38,6 +39,9 @@ export * from './match';
 export * from './matchInput';
 export * from './matchInputType';
 export * from './matchType';
+export * from './note';
+export * from './noteInput';
+export * from './noteUpdate';
 export * from './player';
 export * from './playerInput';
 export * from './playerInputPosition';
@@ -61,4 +65,12 @@ export * from './saveLineupBodyEntriesItem';
 export * from './scorerSummary';
 export * from './team';
 export * from './teamInput';
+export * from './teamMember';
+export * from './teamMemberInput';
+export * from './teamMemberInputRole';
+export * from './teamMemberRole';
+export * from './teamMemberStatus';
+export * from './teamMemberUpdate';
+export * from './teamMemberUpdateRole';
 export * from './teamUpdate';
+export * from './unreadCount';

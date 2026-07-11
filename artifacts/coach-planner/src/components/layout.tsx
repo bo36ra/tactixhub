@@ -21,7 +21,9 @@ import {
   Globe,
   Plus,
   ChevronsUpDown,
-  Check
+  Check,
+  UserCog,
+  StickyNote
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -32,6 +34,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useClerk } from '@clerk/react';
+import { NotificationBell } from '@/components/notification-bell';
 
 export function Sidebar() {
   const { t, lang, setLang, isRtl } = useLanguage();
@@ -67,6 +70,8 @@ export function Sidebar() {
       label: t('nav.section.manage'),
       links: [
         { href: '/teams', label: t('nav.teams'), icon: Layers },
+        { href: '/staff', label: t('nav.staff'), icon: UserCog },
+        { href: '/notes', label: t('nav.notes'), icon: StickyNote },
         { href: '/reports', label: t('nav.reports'), icon: BarChart2 },
         { href: '/tactics', label: t('nav.tactics'), icon: ClipboardList },
         { href: '/trainings', label: t('nav.trainings'), icon: Dumbbell },
@@ -93,6 +98,8 @@ export function Sidebar() {
           <img src="/logo-icon.svg" alt="TactixHub" className="w-7 h-7 shrink-0" />
           <h1 className="font-display font-bold text-[15px] text-foreground tracking-tight">{t('app.title')}</h1>
         </div>
+        <div className="flex items-center gap-1">
+        <NotificationBell />
         <Button 
           variant="ghost" 
           size="icon"
@@ -102,6 +109,7 @@ export function Sidebar() {
         >
           <Globe className="h-4 w-4" />
         </Button>
+        </div>
       </div>
 
       {/* Active team switcher - prominent card */}
@@ -199,6 +207,7 @@ export function Sidebar() {
           <h1 className="font-display font-bold text-sm text-foreground tracking-tight">{t('app.title')}</h1>
         </div>
         <div className="flex items-center gap-2">
+          <NotificationBell />
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}>
             <Globe className="h-4 w-4" />
           </Button>

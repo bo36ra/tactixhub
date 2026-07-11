@@ -491,6 +491,111 @@ export interface DashboardStats {
   cardWarnings: CardSummary[];
 }
 
+export type TeamMemberRole = typeof TeamMemberRole[keyof typeof TeamMemberRole];
+
+
+export const TeamMemberRole = {
+  owner: 'owner',
+  coach: 'coach',
+  assistant: 'assistant',
+  analyst: 'analyst',
+} as const;
+
+export type TeamMemberStatus = typeof TeamMemberStatus[keyof typeof TeamMemberStatus];
+
+
+export const TeamMemberStatus = {
+  pending: 'pending',
+  active: 'active',
+} as const;
+
+export interface TeamMember {
+  id: number;
+  teamId: number;
+  /** @nullable */
+  userId?: string | null;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  displayName?: string | null;
+  role: TeamMemberRole;
+  status: TeamMemberStatus;
+  createdAt: string;
+}
+
+export type TeamMemberInputRole = typeof TeamMemberInputRole[keyof typeof TeamMemberInputRole];
+
+
+export const TeamMemberInputRole = {
+  coach: 'coach',
+  assistant: 'assistant',
+  analyst: 'analyst',
+} as const;
+
+export interface TeamMemberInput {
+  /** @minLength 3 */
+  email: string;
+  role: TeamMemberInputRole;
+  displayName?: string;
+}
+
+export type TeamMemberUpdateRole = typeof TeamMemberUpdateRole[keyof typeof TeamMemberUpdateRole];
+
+
+export const TeamMemberUpdateRole = {
+  coach: 'coach',
+  assistant: 'assistant',
+  analyst: 'analyst',
+} as const;
+
+export interface TeamMemberUpdate {
+  role: TeamMemberUpdateRole;
+}
+
+export interface Note {
+  id: number;
+  teamId: number;
+  authorUserId: string;
+  authorName: string;
+  /** @nullable */
+  title?: string | null;
+  content: string;
+  pinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NoteInput {
+  title?: string;
+  /** @minLength 1 */
+  content: string;
+  pinned?: boolean;
+}
+
+export interface NoteUpdate {
+  title?: string;
+  /** @minLength 1 */
+  content?: string;
+  pinned?: boolean;
+}
+
+export interface AppNotification {
+  id: number;
+  /** @nullable */
+  teamId?: number | null;
+  type: string;
+  /** @nullable */
+  meta?: string | null;
+  /** @nullable */
+  link?: string | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface UnreadCount {
+  count: number;
+}
+
 export type SaveLineupBodyEntriesItem = {
   playerId: number;
   slotIndex: number | null;

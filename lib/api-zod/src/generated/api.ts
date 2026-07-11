@@ -715,3 +715,225 @@ export const GetDashboardResponse = zod.object({
 })
 
 
+/**
+ * @summary List staff members of a team
+ */
+export const ListTeamMembersParams = zod.object({
+  "teamId": zod.coerce.number()
+})
+
+export const ListTeamMembersResponseItem = zod.object({
+  "id": zod.number(),
+  "teamId": zod.number(),
+  "userId": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "displayName": zod.string().nullish(),
+  "role": zod.enum(['owner', 'coach', 'assistant', 'analyst']),
+  "status": zod.enum(['pending', 'active']),
+  "createdAt": zod.string()
+})
+export const ListTeamMembersResponse = zod.array(ListTeamMembersResponseItem)
+
+
+/**
+ * @summary Invite a staff member by email (owner only)
+ */
+export const AddTeamMemberParams = zod.object({
+  "teamId": zod.coerce.number()
+})
+
+export const addTeamMemberBodyEmailMin = 3;
+
+
+
+export const AddTeamMemberBody = zod.object({
+  "email": zod.string().min(addTeamMemberBodyEmailMin),
+  "role": zod.enum(['coach', 'assistant', 'analyst']),
+  "displayName": zod.string().optional()
+})
+
+export const AddTeamMemberResponse = zod.object({
+  "id": zod.number(),
+  "teamId": zod.number(),
+  "userId": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "displayName": zod.string().nullish(),
+  "role": zod.enum(['owner', 'coach', 'assistant', 'analyst']),
+  "status": zod.enum(['pending', 'active']),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Change a member's role (owner only)
+ */
+export const UpdateTeamMemberParams = zod.object({
+  "teamId": zod.coerce.number(),
+  "memberId": zod.coerce.number()
+})
+
+export const UpdateTeamMemberBody = zod.object({
+  "role": zod.enum(['coach', 'assistant', 'analyst'])
+})
+
+export const UpdateTeamMemberResponse = zod.object({
+  "id": zod.number(),
+  "teamId": zod.number(),
+  "userId": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "displayName": zod.string().nullish(),
+  "role": zod.enum(['owner', 'coach', 'assistant', 'analyst']),
+  "status": zod.enum(['pending', 'active']),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Remove a member or cancel an invite (owner only)
+ */
+export const RemoveTeamMemberParams = zod.object({
+  "teamId": zod.coerce.number(),
+  "memberId": zod.coerce.number()
+})
+
+export const RemoveTeamMemberResponse = zod.void()
+
+
+/**
+ * @summary List shared notes (pinned first, newest first)
+ */
+export const ListNotesParams = zod.object({
+  "teamId": zod.coerce.number()
+})
+
+export const ListNotesResponseItem = zod.object({
+  "id": zod.number(),
+  "teamId": zod.number(),
+  "authorUserId": zod.string(),
+  "authorName": zod.string(),
+  "title": zod.string().nullish(),
+  "content": zod.string(),
+  "pinned": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ListNotesResponse = zod.array(ListNotesResponseItem)
+
+
+/**
+ * @summary Create a shared note
+ */
+export const CreateNoteParams = zod.object({
+  "teamId": zod.coerce.number()
+})
+
+
+
+
+export const CreateNoteBody = zod.object({
+  "title": zod.string().optional(),
+  "content": zod.string().min(1),
+  "pinned": zod.boolean().optional()
+})
+
+export const CreateNoteResponse = zod.object({
+  "id": zod.number(),
+  "teamId": zod.number(),
+  "authorUserId": zod.string(),
+  "authorName": zod.string(),
+  "title": zod.string().nullish(),
+  "content": zod.string(),
+  "pinned": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Update a note (author or owner)
+ */
+export const UpdateNoteParams = zod.object({
+  "teamId": zod.coerce.number(),
+  "noteId": zod.coerce.number()
+})
+
+
+
+
+export const UpdateNoteBody = zod.object({
+  "title": zod.string().optional(),
+  "content": zod.string().min(1).optional(),
+  "pinned": zod.boolean().optional()
+})
+
+export const UpdateNoteResponse = zod.object({
+  "id": zod.number(),
+  "teamId": zod.number(),
+  "authorUserId": zod.string(),
+  "authorName": zod.string(),
+  "title": zod.string().nullish(),
+  "content": zod.string(),
+  "pinned": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Delete a note (author or owner)
+ */
+export const DeleteNoteParams = zod.object({
+  "teamId": zod.coerce.number(),
+  "noteId": zod.coerce.number()
+})
+
+export const DeleteNoteResponse = zod.void()
+
+
+/**
+ * @summary List the current user's notifications (newest first)
+ */
+export const ListNotificationsResponseItem = zod.object({
+  "id": zod.number(),
+  "teamId": zod.number().nullish(),
+  "type": zod.string(),
+  "meta": zod.string().nullish(),
+  "link": zod.string().nullish(),
+  "read": zod.boolean(),
+  "createdAt": zod.string()
+})
+export const ListNotificationsResponse = zod.array(ListNotificationsResponseItem)
+
+
+/**
+ * @summary Count of unread notifications
+ */
+export const GetUnreadNotificationsCountResponse = zod.object({
+  "count": zod.number()
+})
+
+
+/**
+ * @summary Mark all notifications as read
+ */
+export const MarkAllNotificationsReadResponse = zod.void()
+
+
+/**
+ * @summary Mark one notification as read
+ */
+export const MarkNotificationReadParams = zod.object({
+  "notificationId": zod.coerce.number()
+})
+
+export const MarkNotificationReadResponse = zod.object({
+  "id": zod.number(),
+  "teamId": zod.number().nullish(),
+  "type": zod.string(),
+  "meta": zod.string().nullish(),
+  "link": zod.string().nullish(),
+  "read": zod.boolean(),
+  "createdAt": zod.string()
+})
+
+

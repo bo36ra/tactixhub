@@ -3,19 +3,20 @@ import { Router } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, matchesTable, teamsTable, playersTable, lineupEntriesTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
+import { verifyTeamAccess } from "../lib/teamAccess";
 import { buildPlayerTimeline } from "../lib/playerTimeline";
 
 const router = Router();
 
-// A player belongs to a team belongs to a user — walk that chain to confirm
-// the requesting user actually owns the player they're viewing.
+// A player belongs to a team the requesting user must be a staff member
+// of — look up the player's team, then check membership.
 async function verifyPlayerOwnership(userId: string, playerId: number): Promise<boolean> {
   const [row] = await db
-    .select({ id: playersTable.id })
+    .select({ teamId: playersTable.teamId })
     .from(playersTable)
-    .innerJoin(teamsTable, eq(teamsTable.id, playersTable.teamId))
-    .where(and(eq(playersTable.id, playerId), eq(teamsTable.userId, userId)));
-  return !!row;
+    .where(eq(playersTable.id, playerId));
+  if (!row) return false;
+  return verifyTeamAccess(userId, row.teamId);
 }
 
 // Player profile timeline — every match and training day this player has
@@ -40,15 +41,15 @@ router.get("/players/:playerId/timeline", requireAuth, async (req, res) => {
   }
 });
 
-// A match belongs to a team belongs to a user — walk that chain to confirm
-// the requesting user actually owns the match they're touching.
+// A match belongs to a team the requesting user must be a staff member
+// of — look up the match's team, then check membership.
 async function verifyMatchOwnership(userId: string, matchId: number): Promise<{ teamId: number } | null> {
   const [row] = await db
     .select({ teamId: matchesTable.teamId })
     .from(matchesTable)
-    .innerJoin(teamsTable, eq(teamsTable.id, matchesTable.teamId))
-    .where(and(eq(matchesTable.id, matchId), eq(teamsTable.userId, userId)));
-  return row ?? null;
+    .where(eq(matchesTable.id, matchId));
+  if (!row) return null;
+  return (await verifyTeamAccess(userId, row.teamId)) ? row : null;
 }
 
 // Get lineup — formation + every assigned player (starters with a slot,

@@ -71,6 +71,8 @@ const Tactics = lazy(() => import('@/pages/tactics'));
 const Trainings = lazy(() => import('@/pages/trainings'));
 const Performance = lazy(() => import('@/pages/performance'));
 const MatchReport = lazy(() => import('@/pages/match-report'));
+const Staff = lazy(() => import('@/pages/staff'));
+const Notes = lazy(() => import('@/pages/notes'));
 const NotFound = lazy(() => import('@/pages/not-found'));
 
 // The original app derived this from the Replit hostname (dynamic per-deploy
@@ -218,6 +220,8 @@ function ClerkProviderWithRoutes() {
                 <Route path="/cards"><ProtectedRoute component={Cards} /></Route>
                 <Route path="/playing-time"><ProtectedRoute component={PlayingTime} /></Route>
                 <Route path="/teams"><ProtectedRoute component={Teams} /></Route>
+                <Route path="/staff"><ProtectedRoute component={Staff} /></Route>
+                <Route path="/notes"><ProtectedRoute component={Notes} /></Route>
                 <Route path="/reports"><ProtectedRoute component={Reports} /></Route>
                 <Route path="/tactics"><ProtectedRoute component={Tactics} /></Route>
                 <Route path="/trainings"><ProtectedRoute component={Trainings} /></Route>

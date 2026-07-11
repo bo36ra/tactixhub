@@ -11,6 +11,9 @@ import dashboardRouter from "./dashboard";
 import lineupsRouter from "./lineups";
 import tacticsRouter from "./tactics";
 import developmentRouter from "./development";
+import membersRouter from "./members";
+import notesRouter from "./notes";
+import notificationsRouter from "./notifications";
 
 const router: IRouter = Router();
 
@@ -26,5 +29,8 @@ router.use(dashboardRouter);
 router.use(lineupsRouter);
 router.use(tacticsRouter);
 router.use(developmentRouter);
+router.use(membersRouter);
+router.use(notesRouter);
+router.use(notificationsRouter);
 
 export default router;

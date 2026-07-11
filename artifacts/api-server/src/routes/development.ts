@@ -3,14 +3,12 @@ import { Router } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import { db, trainingsTable, injuriesTable, ratingsTable, playersTable, teamsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
+import { verifyTeamAccess } from "../lib/teamAccess";
 
 const router = Router();
 
-async function owns(userId: string, teamId: number): Promise<boolean> {
-  const [team] = await db.select().from(teamsTable)
-    .where(and(eq(teamsTable.id, teamId), eq(teamsTable.userId, userId)));
-  return !!team;
-}
+// Shared staff access: any active team member may read/write.
+const owns = verifyTeamAccess;
 
 // helper to wrap the repetitive guard + error handling
 function guarded(handler: (req: any, res: any, teamId: number) => Promise<void>) {

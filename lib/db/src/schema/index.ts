@@ -8,3 +8,6 @@ export * from "./playing-time";
 export * from "./lineups";
 export * from "./tactics";
 export * from "./development";
+export * from "./team-members";
+export * from "./notes";
+export * from "./notifications";

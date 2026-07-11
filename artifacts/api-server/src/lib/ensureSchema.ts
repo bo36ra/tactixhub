@@ -126,6 +126,50 @@ const STATEMENTS = [
     "rating" integer NOT NULL, "note" text,
     "created_at" timestamp DEFAULT now() NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS "team_members" (
+    "id" serial PRIMARY KEY,
+    "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+    "user_id" text,
+    "email" text,
+    "display_name" text,
+    "role" text NOT NULL DEFAULT 'assistant',
+    "status" text NOT NULL DEFAULT 'pending',
+    "created_at" timestamp DEFAULT now() NOT NULL
+  )`,
+  // One active membership per user per team; pending invites (user_id null)
+  // are excluded from the constraint.
+  `CREATE UNIQUE INDEX IF NOT EXISTS "team_members_team_user_uq"
+    ON "team_members" ("team_id", "user_id") WHERE "user_id" IS NOT NULL`,
+  `CREATE TABLE IF NOT EXISTS "notes" (
+    "id" serial PRIMARY KEY,
+    "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+    "author_user_id" text NOT NULL,
+    "author_name" text NOT NULL,
+    "title" text,
+    "content" text NOT NULL,
+    "pinned" boolean NOT NULL DEFAULT false,
+    "created_at" timestamp DEFAULT now() NOT NULL,
+    "updated_at" timestamp DEFAULT now() NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS "notifications" (
+    "id" serial PRIMARY KEY,
+    "user_id" text NOT NULL,
+    "team_id" integer REFERENCES "teams"("id") ON DELETE CASCADE,
+    "type" text NOT NULL,
+    "meta" text,
+    "link" text,
+    "read" boolean NOT NULL DEFAULT false,
+    "created_at" timestamp DEFAULT now() NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS "notifications_user_idx" ON "notifications" ("user_id", "read")`,
+  // Backfill: every team created before team_members existed gets its
+  // legacy owner (teams.user_id) as an active 'owner' member. Idempotent.
+  `INSERT INTO "team_members" ("team_id", "user_id", "role", "status")
+    SELECT t."id", t."user_id", 'owner', 'active' FROM "teams" t
+    WHERE NOT EXISTS (
+      SELECT 1 FROM "team_members" m
+      WHERE m."team_id" = t."id" AND m."user_id" = t."user_id"
+    )`,
 ];
 
 export async function ensureSchema(): Promise<void> {

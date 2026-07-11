@@ -29,7 +29,7 @@ A bilingual (Arabic/English) football team management web app for coaches. Manag
 ## Where things live
 
 - `lib/api-spec/openapi.yaml` — OpenAPI spec (source of truth for all API contracts)
-- `lib/db/src/schema/` — Drizzle schema (teams, players, matches, attendance, goals, cards, playing-time)
+- `lib/db/src/schema/` — Drizzle schema (teams, team-members, players, matches, attendance, goals, cards, playing-time, notes, notifications)
 - `artifacts/api-server/src/routes/` — Express route handlers per domain
 - `artifacts/api-server/src/middlewares/requireAuth.ts` — Clerk auth middleware
 - `artifacts/coach-planner/src/` — React frontend
@@ -39,14 +39,17 @@ A bilingual (Arabic/English) football team management web app for coaches. Manag
 ## Architecture decisions
 
 - **Bilingual RTL/LTR**: Language stored in localStorage, applied to `document.documentElement.dir` and `lang` on change. All text goes through the `useLanguage()` hook — no hardcoded strings in components.
-- **Team ownership scoping**: Every API route verifies the team belongs to the authenticated user via `verifyTeamOwnership()` before any query.
+- **Shared staff access**: Teams are shared across a staff via `team_members` (roles: owner/coach/assistant/analyst). Every API route verifies active membership via `verifyTeamAccess()` (`src/lib/teamAccess.ts`) before any query; owner-only actions (delete team, manage members) use `verifyTeamOwner()`. The legacy `teams.user_id` column is kept as a fallback and backfilled into `team_members` at boot by `ensureSchema`.
+- **Email invites, auto-claimed**: The owner invites staff by email (`POST /teams/:id/members`, status `pending`, `user_id` null). The first time that email signs in and hits `GET /teams`, the invite is claimed automatically (matched via Clerk backend API, cached 10 min in `src/lib/clerkUsers.ts`) — no separate accept step.
+- **Notifications are type+meta, not prose**: The app is bilingual, so `notifications` rows store a `type` and a JSON `meta` payload; the frontend renders the localized sentence (`notif.*` i18n keys + interpolation in `notification-bell.tsx`). Fan-out helper: `src/lib/notify.ts`. Emitted on: note created, invite claimed, member joined, role changed.
+- **Notes carry a denormalized author name**: `notes.author_name` is stamped at write time (member displayName, falling back to Clerk) so notes survive the author leaving the team. Edit/delete: author or team owner.
 - **Clerk cookie auth**: Browser uses session cookies; no Bearer token handling needed in frontend API calls.
 - **OpenAPI-first**: All API contracts defined in `openapi.yaml` → codegen → typed React Query hooks + Zod schemas.
 - **DB cascade deletes**: All child tables cascade delete from `teams`, so deleting a team cleans up all related data.
 
 ## Product
 
-7 pages accessible after sign-in:
+Pages accessible after sign-in:
 - **Dashboard** — squad stats, recent matches, top scorers, card warnings
 - **Players** — roster management with jersey number, position, age, status
 - **Attendance** — session recording (training/match) with per-player present/absent toggle + summary stats
@@ -54,6 +57,9 @@ A bilingual (Arabic/English) football team management web app for coaches. Manag
 - **Goals** — top scorers table + goals conceded log + goal entry modal
 - **Cards** — disciplinary card tracking with caution/warning/suspended status
 - **Playing Time** — minutes per match, participation % progress bars
+- **Staff** — team members with roles, email invites (owner manages roles/removal)
+- **Notes** — shared staff notes with author name, pinning, edit/delete by author or owner
+- Notification bell (sidebar header + mobile topbar) — unread badge polls every 30s; opening + closing the dropdown marks all read
 
 ## User preferences
 

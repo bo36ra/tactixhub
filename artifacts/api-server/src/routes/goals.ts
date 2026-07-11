@@ -3,16 +3,13 @@ import { Router } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import { db, goalsTable, playersTable, teamsTable, matchesTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
+import { verifyTeamAccess } from "../lib/teamAccess";
 
 const router = Router();
 
-async function verifyTeamOwnership(userId: string, teamId: number): Promise<boolean> {
-  const [team] = await db
-    .select()
-    .from(teamsTable)
-    .where(and(eq(teamsTable.id, teamId), eq(teamsTable.userId, userId)));
-  return !!team;
-}
+// Team data is shared across the whole staff — any active member
+// (owner/coach/assistant/analyst) may read and write it.
+const verifyTeamOwnership = verifyTeamAccess;
 
 // List goals
 router.get("/teams/:teamId/goals", requireAuth, async (req, res) => {
