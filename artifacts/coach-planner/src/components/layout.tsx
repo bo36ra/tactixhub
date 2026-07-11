@@ -7,6 +7,7 @@ import {
   LayoutDashboard, 
   ClipboardList,
   Dumbbell,
+  FileText,
   Activity,
   Users, 
   CalendarCheck, 
@@ -70,6 +71,7 @@ export function Sidebar() {
         { href: '/tactics', label: t('nav.tactics'), icon: ClipboardList },
         { href: '/trainings', label: t('nav.trainings'), icon: Dumbbell },
         { href: '/performance', label: t('nav.performance'), icon: Activity },
+        { href: '/match-report', label: t('nav.matchReport'), icon: FileText },
       ],
     },
   ];
