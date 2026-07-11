@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AttendanceSessionType } from './attendanceSessionType';
+import type { AttendanceStatus } from './attendanceStatus';
 
 export interface Attendance {
   id: number;
@@ -14,5 +15,6 @@ export interface Attendance {
   date: string;
   sessionType: AttendanceSessionType;
   present: boolean;
+  status?: AttendanceStatus;
   createdAt: string;
 }

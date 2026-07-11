@@ -8,6 +8,20 @@ import { buildAttendanceSchedule } from "../lib/attendanceSchedule";
 
 const router = Router();
 
+// Training statuses + match-day statuses. A player who wasn't called up
+// for a match is neither present nor absent — not_called rows are
+// excluded from attendance-rate math entirely.
+const VALID_STATUSES = [
+  "present",
+  "late_excused",
+  "late_unexcused",
+  "absent",
+  "starter",
+  "substitute",
+  "not_called",
+];
+const PRESENT_STATUSES = ["present", "late_excused", "late_unexcused", "starter", "substitute"];
+
 // Team data is shared across the whole staff — any active member
 // (owner/coach/assistant/analyst) may read and write it.
 const verifyTeamOwnership = verifyTeamAccess;
@@ -62,13 +76,25 @@ router.post("/teams/:teamId/attendance", requireAuth, async (req, res) => {
       const inserted = await db
         .insert(attendanceTable)
         .values(
-          records.map((r: { playerId: number; present: boolean }) => ({
-            teamId,
-            playerId: r.playerId,
-            date,
-            sessionType,
-            present: r.present,
-          })),
+          records.map((r: { playerId: number; present?: boolean; status?: string }) => {
+            // Prefer the rich status; fall back to the legacy boolean so
+            // older clients keep working. `present` stays derived so all
+            // existing rate calculations remain valid.
+            const status =
+              r.status && VALID_STATUSES.includes(r.status)
+                ? r.status
+                : r.present === false
+                  ? "absent"
+                  : "present";
+            return {
+              teamId,
+              playerId: r.playerId,
+              date,
+              sessionType,
+              status,
+              present: PRESENT_STATUSES.includes(status),
+            };
+          }),
         )
         .returning();
       res.status(201).json(inserted.map(mapAttendance)[0]);
@@ -106,8 +132,9 @@ router.get("/teams/:teamId/attendance/summary", requireAuth, async (req, res) =>
               eq(attendanceTable.playerId, p.id),
             ),
           );
-        const totalPresent = records.filter((r) => r.present).length;
-        const totalAbsent = records.filter((r) => !r.present).length;
+        const counted = records.filter((r) => r.status !== "not_called");
+        const totalPresent = counted.filter((r) => r.present).length;
+        const totalAbsent = counted.filter((r) => !r.present).length;
         const total = totalPresent + totalAbsent;
         const attendanceRate = total > 0 ? (totalPresent / total) * 100 : 0;
         return {
@@ -155,6 +182,7 @@ function mapAttendance(a: typeof attendanceTable.$inferSelect) {
     date: a.date,
     sessionType: a.sessionType,
     present: a.present,
+    status: a.status,
     createdAt: a.createdAt.toISOString(),
   };
 }

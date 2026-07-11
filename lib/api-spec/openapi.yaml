@@ -1239,6 +1239,9 @@ components:
           enum: [training, match]
         present:
           type: boolean
+        status:
+          type: string
+          enum: [present, late_excused, late_unexcused, absent, starter, substitute, not_called]
         createdAt:
           type: string
 
@@ -1255,12 +1258,15 @@ components:
           type: array
           items:
             type: object
-            required: [playerId, present]
+            required: [playerId]
             properties:
               playerId:
                 type: integer
               present:
                 type: boolean
+              status:
+                type: string
+                enum: [present, late_excused, late_unexcused, absent, starter, substitute, not_called]
 
     AttendanceSummary:
       type: object

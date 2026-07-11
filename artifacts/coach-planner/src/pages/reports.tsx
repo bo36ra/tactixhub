@@ -3,6 +3,8 @@ import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
 import {
+  useListAttendance,
+  getListAttendanceQueryKey,
   useListMatches,
   useListPlayers,
   useGetPlayingTimeSummary,
@@ -18,8 +20,9 @@ import {
   getGetAttendanceSummaryQueryKey,
   getGetAttendanceScheduleQueryKey,
 } from '@workspace/api-client-react';
-import { format, startOfWeek, endOfWeek, startOfMonth } from 'date-fns';
-import { FileBarChart2, User, CalendarDays } from 'lucide-react';
+import { format, startOfWeek, endOfWeek, startOfMonth, addMonths, getDaysInMonth } from 'date-fns';
+import { FileBarChart2, User, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import { STATUS_STYLES } from '@/pages/attendance';
 
 type TabId = 'games' | 'players' | 'schedule';
 
@@ -38,6 +41,35 @@ export function Reports() {
   const { data: cardsSummary } = useGetCardsSummary(tid, { query: { enabled, queryKey: getGetCardsSummaryQueryKey(tid) } });
   const { data: attendanceSummary } = useGetAttendanceSummary(tid, { query: { enabled, queryKey: getGetAttendanceSummaryQueryKey(tid) } });
   const [scheduleDays, setScheduleDays] = useState<number | undefined>(30);
+  const [gridMonth, setGridMonth] = useState(() => startOfMonth(new Date()));
+  const { data: allAttendance } = useListAttendance(tid, { query: { enabled, queryKey: getListAttendanceQueryKey(tid) } });
+
+  // Monthly grid: players as rows, every day of the selected month as
+  // columns, one colored cell per recorded status. Built client-side from
+  // the raw attendance rows.
+  const monthGrid = React.useMemo(() => {
+    if (!players) return null;
+    const monthKey = format(gridMonth, 'yyyy-MM');
+    const daysInMonth = getDaysInMonth(gridMonth);
+    // date -> playerId -> statuses (training + match can share a day)
+    const byDay = new Map<number, Map<number, string[]>>();
+    let hasRecords = false;
+    for (const rec of allAttendance ?? []) {
+      if (!rec.date.startsWith(monthKey)) continue;
+      hasRecords = true;
+      const day = Number(rec.date.slice(8, 10));
+      const statuses = byDay.get(day) ?? new Map<number, string[]>();
+      const list = statuses.get(rec.playerId) ?? [];
+      list.push(rec.status ?? (rec.present ? 'present' : 'absent'));
+      statuses.set(rec.playerId, list);
+      byDay.set(day, statuses);
+    }
+    // Only render columns for days that actually had a session — a full
+    // 1..31 grid is mostly empty and unreadable on mobile.
+    const activeDays = Array.from(byDay.keys()).sort((a, b) => a - b);
+    return { daysInMonth, activeDays, byDay, hasRecords };
+  }, [players, allAttendance, gridMonth]);
+
   const [scheduleGroupBy, setScheduleGroupBy] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const { data: schedule } = useGetAttendanceSchedule(
     tid,
@@ -376,6 +408,100 @@ export function Reports() {
                 })}
               </div>
             )}
+
+            {/* Monthly grid */}
+            <div className="bg-card border rounded-xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b">
+                <h3 className="font-bold text-sm sm:text-base">{t('reports.monthGrid')}</h3>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    className="p-1.5 rounded-md hover:bg-white/[0.06] text-muted-foreground"
+                    onClick={() => setGridMonth(m => addMonths(m, -1))}
+                  >
+                    {isRtl ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+                  </button>
+                  <span className="text-sm font-medium min-w-24 text-center" dir="ltr">
+                    {format(gridMonth, 'MM / yyyy')}
+                  </span>
+                  <button
+                    type="button"
+                    className="p-1.5 rounded-md hover:bg-white/[0.06] text-muted-foreground"
+                    onClick={() => setGridMonth(m => addMonths(m, 1))}
+                  >
+                    {isRtl ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {!monthGrid?.hasRecords ? (
+                <p className="px-6 py-10 text-center text-sm text-muted-foreground">
+                  {t('reports.noRecordsMonth')}
+                </p>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="text-xs border-collapse min-w-full">
+                      <thead>
+                        <tr className="bg-muted text-muted-foreground">
+                          <th className="px-3 py-2 text-start sticky start-0 bg-muted z-10 min-w-32">
+                            {t('common.name')}
+                          </th>
+                          {monthGrid.activeDays.map(day => (
+                            <th key={day} className="px-1 py-2 text-center font-mono min-w-8" dir="ltr">
+                              {day}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/50">
+                        {players?.map(player => (
+                          <tr key={player.id} className="hover:bg-muted/40">
+                            <td className="px-3 py-1.5 font-medium sticky start-0 bg-card z-10 whitespace-nowrap">
+                              <span className="text-muted-foreground font-mono me-1.5">{player.jerseyNumber}</span>
+                              {player.name}
+                            </td>
+                            {monthGrid.activeDays.map(day => {
+                              const statuses = monthGrid.byDay.get(day)?.get(player.id) ?? [];
+                              return (
+                                <td key={day} className="px-1 py-1.5 text-center">
+                                  <div className="flex items-center justify-center gap-0.5">
+                                    {statuses.length === 0 ? (
+                                      <span className="text-muted-foreground/30">·</span>
+                                    ) : (
+                                      statuses.map((status, i) => (
+                                        <span
+                                          key={i}
+                                          title={t(`att.status.${status}`)}
+                                          className={`inline-flex items-center justify-center w-6 h-6 rounded-md border text-[10px] font-bold ${STATUS_STYLES[status] ?? ''}`}
+                                        >
+                                          {t(`att.status.short.${status}`)}
+                                        </span>
+                                      ))
+                                    )}
+                                  </div>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="px-4 py-3 border-t flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                    <span className="text-[11px] font-medium text-muted-foreground">{t('reports.legend')}:</span>
+                    {['present', 'late_excused', 'late_unexcused', 'absent', 'starter', 'substitute', 'not_called'].map(status => (
+                      <span key={status} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <span className={`inline-flex items-center justify-center w-5 h-5 rounded-md border text-[9px] font-bold ${STATUS_STYLES[status]}`}>
+                          {t(`att.status.short.${status}`)}
+                        </span>
+                        {t(`att.status.${status}`)}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
 
             {/* Daily list */}
             {!scheduleBuckets && (!schedule || schedule.length === 0) && (

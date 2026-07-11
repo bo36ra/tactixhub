@@ -227,6 +227,19 @@ export const AttendanceSessionType = {
   match: 'match',
 } as const;
 
+export type AttendanceStatus = typeof AttendanceStatus[keyof typeof AttendanceStatus];
+
+
+export const AttendanceStatus = {
+  present: 'present',
+  late_excused: 'late_excused',
+  late_unexcused: 'late_unexcused',
+  absent: 'absent',
+  starter: 'starter',
+  substitute: 'substitute',
+  not_called: 'not_called',
+} as const;
+
 export interface Attendance {
   id: number;
   teamId: number;
@@ -234,6 +247,7 @@ export interface Attendance {
   date: string;
   sessionType: AttendanceSessionType;
   present: boolean;
+  status?: AttendanceStatus;
   createdAt: string;
 }
 
@@ -245,9 +259,23 @@ export const AttendanceInputSessionType = {
   match: 'match',
 } as const;
 
+export type AttendanceInputRecordsItemStatus = typeof AttendanceInputRecordsItemStatus[keyof typeof AttendanceInputRecordsItemStatus];
+
+
+export const AttendanceInputRecordsItemStatus = {
+  present: 'present',
+  late_excused: 'late_excused',
+  late_unexcused: 'late_unexcused',
+  absent: 'absent',
+  starter: 'starter',
+  substitute: 'substitute',
+  not_called: 'not_called',
+} as const;
+
 export type AttendanceInputRecordsItem = {
   playerId: number;
-  present: boolean;
+  present?: boolean;
+  status?: AttendanceInputRecordsItemStatus;
 };
 
 export interface AttendanceInput {

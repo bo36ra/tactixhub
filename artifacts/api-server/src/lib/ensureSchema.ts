@@ -126,6 +126,11 @@ const STATEMENTS = [
     "rating" integer NOT NULL, "note" text,
     "created_at" timestamp DEFAULT now() NOT NULL
   )`,
+  `ALTER TABLE "attendance" ADD COLUMN IF NOT EXISTS "status" text NOT NULL DEFAULT 'present'`,
+  // Legacy rows only had a boolean; new writes always set both fields
+  // consistently, so present=false with status='present' can only be a
+  // pre-status row. Idempotent.
+  `UPDATE "attendance" SET "status" = 'absent' WHERE "present" = false AND "status" = 'present'`,
   `CREATE TABLE IF NOT EXISTS "team_members" (
     "id" serial PRIMARY KEY,
     "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,

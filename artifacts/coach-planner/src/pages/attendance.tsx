@@ -9,8 +9,22 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, X } from 'lucide-react';
 import { format } from 'date-fns';
+
+// Statuses differ by session type: trainings track lateness with/without
+// an excuse; match days track the call-up (starter / sub / not called).
+export const TRAINING_STATUSES = ['present', 'late_excused', 'late_unexcused', 'absent'] as const;
+export const MATCH_STATUSES = ['starter', 'substitute', 'not_called'] as const;
+
+export const STATUS_STYLES: Record<string, string> = {
+  present: 'bg-green-500/15 text-green-500 border-green-500/30',
+  late_excused: 'bg-yellow-500/15 text-yellow-500 border-yellow-500/30',
+  late_unexcused: 'bg-orange-500/15 text-orange-500 border-orange-500/30',
+  absent: 'bg-red-500/15 text-red-500 border-red-500/30',
+  starter: 'bg-primary/15 text-primary border-primary/30',
+  substitute: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
+  not_called: 'bg-white/[0.06] text-muted-foreground border-white/10',
+};
 
 export function Attendance() {
   const { t, isRtl } = useLanguage();
@@ -19,7 +33,7 @@ export function Attendance() {
 
   const [date, setDate] = React.useState(format(new Date(), 'yyyy-MM-dd'));
   const [sessionType, setSessionType] = React.useState<AttendanceInputSessionType>('training');
-  const [records, setRecords] = React.useState<Record<number, boolean>>({});
+  const [records, setRecords] = React.useState<Record<number, string>>({});
 
   const { data: players } = useListPlayers(activeTeamId!, {
     query: { enabled: !!activeTeamId, queryKey: getListPlayersQueryKey(activeTeamId!) }
@@ -31,22 +45,23 @@ export function Attendance() {
 
   const createAttendance = useCreateAttendance();
 
-  // Initialize records when players load
+  // Default statuses: trainings assume everyone showed up; match days
+  // assume everyone is on the bench (fewest taps for a typical squad).
+  const defaultStatus = sessionType === 'match' ? 'substitute' : 'present';
   useEffect(() => {
-    if (players && Object.keys(records).length === 0) {
-      const initial: Record<number, boolean> = {};
-      players.forEach(p => initial[p.id] = true); // Default all to present
-      setRecords(initial);
-    }
-  }, [players]);
+    if (!players) return;
+    const initial: Record<number, string> = {};
+    players.forEach(p => initial[p.id] = defaultStatus);
+    setRecords(initial);
+  }, [players, sessionType]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeTeamId || !date) return;
     
-    const entries = Object.entries(records).map(([playerId, present]) => ({
+    const entries = Object.entries(records).map(([playerId, status]) => ({
       playerId: Number(playerId),
-      present
+      status: status as any,
     }));
 
     createAttendance.mutate({
@@ -59,17 +74,19 @@ export function Attendance() {
     }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetAttendanceSummaryQueryKey(activeTeamId) });
-        // Reset to all present for convenience
-        const initial: Record<number, boolean> = {};
-        players?.forEach(p => initial[p.id] = true);
+        // Reset to defaults for convenience
+        const initial: Record<number, string> = {};
+        players?.forEach(p => initial[p.id] = defaultStatus);
         setRecords(initial);
       }
     });
   };
 
-  const togglePresence = (playerId: number, present: boolean) => {
-    setRecords(prev => ({ ...prev, [playerId]: present }));
+  const setStatus = (playerId: number, status: string) => {
+    setRecords(prev => ({ ...prev, [playerId]: status }));
   };
+
+  const statuses = sessionType === 'match' ? MATCH_STATUSES : TRAINING_STATUSES;
 
   if (!activeTeamId) return <NoTeamState />;
 
@@ -105,30 +122,30 @@ export function Attendance() {
               </div>
 
               <div className="pt-6 border-t">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                   {players?.map(player => {
-                    const isPresent = records[player.id];
+                    const current = records[player.id] ?? defaultStatus;
                     return (
-                      <div key={player.id} className="flex items-center justify-between p-3 border rounded-lg bg-background">
-                        <div className="flex items-center gap-3">
+                      <div key={player.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 border rounded-lg bg-background">
+                        <div className="flex items-center gap-3 min-w-0">
                           <span className="text-muted-foreground font-mono text-sm">{player.jerseyNumber}</span>
-                          <span className="font-medium text-sm">{player.name}</span>
+                          <span className="font-medium text-sm truncate">{player.name}</span>
                         </div>
-                        <div className="flex bg-muted rounded-md p-1">
-                          <button
-                            type="button"
-                            onClick={() => togglePresence(player.id, true)}
-                            className={`p-1.5 rounded text-sm transition-colors ${isPresent ? 'bg-green-100 text-green-700 shadow-sm' : 'text-muted-foreground hover:bg-black/5'}`}
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => togglePresence(player.id, false)}
-                            className={`p-1.5 rounded text-sm transition-colors ${!isPresent ? 'bg-red-100 text-red-700 shadow-sm' : 'text-muted-foreground hover:bg-black/5'}`}
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                        <div className="flex flex-wrap gap-1.5 shrink-0">
+                          {statuses.map(status => (
+                            <button
+                              key={status}
+                              type="button"
+                              onClick={() => setStatus(player.id, status)}
+                              className={`px-2 py-1 rounded-md text-xs font-medium border transition-colors ${
+                                current === status
+                                  ? STATUS_STYLES[status]
+                                  : 'border-transparent text-muted-foreground hover:bg-white/[0.05]'
+                              }`}
+                            >
+                              {t(`att.status.${status}`)}
+                            </button>
+                          ))}
                         </div>
                       </div>
                     );

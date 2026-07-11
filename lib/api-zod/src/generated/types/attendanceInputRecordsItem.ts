@@ -5,8 +5,10 @@
  * Coach Planner API
  * OpenAPI spec version: 0.1.0
  */
+import type { AttendanceInputRecordsItemStatus } from './attendanceInputRecordsItemStatus';
 
 export type AttendanceInputRecordsItem = {
   playerId: number;
-  present: boolean;
+  present?: boolean;
+  status?: AttendanceInputRecordsItemStatus;
 };

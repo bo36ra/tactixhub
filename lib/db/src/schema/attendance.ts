@@ -11,6 +11,10 @@ export const attendanceTable = pgTable("attendance", {
   date: text("date").notNull(),
   sessionType: text("session_type").notNull(), // training, match
   present: boolean("present").notNull().default(false),
+  // Rich status. Training: present | late_excused | late_unexcused | absent.
+  // Match day: starter | substitute | not_called.
+  // `present` is kept in sync (derived) so existing stats keep working.
+  status: text("status").notNull().default("present"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
