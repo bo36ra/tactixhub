@@ -6,3 +6,4 @@ export * from "./goals";
 export * from "./cards";
 export * from "./playing-time";
 export * from "./lineups";
+export * from "./tactics";

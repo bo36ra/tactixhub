@@ -5,6 +5,7 @@ import { useTeam } from '../lib/team-context';
 import { useListTeams } from '@workspace/api-client-react';
 import { 
   LayoutDashboard, 
+  ClipboardList,
   Users, 
   CalendarCheck, 
   Swords, 
@@ -64,6 +65,7 @@ export function Sidebar() {
       links: [
         { href: '/teams', label: t('nav.teams'), icon: Layers },
         { href: '/reports', label: t('nav.reports'), icon: BarChart2 },
+        { href: '/tactics', label: t('nav.tactics'), icon: ClipboardList },
       ],
     },
   ];

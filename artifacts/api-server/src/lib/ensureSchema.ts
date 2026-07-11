@@ -77,6 +77,24 @@ const STATEMENTS = [
     "minutes" integer NOT NULL DEFAULT 0,
     "created_at" timestamp DEFAULT now() NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS "tactics" (
+    "id" serial PRIMARY KEY,
+    "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+    "name" text NOT NULL,
+    "kind" text NOT NULL DEFAULT 'general',
+    "match_id" integer REFERENCES "matches"("id") ON DELETE SET NULL,
+    "data" text NOT NULL DEFAULT '{}',
+    "created_at" timestamp DEFAULT now() NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS "opponent_notes" (
+    "id" serial PRIMARY KEY,
+    "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+    "opponent" text NOT NULL,
+    "strengths" text,
+    "weaknesses" text,
+    "plan" text,
+    "created_at" timestamp DEFAULT now() NOT NULL
+  )`,
   `CREATE TABLE IF NOT EXISTS "lineup_entries" (
     "id" serial PRIMARY KEY,
     "match_id" integer NOT NULL REFERENCES "matches"("id") ON DELETE CASCADE,
