@@ -24,6 +24,30 @@ const _pk = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || '';
 window.__logBoot?.('3b. CLERK_KEY len=' + _pk.length + ' value=[' + _pk + ']');
 window.__logBoot?.('3c. CLERK_PROXY_URL=[' + (import.meta.env.VITE_CLERK_PROXY_URL || '') + ']');
 
+// Every page is lazy-loaded as a hashed chunk. After a redeploy the old
+// hashed filenames no longer exist on the server, so a tab that was opened
+// before the deploy fails to import the chunk on its next navigation and
+// the screen dies. Vite emits 'vite:preloadError' for exactly this case —
+// reload once to pick up the new build (guarded so a genuinely broken
+// deploy can't cause an infinite reload loop).
+const RELOAD_GUARD_KEY = 'chunk-reload-at';
+function reloadOnceForStaleChunks(): boolean {
+  const last = Number(sessionStorage.getItem(RELOAD_GUARD_KEY) || 0);
+  if (Date.now() - last < 30_000) return false;
+  sessionStorage.setItem(RELOAD_GUARD_KEY, String(Date.now()));
+  window.location.reload();
+  return true;
+}
+window.addEventListener('vite:preloadError', (event) => {
+  if (reloadOnceForStaleChunks()) event.preventDefault();
+});
+
+function isStaleChunkError(error: Error): boolean {
+  return /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|ChunkLoadError/i.test(
+    `${error.name} ${error.message}`,
+  );
+}
+
 // Without this, any error thrown while loading/rendering the app (missing
 // env var, bad Clerk key, etc.) crashes silently and leaves a blank/black
 // page with nothing in the DOM — impossible to diagnose without devtools.
@@ -39,9 +63,21 @@ class RootErrorBoundary extends Component<{ children: ReactNode }, { error: Erro
   }
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('Root render error:', error, info);
+    // A stale-chunk crash right after a redeploy is fixed by reloading —
+    // do that silently instead of showing the error screen.
+    if (isStaleChunkError(error)) reloadOnceForStaleChunks();
   }
   render() {
     if (this.state.error) {
+      if (isStaleChunkError(this.state.error)) {
+        // Reload already triggered in componentDidCatch — keep the screen
+        // calm (dark, branded) instead of flashing a stack trace.
+        return (
+          <div style={{ minHeight: '100vh', background: '#181613', color: '#EAE0D0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'monospace' }}>
+            <p>Updating TactixHub…</p>
+          </div>
+        );
+      }
       return <ErrorScreen error={this.state.error} />;
     }
     return this.props.children;

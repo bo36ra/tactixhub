@@ -47,6 +47,7 @@ const queryClient = new QueryClient({
 
 import { LanguageProvider } from '@/lib/i18n';
 import { TeamProvider } from '@/lib/team-context';
+import { ApiKeepAlive } from '@/components/api-keep-alive';
 
 import { lazy, Suspense } from 'react';
 
@@ -202,6 +203,7 @@ function ClerkProviderWithRoutes() {
     >
       <QueryClientProvider client={queryClient}>
         <AuthTokenSync />
+        <ApiKeepAlive />
         <ClerkQueryClientCacheInvalidator />
         <LanguageProvider>
           <TeamProvider>
