@@ -10,6 +10,7 @@ import playingTimeRouter from "./playing-time";
 import dashboardRouter from "./dashboard";
 import lineupsRouter from "./lineups";
 import tacticsRouter from "./tactics";
+import developmentRouter from "./development";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(playingTimeRouter);
 router.use(dashboardRouter);
 router.use(lineupsRouter);
 router.use(tacticsRouter);
+router.use(developmentRouter);
 
 export default router;

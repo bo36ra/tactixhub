@@ -103,6 +103,29 @@ const STATEMENTS = [
     "is_captain" boolean NOT NULL DEFAULT false,
     "created_at" timestamp DEFAULT now() NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS "trainings" (
+    "id" serial PRIMARY KEY,
+    "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+    "date" text NOT NULL, "time" text, "focus" text NOT NULL,
+    "drills" text, "notes" text,
+    "created_at" timestamp DEFAULT now() NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS "injuries" (
+    "id" serial PRIMARY KEY,
+    "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+    "player_id" integer NOT NULL REFERENCES "players"("id") ON DELETE CASCADE,
+    "type" text NOT NULL, "date" text NOT NULL, "expected_return" text,
+    "status" text NOT NULL DEFAULT 'out', "notes" text,
+    "created_at" timestamp DEFAULT now() NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS "ratings" (
+    "id" serial PRIMARY KEY,
+    "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+    "match_id" integer NOT NULL REFERENCES "matches"("id") ON DELETE CASCADE,
+    "player_id" integer NOT NULL REFERENCES "players"("id") ON DELETE CASCADE,
+    "rating" integer NOT NULL, "note" text,
+    "created_at" timestamp DEFAULT now() NOT NULL
+  )`,
 ];
 
 export async function ensureSchema(): Promise<void> {

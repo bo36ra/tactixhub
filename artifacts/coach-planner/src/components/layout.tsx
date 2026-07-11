@@ -6,6 +6,8 @@ import { useListTeams } from '@workspace/api-client-react';
 import { 
   LayoutDashboard, 
   ClipboardList,
+  Dumbbell,
+  Activity,
   Users, 
   CalendarCheck, 
   Swords, 
@@ -66,6 +68,8 @@ export function Sidebar() {
         { href: '/teams', label: t('nav.teams'), icon: Layers },
         { href: '/reports', label: t('nav.reports'), icon: BarChart2 },
         { href: '/tactics', label: t('nav.tactics'), icon: ClipboardList },
+        { href: '/trainings', label: t('nav.trainings'), icon: Dumbbell },
+        { href: '/performance', label: t('nav.performance'), icon: Activity },
       ],
     },
   ];
