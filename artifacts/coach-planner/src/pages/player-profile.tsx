@@ -2,9 +2,14 @@ import React from 'react';
 import { useRoute, Link, Redirect } from 'wouter';
 import { AppLayout } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
-import { useGetPlayerTimeline, getGetPlayerTimelineQueryKey } from '@workspace/api-client-react';
+import { useGetPlayerTimeline, getGetPlayerTimelineQueryKey, useUpdatePlayer, useListPlayers, getListPlayersQueryKey } from '@workspace/api-client-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useTeam } from '@/lib/team-context';
+import { compressImageFile } from '@/lib/image';
+import { PlayerAvatar } from '@/components/player-avatar';
+import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { ArrowRight, ArrowLeft, Swords, CalendarCheck, CircleDot, Square } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Swords, CalendarCheck, CircleDot, Square, Camera } from 'lucide-react';
 
 export function PlayerProfile() {
   const { t, isRtl } = useLanguage();
@@ -14,6 +19,23 @@ export function PlayerProfile() {
   const { data } = useGetPlayerTimeline(playerId!, {
     query: { enabled: !!playerId, queryKey: getGetPlayerTimelineQueryKey(playerId!) },
   });
+  const { activeTeamId } = useTeam();
+  const queryClient = useQueryClient();
+  const updatePlayer = useUpdatePlayer();
+  const photoInputRef = React.useRef<HTMLInputElement>(null);
+
+  const savePhoto = (photo: string | null) => {
+    if (!activeTeamId || !playerId) return;
+    updatePlayer.mutate(
+      { teamId: activeTeamId, playerId, data: { photo } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetPlayerTimelineQueryKey(playerId) });
+          queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(activeTeamId) });
+        },
+      },
+    );
+  };
 
   // A malformed player URL used to render a black screen; send the user back
   // to a real page instead.
@@ -35,8 +57,30 @@ export function PlayerProfile() {
 
         {player && (
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center font-mono font-bold text-xl text-muted-foreground shrink-0">
-              {player.jerseyNumber}
+            <div className="relative shrink-0">
+              <PlayerAvatar photo={player.photo} jerseyNumber={player.jerseyNumber} className="w-20 h-20 text-xl" />
+              <button
+                type="button"
+                title={player.photo ? t('player.photoChange') : t('player.photoChoose')}
+                onClick={() => photoInputRef.current?.click()}
+                className="absolute -bottom-1 -end-1 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:opacity-90"
+              >
+                <Camera className="w-3.5 h-3.5" />
+              </button>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async e => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (!file) return;
+                  try {
+                    savePhoto(await compressImageFile(file));
+                  } catch { /* unreadable file — ignore */ }
+                }}
+              />
             </div>
             <div>
               <h2 className="text-2xl font-bold">{player.name}</h2>
@@ -48,6 +92,11 @@ export function PlayerProfile() {
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${pillClass}`}>
                     {t(`status.${player.status}`)}
                   </span>
+                )}
+                {player.photo && (
+                  <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive" onClick={() => savePhoto(null)}>
+                    {t('player.photoRemove')}
+                  </Button>
                 )}
               </div>
             </div>

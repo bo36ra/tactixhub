@@ -121,6 +121,7 @@ export const ListPlayersResponseItem = zod.object({
   "age": zod.number().nullish(),
   "nationality": zod.string().nullish(),
   "status": zod.enum(['active', 'injured', 'suspended']),
+  "photo": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const ListPlayersResponse = zod.array(ListPlayersResponseItem)
@@ -142,7 +143,8 @@ export const CreatePlayerBody = zod.object({
   "position": zod.enum(['goalkeeper', 'defender', 'midfielder', 'forward']),
   "age": zod.number().optional(),
   "nationality": zod.string().optional(),
-  "status": zod.enum(['active', 'injured', 'suspended'])
+  "status": zod.enum(['active', 'injured', 'suspended']),
+  "photo": zod.string().nullish()
 })
 
 export const CreatePlayerResponse = zod.object({
@@ -154,6 +156,7 @@ export const CreatePlayerResponse = zod.object({
   "age": zod.number().nullish(),
   "nationality": zod.string().nullish(),
   "status": zod.enum(['active', 'injured', 'suspended']),
+  "photo": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -172,7 +175,8 @@ export const UpdatePlayerBody = zod.object({
   "position": zod.enum(['goalkeeper', 'defender', 'midfielder', 'forward']).optional(),
   "age": zod.number().optional(),
   "nationality": zod.string().optional(),
-  "status": zod.enum(['active', 'injured', 'suspended']).optional()
+  "status": zod.enum(['active', 'injured', 'suspended']).optional(),
+  "photo": zod.string().nullish()
 })
 
 export const UpdatePlayerResponse = zod.object({
@@ -184,6 +188,7 @@ export const UpdatePlayerResponse = zod.object({
   "age": zod.number().nullish(),
   "nationality": zod.string().nullish(),
   "status": zod.enum(['active', 'injured', 'suspended']),
+  "photo": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -281,7 +286,8 @@ export const GetPlayerTimelineResponse = zod.object({
   "position": zod.string(),
   "age": zod.number().optional(),
   "nationality": zod.string().optional(),
-  "status": zod.string().optional()
+  "status": zod.string().optional(),
+  "photo": zod.string().nullish()
 }),
   "timeline": zod.array(zod.object({
   "date": zod.string(),

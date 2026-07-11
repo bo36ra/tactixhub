@@ -1048,6 +1048,8 @@ components:
         status:
           type: string
           enum: [active, injured, suspended]
+        photo:
+          type: ["string", "null"]
         createdAt:
           type: string
 
@@ -1070,6 +1072,8 @@ components:
         status:
           type: string
           enum: [active, injured, suspended]
+        photo:
+          type: ["string", "null"]
 
     PlayerUpdate:
       type: object
@@ -1088,6 +1092,8 @@ components:
         status:
           type: string
           enum: [active, injured, suspended]
+        photo:
+          type: ["string", "null"]
 
     Match:
       type: object
@@ -1165,6 +1171,8 @@ components:
               type: string
             status:
               type: string
+            photo:
+              type: ["string", "null"]
         timeline:
           type: array
           items:

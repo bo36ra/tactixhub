@@ -19,5 +19,7 @@ export interface Player {
   /** @nullable */
   nationality?: string | null;
   status: PlayerStatus;
+  /** @nullable */
+  photo?: string | null;
   createdAt: string;
 }

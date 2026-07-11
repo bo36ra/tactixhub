@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQueryClient } from '@tanstack/react-query';
+import { compressImageFile } from '@/lib/image';
+import { PlayerAvatar } from '@/components/player-avatar';
 import { Trash2, Plus, Search } from 'lucide-react';
 
 export function Players() {
@@ -19,6 +21,7 @@ export function Players() {
   const { activeTeamId } = useTeam();
   const queryClient = useQueryClient();
   const [open, setOpen] = React.useState(false);
+  const photoInputRef = React.useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = React.useState({
     name: '',
@@ -26,7 +29,8 @@ export function Players() {
     position: 'forward' as PlayerInputPosition,
     age: '',
     nationality: '',
-    status: 'active' as PlayerInputStatus
+    status: 'active' as PlayerInputStatus,
+    photo: '' as string
   });
 
   const { data: players, isLoading } = useListPlayers(activeTeamId!, {
@@ -58,13 +62,14 @@ export function Players() {
         position: formData.position,
         age: formData.age ? Number(formData.age) : undefined,
         nationality: formData.nationality || undefined,
-        status: formData.status
+        status: formData.status,
+        ...(formData.photo && { photo: formData.photo })
       }
     }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(activeTeamId) });
         setOpen(false);
-        setFormData({ name: '', jerseyNumber: '', position: 'forward', age: '', nationality: '', status: 'active' });
+        setFormData({ name: '', jerseyNumber: '', position: 'forward', age: '', nationality: '', status: 'active', photo: '' });
       }
     });
   };
@@ -94,6 +99,38 @@ export function Players() {
                 <DialogTitle>{t('player.add')}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>{t('player.photo')}</Label>
+                  <div className="flex items-center gap-3">
+                    <PlayerAvatar photo={formData.photo || null} jerseyNumber={Number(formData.jerseyNumber) || 0} className="w-14 h-14 text-base" />
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => photoInputRef.current?.click()}>
+                        {formData.photo ? t('player.photoChange') : t('player.photoChoose')}
+                      </Button>
+                      {formData.photo && (
+                        <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => setFormData({...formData, photo: ''})}>
+                          {t('player.photoRemove')}
+                        </Button>
+                      )}
+                    </div>
+                    <input
+                      ref={photoInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async e => {
+                        const file = e.target.files?.[0];
+                        e.target.value = '';
+                        if (!file) return;
+                        try {
+                          setFormData(prev => ({ ...prev, photo: '' }));
+                          const dataUrl = await compressImageFile(file);
+                          setFormData(prev => ({ ...prev, photo: dataUrl }));
+                        } catch { /* unreadable file — keep previous state */ }
+                      }}
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <Label>{t('common.name')}</Label>
                   <Input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
@@ -199,9 +236,7 @@ export function Players() {
               return (
                 <div key={player.id} className="bg-card border rounded-xl p-4 flex items-center gap-3">
                   <Link href={`/players/${player.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center font-mono font-bold text-sm text-muted-foreground shrink-0">
-                      {player.jerseyNumber}
-                    </div>
+                    <PlayerAvatar photo={player.photo} jerseyNumber={player.jerseyNumber} className="w-10 h-10 text-sm" />
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-foreground truncate">{player.name}</p>
                       <p className="text-xs text-muted-foreground">
@@ -260,7 +295,8 @@ export function Players() {
                       <tr key={player.id} className="hover:bg-muted/50 transition-colors">
                         <td className="px-6 py-4 font-mono font-medium text-muted-foreground">{player.jerseyNumber}</td>
                         <td className="px-6 py-4 font-semibold text-foreground">
-                          <Link href={`/players/${player.id}`} className="hover:text-primary hover:underline">
+                          <Link href={`/players/${player.id}`} className="flex items-center gap-2.5 hover:text-primary hover:underline">
+                            <PlayerAvatar photo={player.photo} jerseyNumber={player.jerseyNumber} className="w-8 h-8 text-xs" />
                             {player.name}
                           </Link>
                         </td>

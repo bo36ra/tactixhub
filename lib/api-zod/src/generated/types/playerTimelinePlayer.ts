@@ -14,4 +14,6 @@ export type PlayerTimelinePlayer = {
   age?: number;
   nationality?: string;
   status?: string;
+  /** @nullable */
+  photo?: string | null;
 };

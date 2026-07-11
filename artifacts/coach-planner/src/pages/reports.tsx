@@ -23,6 +23,7 @@ import {
 import { format, startOfWeek, endOfWeek, startOfMonth, addMonths, getDaysInMonth } from 'date-fns';
 import { FileBarChart2, User, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import { STATUS_STYLES } from '@/pages/attendance';
+import { PlayerAvatar } from '@/components/player-avatar';
 
 type TabId = 'games' | 'players' | 'schedule';
 
@@ -123,6 +124,7 @@ export function Reports() {
         id: p.id,
         jerseyNumber: p.jerseyNumber,
         name: p.name,
+        photo: p.photo,
         position: p.position,
         age: p.age,
         status: p.status,
@@ -300,7 +302,12 @@ export function Reports() {
                         <td className="px-4 py-3 font-mono text-muted-foreground font-medium">
                           {p.jerseyNumber}
                         </td>
-                        <td className="px-4 py-3 font-semibold">{p.name}</td>
+                        <td className="px-4 py-3 font-semibold">
+                          <span className="flex items-center gap-2.5">
+                            <PlayerAvatar photo={p.photo} jerseyNumber={p.jerseyNumber} className="w-8 h-8 text-xs" />
+                            {p.name}
+                          </span>
+                        </td>
                         <td className="px-4 py-3 text-muted-foreground">{t(`position.${p.position}`)}</td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${statusPill}`}>

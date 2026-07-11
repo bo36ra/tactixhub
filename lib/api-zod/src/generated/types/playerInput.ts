@@ -16,4 +16,6 @@ export interface PlayerInput {
   age?: number;
   nationality?: string;
   status: PlayerInputStatus;
+  /** @nullable */
+  photo?: string | null;
 }

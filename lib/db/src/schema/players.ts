@@ -12,6 +12,10 @@ export const playersTable = pgTable("players", {
   age: integer("age"),
   nationality: text("nationality"),
   status: text("status").notNull().default("active"), // active, injured, suspended
+  // Player photo as a compressed data URL (client downsizes to ~256px
+  // JPEG before upload, so rows stay small). No external file storage
+  // is configured, so the database is the simplest reliable home.
+  photo: text("photo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

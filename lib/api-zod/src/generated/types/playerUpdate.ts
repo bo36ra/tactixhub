@@ -15,4 +15,6 @@ export interface PlayerUpdate {
   age?: number;
   nationality?: string;
   status?: PlayerUpdateStatus;
+  /** @nullable */
+  photo?: string | null;
 }

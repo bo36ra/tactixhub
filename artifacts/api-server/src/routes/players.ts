@@ -7,6 +7,18 @@ import { verifyTeamAccess } from "../lib/teamAccess";
 
 const router = Router({ mergeParams: true });
 
+// Photos arrive as data URLs; cap them well under the body limit and
+// reject anything that isn't an image payload.
+const MAX_PHOTO_LENGTH = 500_000;
+function sanitizePhoto(photo: unknown): string | null | undefined {
+  if (photo === undefined) return undefined; // not provided — leave as is
+  if (photo === null || photo === "") return null; // explicit removal
+  if (typeof photo !== "string" || !photo.startsWith("data:image/") || photo.length > MAX_PHOTO_LENGTH) {
+    return undefined;
+  }
+  return photo;
+}
+
 // Team data is shared across the whole staff — any active member
 // (owner/coach/assistant/analyst) may read and write it.
 const verifyTeamOwnership = verifyTeamAccess;
@@ -40,7 +52,7 @@ router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
     res.status(403).json({ error: "Forbidden" });
     return;
   }
-  const { name, jerseyNumber, position, age, nationality, status } = req.body;
+  const { name, jerseyNumber, position, age, nationality, status, photo } = req.body;
   if (!name || !jerseyNumber || !position) {
     res.status(400).json({ error: "name, jerseyNumber, and position are required" });
     return;
@@ -48,7 +60,7 @@ router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
   try {
     const [player] = await db
       .insert(playersTable)
-      .values({ teamId, name, jerseyNumber, position, age: age || null, nationality: nationality || null, status: status || "active" })
+      .values({ teamId, name, jerseyNumber, position, age: age || null, nationality: nationality || null, status: status || "active", photo: sanitizePhoto(photo) ?? null })
       .returning();
     res.status(201).json(mapPlayer(player));
   } catch (err) {
@@ -66,7 +78,8 @@ router.patch("/teams/:teamId/players/:playerId", requireAuth, async (req, res) =
     res.status(403).json({ error: "Forbidden" });
     return;
   }
-  const { name, jerseyNumber, position, age, nationality, status } = req.body;
+  const { name, jerseyNumber, position, age, nationality, status, photo } = req.body;
+  const cleanPhoto = sanitizePhoto(photo);
   try {
     const [player] = await db
       .update(playersTable)
@@ -77,6 +90,7 @@ router.patch("/teams/:teamId/players/:playerId", requireAuth, async (req, res) =
         ...(age !== undefined && { age }),
         ...(nationality !== undefined && { nationality }),
         ...(status !== undefined && { status }),
+        ...(cleanPhoto !== undefined && { photo: cleanPhoto }),
       })
       .where(and(eq(playersTable.id, playerId), eq(playersTable.teamId, teamId)))
       .returning();
@@ -121,6 +135,7 @@ function mapPlayer(p: typeof playersTable.$inferSelect) {
     age: p.age,
     nationality: p.nationality,
     status: p.status,
+    photo: p.photo,
     createdAt: p.createdAt.toISOString(),
   };
 }
