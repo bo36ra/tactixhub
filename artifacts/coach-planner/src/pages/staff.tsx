@@ -27,9 +27,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, MoreVertical, Crown, Mail } from 'lucide-react';
 
 const ASSIGNABLE_ROLES: TeamMemberInputRole[] = [
+  TeamMemberInputRole.technical_director,
   TeamMemberInputRole.coach,
   TeamMemberInputRole.assistant,
-  TeamMemberInputRole.analyst,
+  TeamMemberInputRole.fitness_coach,
+  TeamMemberInputRole.admin,
 ];
 
 function initials(member: TeamMember): string {

@@ -728,7 +728,7 @@ export const ListTeamMembersResponseItem = zod.object({
   "userId": zod.string().nullish(),
   "email": zod.string().nullish(),
   "displayName": zod.string().nullish(),
-  "role": zod.enum(['owner', 'coach', 'assistant', 'analyst']),
+  "role": zod.enum(['owner', 'technical_director', 'coach', 'assistant', 'fitness_coach', 'admin', 'analyst']),
   "status": zod.enum(['pending', 'active']),
   "createdAt": zod.string()
 })
@@ -748,7 +748,7 @@ export const addTeamMemberBodyEmailMin = 3;
 
 export const AddTeamMemberBody = zod.object({
   "email": zod.string().min(addTeamMemberBodyEmailMin),
-  "role": zod.enum(['coach', 'assistant', 'analyst']),
+  "role": zod.enum(['technical_director', 'coach', 'assistant', 'fitness_coach', 'admin']),
   "displayName": zod.string().optional()
 })
 
@@ -758,7 +758,7 @@ export const AddTeamMemberResponse = zod.object({
   "userId": zod.string().nullish(),
   "email": zod.string().nullish(),
   "displayName": zod.string().nullish(),
-  "role": zod.enum(['owner', 'coach', 'assistant', 'analyst']),
+  "role": zod.enum(['owner', 'technical_director', 'coach', 'assistant', 'fitness_coach', 'admin', 'analyst']),
   "status": zod.enum(['pending', 'active']),
   "createdAt": zod.string()
 })
@@ -773,7 +773,7 @@ export const UpdateTeamMemberParams = zod.object({
 })
 
 export const UpdateTeamMemberBody = zod.object({
-  "role": zod.enum(['coach', 'assistant', 'analyst'])
+  "role": zod.enum(['technical_director', 'coach', 'assistant', 'fitness_coach', 'admin'])
 })
 
 export const UpdateTeamMemberResponse = zod.object({
@@ -782,7 +782,7 @@ export const UpdateTeamMemberResponse = zod.object({
   "userId": zod.string().nullish(),
   "email": zod.string().nullish(),
   "displayName": zod.string().nullish(),
-  "role": zod.enum(['owner', 'coach', 'assistant', 'analyst']),
+  "role": zod.enum(['owner', 'technical_director', 'coach', 'assistant', 'fitness_coach', 'admin', 'analyst']),
   "status": zod.enum(['pending', 'active']),
   "createdAt": zod.string()
 })

@@ -10,7 +10,9 @@ export type TeamMemberUpdateRole = typeof TeamMemberUpdateRole[keyof typeof Team
 
 
 export const TeamMemberUpdateRole = {
+  technical_director: 'technical_director',
   coach: 'coach',
   assistant: 'assistant',
-  analyst: 'analyst',
+  fitness_coach: 'fitness_coach',
+  admin: 'admin',
 } as const;

@@ -496,8 +496,11 @@ export type TeamMemberRole = typeof TeamMemberRole[keyof typeof TeamMemberRole];
 
 export const TeamMemberRole = {
   owner: 'owner',
+  technical_director: 'technical_director',
   coach: 'coach',
   assistant: 'assistant',
+  fitness_coach: 'fitness_coach',
+  admin: 'admin',
   analyst: 'analyst',
 } as const;
 
@@ -527,9 +530,11 @@ export type TeamMemberInputRole = typeof TeamMemberInputRole[keyof typeof TeamMe
 
 
 export const TeamMemberInputRole = {
+  technical_director: 'technical_director',
   coach: 'coach',
   assistant: 'assistant',
-  analyst: 'analyst',
+  fitness_coach: 'fitness_coach',
+  admin: 'admin',
 } as const;
 
 export interface TeamMemberInput {
@@ -543,9 +548,11 @@ export type TeamMemberUpdateRole = typeof TeamMemberUpdateRole[keyof typeof Team
 
 
 export const TeamMemberUpdateRole = {
+  technical_director: 'technical_director',
   coach: 'coach',
   assistant: 'assistant',
-  analyst: 'analyst',
+  fitness_coach: 'fitness_coach',
+  admin: 'admin',
 } as const;
 
 export interface TeamMemberUpdate {

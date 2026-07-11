@@ -6,7 +6,15 @@ import { teamsTable } from "./teams";
 // Staff membership: one row per person per team. Members are invited by
 // email; the row starts as a pending invite (userId null) and becomes
 // active the first time that email signs in and loads their teams.
-export const TEAM_ROLES = ["owner", "coach", "assistant", "analyst"] as const;
+export const TEAM_ROLES = [
+  "owner",
+  "technical_director",
+  "coach",
+  "assistant",
+  "fitness_coach",
+  "admin",
+  "analyst",
+] as const;
 export type TeamRole = (typeof TEAM_ROLES)[number];
 
 export const teamMembersTable = pgTable("team_members", {
