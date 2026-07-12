@@ -61,16 +61,17 @@ export function Reports() {
     if (!players) return null;
     const monthKey = format(gridMonth, 'yyyy-MM');
     const daysInMonth = getDaysInMonth(gridMonth);
-    // date -> playerId -> statuses (training + match can share a day)
-    const byDay = new Map<number, Map<number, string[]>>();
+    // date -> playerId -> records (training + match can share a day)
+    type GridRec = { status: string; note: string | null };
+    const byDay = new Map<number, Map<number, GridRec[]>>();
     let hasRecords = false;
     for (const rec of allAttendance ?? []) {
       if (!rec.date.startsWith(monthKey)) continue;
       hasRecords = true;
       const day = Number(rec.date.slice(8, 10));
-      const statuses = byDay.get(day) ?? new Map<number, string[]>();
+      const statuses = byDay.get(day) ?? new Map<number, GridRec[]>();
       const list = statuses.get(rec.playerId) ?? [];
-      list.push(rec.status ?? (rec.present ? 'present' : 'absent'));
+      list.push({ status: rec.status ?? (rec.present ? 'present' : 'absent'), note: rec.note ?? null });
       statuses.set(rec.playerId, list);
       byDay.set(day, statuses);
     }
@@ -535,6 +536,16 @@ export function Reports() {
                   const anyRecord = monthGrid
                     ? Array.from(monthGrid.byDay.values()).some((m) => m.has(pid))
                     : false;
+                  // Full-text notes for the list under the calendar
+                  const monthNotes: { day: number; status: string; note: string }[] = [];
+                  if (monthGrid) {
+                    for (const [day, players] of monthGrid.byDay) {
+                      for (const rec of players.get(pid) ?? []) {
+                        if (rec.note) monthNotes.push({ day, status: rec.status, note: rec.note });
+                      }
+                    }
+                    monthNotes.sort((a, b) => a.day - b.day);
+                  }
                   if (!anyRecord) {
                     return (
                       <p className="px-6 py-10 text-center text-sm text-muted-foreground">
@@ -548,27 +559,45 @@ export function Reports() {
                       <div className="grid grid-cols-6 sm:grid-cols-7 gap-1.5 sm:gap-2">
                         {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
                           const date = new Date(gridMonth.getFullYear(), gridMonth.getMonth(), day);
-                          const statuses = monthGrid?.byDay.get(day)?.get(pid) ?? [];
-                          const primary = statuses[0];
+                          const recs = monthGrid?.byDay.get(day)?.get(pid) ?? [];
+                          const primary = recs[0]?.status;
+                          const note = recs.find((r) => r.note)?.note;
                           return (
                             <div
                               key={day}
-                              title={statuses.map((s) => t(`att.status.${s}`)).join(' · ')}
-                              className={`rounded-xl px-1 py-2 flex flex-col items-center gap-0.5 border ${
+                              title={recs.map((r) => `${t(`att.status.${r.status}`)}${r.note ? ` — ${r.note}` : ''}`).join(' · ')}
+                              className={`rounded-xl px-1 py-2 flex flex-col items-center gap-0.5 border overflow-hidden ${
                                 primary ? STATUS_STYLES[primary] : 'bg-white/[0.02] border-white/[0.05] text-muted-foreground/50'
                               }`}
                             >
                               <span className="text-[9px] leading-none opacity-70">{weekdayFmt.format(date)}</span>
                               <span className="text-sm font-bold leading-none" dir="ltr">{day}</span>
                               <span className="h-2 flex items-center gap-0.5">
-                                {statuses.map((s, i) => (
+                                {recs.map((_, i) => (
                                   <span key={i} className={`w-1.5 h-1.5 rounded-full ${primary ? 'bg-current' : ''}`} />
                                 ))}
                               </span>
+                              {note && (
+                                <span className="text-[8px] leading-tight opacity-80 truncate max-w-full">{note}</span>
+                              )}
                             </div>
                           );
                         })}
                       </div>
+                      {monthNotes.length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-border/50 space-y-1.5">
+                          <p className="text-[11px] font-semibold text-muted-foreground">{t('reports.monthNotes')}</p>
+                          {monthNotes.map((n, i) => (
+                            <div key={i} className="flex items-start gap-2 text-xs">
+                              <span className={`inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-md border text-[9px] font-bold shrink-0 ${STATUS_STYLES[n.status] ?? ''}`} dir="ltr">
+                                {n.day}
+                              </span>
+                              <span className="text-muted-foreground shrink-0">{t(`att.status.${n.status}`)}:</span>
+                              <span className="text-foreground/90">{n.note}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })()
@@ -607,13 +636,13 @@ export function Reports() {
                                     {statuses.length === 0 ? (
                                       <span className="text-muted-foreground/30">·</span>
                                     ) : (
-                                      statuses.map((status, i) => (
+                                      statuses.map((rec, i) => (
                                         <span
                                           key={i}
-                                          title={t(`att.status.${status}`)}
-                                          className={`inline-flex items-center justify-center w-6 h-6 rounded-md border text-[10px] font-bold ${STATUS_STYLES[status] ?? ''}`}
+                                          title={`${t(`att.status.${rec.status}`)}${rec.note ? ` — ${rec.note}` : ''}`}
+                                          className={`inline-flex items-center justify-center w-6 h-6 rounded-md border text-[10px] font-bold ${STATUS_STYLES[rec.status] ?? ''}`}
                                         >
-                                          {t(`att.status.short.${status}`)}
+                                          {t(`att.status.short.${rec.status}`)}
                                         </span>
                                       ))
                                     )}
