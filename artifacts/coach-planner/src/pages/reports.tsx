@@ -45,6 +45,7 @@ export function Reports() {
   const { data: attendanceSummary } = useGetAttendanceSummary(tid, { query: { enabled, queryKey: getGetAttendanceSummaryQueryKey(tid) } });
   const [scheduleDays, setScheduleDays] = useState<number | undefined>(30);
   const [gridMonth, setGridMonth] = useState(() => startOfMonth(new Date()));
+  const [gridPlayer, setGridPlayer] = useState<string>('all');
   const [cmpA, setCmpA] = useState<string>('');
   const [cmpB, setCmpB] = useState<string>('');
   const { data: ratingsA } = usePlayerRatings(tid, cmpA ? Number(cmpA) : undefined);
@@ -492,6 +493,16 @@ export function Reports() {
             <div className="bg-card border rounded-xl overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b">
                 <h3 className="font-bold text-sm sm:text-base">{t('reports.monthGrid')}</h3>
+                <div className="flex items-center gap-2">
+                  <Select value={gridPlayer} onValueChange={setGridPlayer}>
+                    <SelectTrigger className="h-8 w-36 sm:w-44 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('reports.allTeam')}</SelectItem>
+                      {players?.map((p) => (
+                        <SelectItem key={p.id} value={String(p.id)}>#{p.jerseyNumber} {p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
@@ -511,9 +522,57 @@ export function Reports() {
                     {isRtl ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                   </button>
                 </div>
+                </div>
               </div>
 
-              {!monthGrid?.hasRecords ? (
+              {gridPlayer !== 'all' ? (
+                (() => {
+                  // Calendar-tile view for one player: each day of the month
+                  // is a rounded tile colored by that player's status —
+                  // reads like a habit tracker, one glance per month.
+                  const pid = Number(gridPlayer);
+                  const daysInMonth = monthGrid?.daysInMonth ?? 30;
+                  const anyRecord = monthGrid
+                    ? Array.from(monthGrid.byDay.values()).some((m) => m.has(pid))
+                    : false;
+                  if (!anyRecord) {
+                    return (
+                      <p className="px-6 py-10 text-center text-sm text-muted-foreground">
+                        {t('reports.noRecordsPlayer')}
+                      </p>
+                    );
+                  }
+                  const weekdayFmt = new Intl.DateTimeFormat(isRtl ? 'ar' : 'en', { weekday: 'short' });
+                  return (
+                    <div className="p-3 sm:p-4">
+                      <div className="grid grid-cols-6 sm:grid-cols-7 gap-1.5 sm:gap-2">
+                        {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
+                          const date = new Date(gridMonth.getFullYear(), gridMonth.getMonth(), day);
+                          const statuses = monthGrid?.byDay.get(day)?.get(pid) ?? [];
+                          const primary = statuses[0];
+                          return (
+                            <div
+                              key={day}
+                              title={statuses.map((s) => t(`att.status.${s}`)).join(' · ')}
+                              className={`rounded-xl px-1 py-2 flex flex-col items-center gap-0.5 border ${
+                                primary ? STATUS_STYLES[primary] : 'bg-white/[0.02] border-white/[0.05] text-muted-foreground/50'
+                              }`}
+                            >
+                              <span className="text-[9px] leading-none opacity-70">{weekdayFmt.format(date)}</span>
+                              <span className="text-sm font-bold leading-none" dir="ltr">{day}</span>
+                              <span className="h-2 flex items-center gap-0.5">
+                                {statuses.map((s, i) => (
+                                  <span key={i} className={`w-1.5 h-1.5 rounded-full ${primary ? 'bg-current' : ''}`} />
+                                ))}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : !monthGrid?.hasRecords ? (
                 <p className="px-6 py-10 text-center text-sm text-muted-foreground">
                   {t('reports.noRecordsMonth')}
                 </p>
