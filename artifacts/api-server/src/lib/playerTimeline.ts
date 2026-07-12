@@ -128,6 +128,7 @@ export async function buildPlayerTimeline(playerId: number) {
       nationality: player.nationality,
       status: player.status,
       photo: player.photo,
+      phone: player.phone,
     },
     timeline,
   };

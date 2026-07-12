@@ -16,4 +16,6 @@ export type PlayerTimelinePlayer = {
   status?: string;
   /** @nullable */
   photo?: string | null;
+  /** @nullable */
+  phone?: string | null;
 };

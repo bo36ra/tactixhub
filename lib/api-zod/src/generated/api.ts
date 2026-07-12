@@ -292,7 +292,8 @@ export const GetPlayerTimelineResponse = zod.object({
   "age": zod.number().optional(),
   "nationality": zod.string().optional(),
   "status": zod.string().optional(),
-  "photo": zod.string().nullish()
+  "photo": zod.string().nullish(),
+  "phone": zod.string().nullish()
 }),
   "timeline": zod.array(zod.object({
   "date": zod.string(),
