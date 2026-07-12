@@ -21,11 +21,13 @@ import {
   getGetAttendanceScheduleQueryKey,
 } from '@workspace/api-client-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, addMonths, getDaysInMonth } from 'date-fns';
-import { FileBarChart2, User, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileBarChart2, User, CalendarDays, ChevronLeft, ChevronRight, GitCompareArrows } from 'lucide-react';
 import { STATUS_STYLES } from '@/pages/attendance';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { usePlayerRatings } from '@/lib/dev-api';
 import { PlayerAvatar } from '@/components/player-avatar';
 
-type TabId = 'games' | 'players' | 'schedule';
+type TabId = 'games' | 'players' | 'schedule' | 'compare';
 
 export function Reports() {
   const { t, isRtl } = useLanguage();
@@ -43,6 +45,12 @@ export function Reports() {
   const { data: attendanceSummary } = useGetAttendanceSummary(tid, { query: { enabled, queryKey: getGetAttendanceSummaryQueryKey(tid) } });
   const [scheduleDays, setScheduleDays] = useState<number | undefined>(30);
   const [gridMonth, setGridMonth] = useState(() => startOfMonth(new Date()));
+  const [cmpA, setCmpA] = useState<string>('');
+  const [cmpB, setCmpB] = useState<string>('');
+  const { data: ratingsA } = usePlayerRatings(tid, cmpA ? Number(cmpA) : undefined);
+  const { data: ratingsB } = usePlayerRatings(tid, cmpB ? Number(cmpB) : undefined);
+  const avgOf = (rs?: { rating: number }[]) =>
+    rs && rs.length ? rs.reduce((s, r) => s + r.rating, 0) / rs.length : null;
   const { data: allAttendance } = useListAttendance(tid, { query: { enabled, queryKey: getListAttendanceQueryKey(tid) } });
 
   // Monthly grid: players as rows, every day of the selected month as
@@ -166,6 +174,7 @@ export function Reports() {
     { id: 'games', label: t('report.games'), icon: FileBarChart2 },
     { id: 'players', label: t('report.players'), icon: User },
     { id: 'schedule', label: t('report.schedule'), icon: CalendarDays },
+    { id: 'compare', label: t('report.compare'), icon: GitCompareArrows },
   ];
 
   return (
@@ -351,6 +360,69 @@ export function Reports() {
         )}
 
         {/* ── ATTENDANCE SCHEDULE ── */}
+        {tab === 'compare' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 max-w-xl">
+              {([['A', cmpA, setCmpA, 'cmp.pickA'], ['B', cmpB, setCmpB, 'cmp.pickB']] as const).map(([key, value, setter, label]) => (
+                <Select key={key} value={value} onValueChange={setter}>
+                  <SelectTrigger><SelectValue placeholder={t(label)} /></SelectTrigger>
+                  <SelectContent>
+                    {playerReport.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>#{p.jerseyNumber} {p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ))}
+            </div>
+
+            {(() => {
+              const a = playerReport.find((p) => String(p.id) === cmpA);
+              const b = playerReport.find((p) => String(p.id) === cmpB);
+              if (!a || !b) return <p className="text-sm text-muted-foreground">{t('cmp.hint')}</p>;
+              const ratingA = avgOf(ratingsA);
+              const ratingB = avgOf(ratingsB);
+              // higherWins=false for cards, where fewer is better
+              const metrics: { label: string; a: number | null; b: number | null; higherWins: boolean; decimals?: number }[] = [
+                { label: t('cmp.matches'), a: a.matchesPlayed, b: b.matchesPlayed, higherWins: true },
+                { label: t('cmp.minutes'), a: a.totalMinutes, b: b.totalMinutes, higherWins: true },
+                { label: t('cmp.avgMinutes'), a: a.avgMinutes, b: b.avgMinutes, higherWins: true, decimals: 1 },
+                { label: t('cmp.participation'), a: a.participation, b: b.participation, higherWins: true, decimals: 0 },
+                { label: t('cmp.goals'), a: a.goalsScored, b: b.goalsScored, higherWins: true },
+                { label: t('cmp.yellow'), a: a.yellowCards, b: b.yellowCards, higherWins: false },
+                { label: t('cmp.red'), a: a.redCards, b: b.redCards, higherWins: false },
+                { label: t('cmp.attendance'), a: a.attendanceRate, b: b.attendanceRate, higherWins: true, decimals: 0 },
+                { label: t('cmp.avgRating'), a: ratingA, b: ratingB, higherWins: true, decimals: 1 },
+              ];
+              const fmt = (v: number | null, d = 0) => (v === null ? '—' : v.toFixed(d));
+              const cellClass = (mine: number | null, other: number | null, higherWins: boolean) => {
+                if (mine === null || other === null || mine === other) return '';
+                const better = higherWins ? mine > other : mine < other;
+                return better ? 'text-green-500 font-bold' : 'text-muted-foreground';
+              };
+              return (
+                <div className="bg-card border rounded-xl overflow-hidden max-w-xl">
+                  <div className="grid grid-cols-3 text-sm">
+                    <div className="px-4 py-3 bg-muted font-semibold text-muted-foreground">{t('cmp.metric')}</div>
+                    {[a, b].map((p) => (
+                      <div key={p.id} className="px-4 py-3 bg-muted font-semibold flex items-center gap-2 min-w-0">
+                        <PlayerAvatar photo={p.photo} jerseyNumber={p.jerseyNumber} className="w-7 h-7 text-[10px]" />
+                        <span className="truncate">{p.name}</span>
+                      </div>
+                    ))}
+                    {metrics.map((m, i) => (
+                      <React.Fragment key={i}>
+                        <div className="px-4 py-2.5 border-t border-border/50 text-muted-foreground">{m.label}</div>
+                        <div className={`px-4 py-2.5 border-t border-border/50 tabular-nums ${cellClass(m.a, m.b, m.higherWins)}`} dir="ltr">{fmt(m.a, m.decimals)}</div>
+                        <div className={`px-4 py-2.5 border-t border-border/50 tabular-nums ${cellClass(m.b, m.a, m.higherWins)}`} dir="ltr">{fmt(m.b, m.decimals)}</div>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
         {tab === 'schedule' && (
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">

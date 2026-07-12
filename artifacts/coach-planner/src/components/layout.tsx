@@ -24,7 +24,8 @@ import {
   Check,
   UserCog,
   StickyNote,
-  ClipboardCheck
+  ClipboardCheck,
+  CalendarDays
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -63,6 +64,7 @@ export function Sidebar() {
       links: [
         { href: '/matches', label: t('nav.matches'), icon: Swords },
 { href: '/readiness', label: t('nav.readiness'), icon: ClipboardCheck },
+        { href: '/calendar', label: t('nav.calendar'), icon: CalendarDays },
         { href: '/goals', label: t('nav.goals'), icon: Target },
         { href: '/cards', label: t('nav.cards'), icon: CreditCard },
         { href: '/playing-time', label: t('nav.playingTime'), icon: Clock },
@@ -200,10 +202,10 @@ export function Sidebar() {
 
   return (
     <>
-      <div className="hidden md:block h-screen fixed inset-y-0 z-50">
+      <div className="hidden md:block h-screen fixed inset-y-0 z-50 print:hidden">
         {content}
       </div>
-      <div className="md:hidden fixed top-0 inset-x-0 h-14 bg-sidebar border-b border-white/[0.06] flex items-center px-4 justify-between z-40">
+      <div className="md:hidden print:hidden fixed top-0 inset-x-0 h-14 bg-sidebar border-b border-white/[0.06] flex items-center px-4 justify-between z-40">
         <div className="flex items-center gap-2">
           <img src="/logo-icon.svg" alt="TactixHub" className="w-6 h-6" />
           <h1 className="font-display font-bold text-sm text-foreground tracking-tight">{t('app.title')}</h1>

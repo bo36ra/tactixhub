@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { usePlayerRatings } from '@/lib/dev-api';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { format } from 'date-fns';
-import { ArrowRight, ArrowLeft, Swords, CalendarCheck, CircleDot, Square, Camera } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Swords, CalendarCheck, CircleDot, Square, Camera, Printer } from 'lucide-react';
 
 export function PlayerProfile() {
   const { t, isRtl } = useLanguage();
@@ -62,8 +62,47 @@ export function PlayerProfile() {
 
   const pillClass = player?.status === 'active' ? 'pill-green' : player?.status === 'injured' ? 'pill-red' : 'pill-yellow';
 
+  const printStats = React.useMemo(() => {
+    const entries = data?.timeline ?? [];
+    const matchesPlayed = entries.filter((e: any) => e.kind === 'match' && (e.minutes ?? 0) > 0).length;
+    const minutes = entries.reduce((sum: number, e: any) => sum + (e.minutes ?? 0), 0);
+    const goals = entries.reduce((sum: number, e: any) => sum + (e.goals ?? 0), 0);
+    return { matchesPlayed, minutes, goals };
+  }, [data]);
+
   return (
     <AppLayout>
+      {player && (
+        <div className="hidden print:block text-black">
+          <div style={{ border: '2px solid #222', borderRadius: 16, padding: 24, maxWidth: 420, margin: '0 auto', fontFamily: 'sans-serif' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              {player.photo ? (
+                <img src={player.photo} alt="" style={{ width: 96, height: 96, borderRadius: '50%', objectFit: 'cover', border: '2px solid #222' }} />
+              ) : (
+                <div style={{ width: 96, height: 96, borderRadius: '50%', border: '2px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, fontWeight: 800 }}>
+                  {player.jerseyNumber}
+                </div>
+              )}
+              <div>
+                <p style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>{player.name}</p>
+                <p style={{ margin: '2px 0', fontSize: 14 }}>#{player.jerseyNumber} · {t(`position.${player.position}`)}</p>
+                {player.age != null && <p style={{ margin: 0, fontSize: 13 }}>{t('common.age')}: {player.age}</p>}
+                {player.nationality && <p style={{ margin: 0, fontSize: 13 }}>{player.nationality}</p>}
+              </div>
+            </div>
+            <hr style={{ margin: '16px 0', border: 'none', borderTop: '1px solid #999' }} />
+            <p style={{ fontSize: 13, fontWeight: 700, margin: '0 0 8px' }}>{t('card.stats')}</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13 }}>
+              <span>{t('cmp.matches')}: <b>{printStats.matchesPlayed}</b></span>
+              <span>{t('cmp.minutes')}: <b>{printStats.minutes}</b></span>
+              <span>{t('cmp.goals')}: <b>{printStats.goals}</b></span>
+              {avgRating !== null && <span>{t('cmp.avgRating')}: <b>{avgRating.toFixed(1)}/10</b></span>}
+            </div>
+            <p style={{ marginTop: 16, fontSize: 10, color: '#666', textAlign: 'center' }}>TactixHub · {format(new Date(), 'dd/MM/yyyy')}</p>
+          </div>
+        </div>
+      )}
+      <div className="print:hidden">
       <div className="space-y-6">
         <Link href="/players" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
           <BackIcon className="w-3.5 h-3.5" />
@@ -113,6 +152,9 @@ export function PlayerProfile() {
                     {t('player.photoRemove')}
                   </Button>
                 )}
+                <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => window.print()}>
+                  <Printer className="w-3 h-3" /> {t('profile.printCard')}
+                </Button>
               </div>
             </div>
           </div>
@@ -215,6 +257,7 @@ export function PlayerProfile() {
             })}
           </div>
         </div>
+      </div>
       </div>
     </AppLayout>
   );
