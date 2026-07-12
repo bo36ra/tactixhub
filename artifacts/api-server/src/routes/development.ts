@@ -1,7 +1,7 @@
 import { dbErrorMessage } from "../lib/dbError";
 import { Router } from "express";
 import { eq, and, desc } from "drizzle-orm";
-import { db, trainingsTable, injuriesTable, ratingsTable, playersTable, teamsTable, matchesTable, matchPlansTable } from "@workspace/db";
+import { db, trainingsTable, injuriesTable, ratingsTable, playersTable, teamsTable, matchesTable, matchPlansTable, weekCyclesTable, monthPlansTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { verifyTeamAccess } from "../lib/teamAccess";
 
@@ -159,6 +159,122 @@ router.put("/teams/:teamId/matches/:matchId/plan", requireAuth, guarded(async (r
     .values(values)
     .onConflictDoUpdate({ target: matchPlansTable.matchId, set: values })
     .returning();
+  res.json(plan);
+}));
+
+// ---- Weekly cycle (microcycle) ----
+router.get("/teams/:teamId/cycle", requireAuth, guarded(async (_req, res, teamId) => {
+  const rows = await db
+    .select()
+    .from(weekCyclesTable)
+    .where(eq(weekCyclesTable.teamId, teamId))
+    .orderBy(weekCyclesTable.dayOfWeek);
+  res.json(rows);
+}));
+
+// Replace the whole 7-day template in one shot (rest days are simply absent)
+router.put("/teams/:teamId/cycle", requireAuth, guarded(async (req, res, teamId) => {
+  const days = Array.isArray(req.body?.days) ? req.body.days : [];
+  const clean = days
+    .filter((d: any) => Number.isInteger(d?.dayOfWeek) && d.dayOfWeek >= 0 && d.dayOfWeek <= 6 && typeof d.focus === "string" && d.focus)
+    .map((d: any) => ({
+      teamId,
+      dayOfWeek: d.dayOfWeek,
+      focus: String(d.focus),
+      intensity: ["light", "medium", "high"].includes(d.intensity) ? d.intensity : null,
+      durationMinutes:
+        Number.isFinite(Number(d.durationMinutes)) && Number(d.durationMinutes) > 0
+          ? Math.min(Math.round(Number(d.durationMinutes)), 600)
+          : null,
+      time: typeof d.time === "string" && d.time ? d.time : null,
+    }));
+  await db.delete(weekCyclesTable).where(eq(weekCyclesTable.teamId, teamId));
+  const rows = clean.length ? await db.insert(weekCyclesTable).values(clean).returning() : [];
+  res.json(rows);
+}));
+
+// Apply the cycle over a date range: create planned trainings on matching
+// weekdays, skipping days that already have a training or a match.
+router.post("/teams/:teamId/cycle/apply", requireAuth, guarded(async (req, res, teamId) => {
+  const { from, to } = req.body ?? {};
+  const start = new Date(`${from}T00:00:00`);
+  const end = new Date(`${to}T00:00:00`);
+  if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) {
+    res.status(400).json({ error: "from/to must be valid dates (YYYY-MM-DD)" });
+    return;
+  }
+  if ((end.getTime() - start.getTime()) / 86400000 > 92) {
+    res.status(400).json({ error: "Range too large (max ~3 months)" });
+    return;
+  }
+  const cycle = await db.select().from(weekCyclesTable).where(eq(weekCyclesTable.teamId, teamId));
+  if (cycle.length === 0) {
+    res.status(400).json({ error: "No weekly cycle defined" });
+    return;
+  }
+  const byDow = new Map(cycle.map((c) => [c.dayOfWeek, c]));
+  const existingTrainings = await db
+    .select({ date: trainingsTable.date })
+    .from(trainingsTable)
+    .where(eq(trainingsTable.teamId, teamId));
+  const existingMatches = await db
+    .select({ date: matchesTable.date })
+    .from(matchesTable)
+    .where(eq(matchesTable.teamId, teamId));
+  const taken = new Set([...existingTrainings, ...existingMatches].map((r) => r.date));
+
+  const values: any[] = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const iso = d.toISOString().slice(0, 10);
+    const dow = (d.getDay() + 6) % 7; // JS Sunday=0 → ISO Monday=0
+    const tpl = byDow.get(dow);
+    if (!tpl || taken.has(iso)) continue;
+    values.push({
+      teamId,
+      date: iso,
+      time: tpl.time,
+      focus: tpl.focus,
+      intensity: tpl.intensity,
+      durationMinutes: tpl.durationMinutes,
+      drills: null,
+      notes: null,
+    });
+  }
+  const created = values.length ? await db.insert(trainingsTable).values(values).returning() : [];
+  res.json({ created: created.length });
+}));
+
+// ---- Month plan (mesocycle) ----
+router.get("/teams/:teamId/month-plan/:month", requireAuth, guarded(async (req, res, teamId) => {
+  const month = String(req.params.month);
+  const [plan] = await db
+    .select()
+    .from(monthPlansTable)
+    .where(and(eq(monthPlansTable.teamId, teamId), eq(monthPlansTable.month, month)));
+  res.json(plan ?? null);
+}));
+
+router.put("/teams/:teamId/month-plan/:month", requireAuth, guarded(async (req, res, teamId) => {
+  const month = String(req.params.month);
+  if (!/^\d{4}-\d{2}$/.test(month)) {
+    res.status(400).json({ error: "month must be YYYY-MM" });
+    return;
+  }
+  const { goal, notes } = req.body ?? {};
+  const values = {
+    teamId,
+    month,
+    goal: typeof goal === "string" && goal.trim() ? goal.trim() : null,
+    notes: typeof notes === "string" && notes.trim() ? notes.trim() : null,
+    updatedAt: new Date(),
+  };
+  const [existing] = await db
+    .select({ id: monthPlansTable.id })
+    .from(monthPlansTable)
+    .where(and(eq(monthPlansTable.teamId, teamId), eq(monthPlansTable.month, month)));
+  const [plan] = existing
+    ? await db.update(monthPlansTable).set(values).where(eq(monthPlansTable.id, existing.id)).returning()
+    : await db.insert(monthPlansTable).values(values).returning();
   res.json(plan);
 }));
 

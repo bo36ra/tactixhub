@@ -3,7 +3,17 @@ import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { useListMatches, getListMatchesQueryKey } from '@workspace/api-client-react';
-import { useTrainings } from '@/lib/dev-api';
+import {
+  useTrainings, useCreateTraining, useWeekCycle, useSaveWeekCycle, useApplyCycle,
+  useMonthPlan, useSaveMonthPlan, type CycleDay,
+} from '@/lib/dev-api';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { FOCUS_KEYS } from '@/pages/trainings';
 import {
   format,
   startOfMonth,
@@ -14,7 +24,8 @@ import {
   isSameMonth,
   isToday,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Swords, Dumbbell } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Swords, Dumbbell, Repeat, Target, Plus } from 'lucide-react';
+import { endOfMonth as eom } from 'date-fns';
 
 // One month view that merges matches and training sessions — the coach's
 // whole schedule in a single grid instead of two separate pages.
@@ -25,12 +36,47 @@ export function CalendarPage() {
   const enabled = !!activeTeamId;
   const [month, setMonth] = React.useState(() => startOfMonth(new Date()));
 
+  const { toast } = useToast();
+  const monthKey = format(month, 'yyyy-MM');
+  const todayIso = format(new Date(), 'yyyy-MM-dd');
+
   const { data: matches } = useListMatches(tid, { query: { enabled, queryKey: getListMatchesQueryKey(tid) } });
   const { data: trainings } = useTrainings(tid);
+  const { data: monthPlan } = useMonthPlan(tid, monthKey);
+  const saveMonthPlan = useSaveMonthPlan(tid);
+  const { data: cycle } = useWeekCycle(tid);
+  const saveCycle = useSaveWeekCycle(tid);
+  const applyCycle = useApplyCycle(tid);
+  const createTraining = useCreateTraining(tid);
+
+  // month goal inline editing
+  const [goalDraft, setGoalDraft] = React.useState('');
+  const [notesDraft, setNotesDraft] = React.useState('');
+  React.useEffect(() => {
+    setGoalDraft(monthPlan?.goal ?? '');
+    setNotesDraft(monthPlan?.notes ?? '');
+  }, [monthPlan, monthKey]);
+  const goalDirty = goalDraft !== (monthPlan?.goal ?? '') || notesDraft !== (monthPlan?.notes ?? '');
+
+  // weekly cycle editor
+  const [cycleOpen, setCycleOpen] = React.useState(false);
+  const [cycleDraft, setCycleDraft] = React.useState<(CycleDay | null)[]>(Array(7).fill(null));
+  React.useEffect(() => {
+    if (!cycleOpen) return;
+    const draft: (CycleDay | null)[] = Array(7).fill(null);
+    (cycle ?? []).forEach((c) => { draft[c.dayOfWeek] = { ...c }; });
+    setCycleDraft(draft);
+  }, [cycleOpen, cycle]);
+
+  // quick-add on a day
+  const [dayOpen, setDayOpen] = React.useState<string | null>(null);
+  const [dayFocus, setDayFocus] = React.useState('tactics');
+  const [dayIntensity, setDayIntensity] = React.useState('medium');
+  const [dayDuration, setDayDuration] = React.useState('90');
 
   const eventsByDay = React.useMemo(() => {
-    const map = new Map<string, { kind: 'match' | 'training'; label: string; sub?: string }[]>();
-    const push = (date: string, ev: { kind: 'match' | 'training'; label: string; sub?: string }) => {
+    const map = new Map<string, { kind: 'match' | 'training'; label: string; sub?: string; planned?: boolean }[]>();
+    const push = (date: string, ev: { kind: 'match' | 'training'; label: string; sub?: string; planned?: boolean }) => {
       const list = map.get(date) ?? [];
       list.push(ev);
       map.set(date, list);
@@ -39,10 +85,10 @@ export function CalendarPage() {
       push(m.date, { kind: 'match', label: m.opponent, sub: `${m.ourGoals}-${m.theirGoals}` });
     }
     for (const tr of trainings ?? []) {
-      push(tr.date, { kind: 'training', label: t(`train.focus.${tr.focus}`), sub: tr.time ?? undefined });
+      push(tr.date, { kind: 'training', label: t(`train.focus.${tr.focus}`), sub: tr.time ?? undefined, planned: tr.date > todayIso });
     }
     return map;
-  }, [matches, trainings, t]);
+  }, [matches, trainings, t, todayIso]);
 
   // Build the 6-week grid (Mon-first) covering the month
   const days = React.useMemo(() => {
@@ -71,6 +117,10 @@ export function CalendarPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">{t('cal.title')}</h2>
+          <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setCycleOpen(true)}>
+            <Repeat className="w-3.5 h-3.5" /> {t('cal.cycle')}
+          </Button>
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -90,6 +140,41 @@ export function CalendarPage() {
               {isRtl ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             </button>
           </div>
+          </div>
+        </div>
+
+        {/* Mesocycle: month goal */}
+        <div className="bg-card border rounded-xl p-3 sm:p-4 space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+            <Target className="w-3.5 h-3.5 text-primary" /> {t('cal.monthGoal')}
+          </p>
+          <Input
+            placeholder={t('cal.monthGoalPh')}
+            value={goalDraft}
+            onChange={(e) => setGoalDraft(e.target.value)}
+          />
+          <Textarea
+            rows={2}
+            placeholder={t('cal.monthNotes')}
+            value={notesDraft}
+            onChange={(e) => setNotesDraft(e.target.value)}
+          />
+          {goalDirty && (
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                disabled={saveMonthPlan.isPending}
+                onClick={() =>
+                  saveMonthPlan.mutate(
+                    { month: monthKey, goal: goalDraft, notes: notesDraft },
+                    { onSuccess: () => toast({ title: t('tactics.saved') }) },
+                  )
+                }
+              >
+                {t('common.save')}
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="bg-card border rounded-xl overflow-hidden">
@@ -106,8 +191,10 @@ export function CalendarPage() {
               return (
                 <div
                   key={key}
-                  className={`min-h-20 sm:min-h-24 border-t border-e border-border/40 p-1 sm:p-1.5 ${
-                    inMonth ? '' : 'opacity-35'
+                  role="button"
+                  onClick={() => { if (inMonth) { setDayOpen(key); } }}
+                  className={`min-h-20 sm:min-h-24 border-t border-e border-border/40 p-1 sm:p-1.5 cursor-pointer hover:bg-white/[0.03] transition-colors ${
+                    inMonth ? '' : 'opacity-35 pointer-events-none'
                   }`}
                 >
                   <span
@@ -126,7 +213,9 @@ export function CalendarPage() {
                         className={`flex items-center gap-1 rounded px-1 py-0.5 text-[10px] leading-tight truncate ${
                           ev.kind === 'match'
                             ? 'bg-primary/15 text-primary font-semibold'
-                            : 'bg-white/[0.06] text-muted-foreground'
+                            : ev.planned
+                              ? 'border border-dashed border-white/25 text-muted-foreground'
+                              : 'bg-white/[0.06] text-muted-foreground'
                         }`}
                       >
                         {ev.kind === 'match' ? (
@@ -152,7 +241,177 @@ export function CalendarPage() {
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded bg-white/[0.15]" /> {t('cal.training')}
           </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded border border-dashed border-white/40" /> {t('cal.planned')}
+          </span>
         </div>
+        {/* Weekly cycle editor */}
+        <Dialog open={cycleOpen} onOpenChange={setCycleOpen}>
+          <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{t('cal.cycle')}</DialogTitle>
+            </DialogHeader>
+            <p className="text-xs text-muted-foreground -mt-2">{t('cal.cycleHint')}</p>
+            <div className="space-y-2">
+              {weekdayLabels.map((label, dow) => {
+                const day = cycleDraft[dow];
+                return (
+                  <div key={dow} className="flex items-center gap-2">
+                    <span className="w-10 text-xs text-muted-foreground shrink-0">{label}</span>
+                    <Select
+                      value={day ? day.focus : 'rest'}
+                      onValueChange={(v) => {
+                        const next = [...cycleDraft];
+                        next[dow] = v === 'rest' ? null : { dayOfWeek: dow, focus: v, intensity: day?.intensity ?? 'medium', durationMinutes: day?.durationMinutes ?? 90, time: day?.time ?? null };
+                        setCycleDraft(next);
+                      }}
+                    >
+                      <SelectTrigger className="flex-1 h-9 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="rest">{t('cal.rest')}</SelectItem>
+                        {FOCUS_KEYS.map((k) => (
+                          <SelectItem key={k} value={k}>{t(`train.focus.${k}`)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {day && (
+                      <>
+                        <Select
+                          value={day.intensity ?? 'medium'}
+                          onValueChange={(v) => {
+                            const next = [...cycleDraft];
+                            next[dow] = { ...day, intensity: v };
+                            setCycleDraft(next);
+                          }}
+                        >
+                          <SelectTrigger className="w-24 h-9 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {(['light', 'medium', 'high'] as const).map((k) => (
+                              <SelectItem key={k} value={k}>{t(`train.intensity.${k}`)}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="600"
+                          className="w-20 h-9 text-xs"
+                          value={day.durationMinutes ?? ''}
+                          placeholder={t('train.minutes')}
+                          onChange={(e) => {
+                            const next = [...cycleDraft];
+                            next[dow] = { ...day, durationMinutes: e.target.value ? Number(e.target.value) : null };
+                            setCycleDraft(next);
+                          }}
+                        />
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                disabled={saveCycle.isPending || applyCycle.isPending}
+                onClick={() => {
+                  const days = cycleDraft.filter(Boolean) as CycleDay[];
+                  saveCycle.mutate(days, {
+                    onSuccess: () => {
+                      const from = format(new Date() > month ? new Date() : month, 'yyyy-MM-dd');
+                      const to = format(eom(month), 'yyyy-MM-dd');
+                      applyCycle.mutate(
+                        { from, to },
+                        {
+                          onSuccess: (r) => {
+                            toast({ title: t('cal.applied').replace('{n}', String(r.created)) });
+                            setCycleOpen(false);
+                          },
+                        },
+                      );
+                    },
+                  });
+                }}
+              >
+                {t('cal.applyMonth')}
+              </Button>
+              <Button
+                disabled={saveCycle.isPending}
+                onClick={() => {
+                  const days = cycleDraft.filter(Boolean) as CycleDay[];
+                  saveCycle.mutate(days, {
+                    onSuccess: () => {
+                      toast({ title: t('cal.cycleSaved') });
+                      setCycleOpen(false);
+                    },
+                  });
+                }}
+              >
+                {t('cal.saveCycle')}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Quick add training on a day */}
+        <Dialog open={dayOpen !== null} onOpenChange={(o) => !o && setDayOpen(null)}>
+          <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>{t('cal.dayTitle').replace('{date}', dayOpen ?? '')}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <Select value={dayFocus} onValueChange={setDayFocus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FOCUS_KEYS.map((k) => (
+                    <SelectItem key={k} value={k}>{t(`train.focus.${k}`)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex gap-2">
+                <Select value={dayIntensity} onValueChange={setDayIntensity}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(['light', 'medium', 'high'] as const).map((k) => (
+                      <SelectItem key={k} value={k}>{t(`train.intensity.${k}`)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="number"
+                  min="1"
+                  max="600"
+                  placeholder={t('train.duration')}
+                  value={dayDuration}
+                  onChange={(e) => setDayDuration(e.target.value)}
+                />
+              </div>
+              <Button
+                className="w-full gap-1.5"
+                disabled={createTraining.isPending}
+                onClick={() => {
+                  if (!dayOpen) return;
+                  createTraining.mutate(
+                    {
+                      date: dayOpen,
+                      focus: dayFocus,
+                      intensity: dayIntensity,
+                      durationMinutes: dayDuration ? Number(dayDuration) : undefined,
+                    },
+                    {
+                      onSuccess: () => {
+                        toast({ title: t('tactics.saved') });
+                        setDayOpen(null);
+                      },
+                    },
+                  );
+                }}
+              >
+                <Plus className="w-4 h-4" /> {t('cal.addTraining')}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );

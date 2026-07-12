@@ -143,6 +143,25 @@ const STATEMENTS = [
     "instructions" text,
     "updated_at" timestamp DEFAULT now() NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS "week_cycles" (
+    "id" serial PRIMARY KEY,
+    "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+    "day_of_week" integer NOT NULL,
+    "focus" text NOT NULL,
+    "intensity" text,
+    "duration_minutes" integer,
+    "time" text,
+    UNIQUE ("team_id", "day_of_week")
+  )`,
+  `CREATE TABLE IF NOT EXISTS "month_plans" (
+    "id" serial PRIMARY KEY,
+    "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+    "month" text NOT NULL,
+    "goal" text,
+    "notes" text,
+    "updated_at" timestamp DEFAULT now() NOT NULL,
+    UNIQUE ("team_id", "month")
+  )`,
   `CREATE TABLE IF NOT EXISTS "team_members" (
     "id" serial PRIMARY KEY,
     "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,

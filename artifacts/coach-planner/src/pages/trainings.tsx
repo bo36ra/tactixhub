@@ -12,7 +12,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { toast } from '@/hooks/use-toast';
 import { Dumbbell, Plus, Trash2, Save } from 'lucide-react';
 
-const FOCUS_KEYS = [
+export const FOCUS_KEYS = [
   'warmup',
   'fitness',
   'speed_agility',

@@ -55,6 +55,47 @@ export function useSaveMatchPlan(teamId: number) {
   });
 }
 
+export interface CycleDay { id?: number; dayOfWeek: number; focus: string; intensity: string | null; durationMinutes: number | null; time: string | null }
+export function useWeekCycle(teamId: number) {
+  return useQuery({
+    queryKey: ['week-cycle', teamId],
+    enabled: !!teamId,
+    queryFn: () => customFetch<CycleDay[]>(`/teams/${teamId}/cycle`),
+  });
+}
+export function useSaveWeekCycle(teamId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (days: CycleDay[]) =>
+      customFetch<CycleDay[]>(`/teams/${teamId}/cycle`, { method: 'PUT', body: JSON.stringify({ days }) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['week-cycle', teamId] }),
+  });
+}
+export function useApplyCycle(teamId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { from: string; to: string }) =>
+      customFetch<{ created: number }>(`/teams/${teamId}/cycle/apply`, { method: 'POST', body: JSON.stringify(input) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['trainings', teamId] }),
+  });
+}
+export interface MonthPlan { id: number; teamId: number; month: string; goal: string | null; notes: string | null; updatedAt: string }
+export function useMonthPlan(teamId: number, month: string) {
+  return useQuery({
+    queryKey: ['month-plan', teamId, month],
+    enabled: !!teamId && !!month,
+    queryFn: () => customFetch<MonthPlan | null>(`/teams/${teamId}/month-plan/${month}`),
+  });
+}
+export function useSaveMonthPlan(teamId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { month: string; goal?: string; notes?: string }) =>
+      customFetch<MonthPlan>(`/teams/${teamId}/month-plan/${input.month}`, { method: 'PUT', body: JSON.stringify({ goal: input.goal, notes: input.notes }) }),
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['month-plan', teamId, vars.month] }),
+  });
+}
+
 export function useInjuries(teamId: number) {
   return useQuery({ queryKey: ['injuries', teamId], queryFn: () => customFetch<Injury[]>(`/teams/${teamId}/injuries`) });
 }
