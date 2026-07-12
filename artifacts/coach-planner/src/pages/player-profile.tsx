@@ -100,6 +100,7 @@ export function PlayerProfile() {
                 <p style={{ margin: '2px 0', fontSize: 14 }}>#{player.jerseyNumber} · {t(`position.${player.position}`)}</p>
                 {player.age != null && <p style={{ margin: 0, fontSize: 13 }}>{t('common.age')}: {player.age}</p>}
                 {player.nationality && <p style={{ margin: 0, fontSize: 13 }}>{player.nationality}</p>}
+              {player.phone && <p style={{ margin: 0, fontSize: 13, direction: 'ltr' }}>{player.phone}</p>}
               </div>
             </div>
             <hr style={{ margin: '16px 0', border: 'none', borderTop: '1px solid #999' }} />
@@ -163,6 +164,11 @@ export function PlayerProfile() {
                   <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive" onClick={() => savePhoto(null)}>
                     {t('player.photoRemove')}
                   </Button>
+                )}
+                {player.phone && (
+                  <a href={`tel:${player.phone}`} className="text-xs text-primary hover:underline" dir="ltr">
+                    {player.phone}
+                  </a>
                 )}
                 <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => window.print()}>
                   <Printer className="w-3 h-3" /> {t('profile.printCard')}

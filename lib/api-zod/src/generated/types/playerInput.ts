@@ -18,4 +18,5 @@ export interface PlayerInput {
   status: PlayerInputStatus;
   /** @nullable */
   photo?: string | null;
+  phone?: string;
 }

@@ -42,7 +42,8 @@ export function Players() {
     age: '',
     nationality: '',
     status: 'active' as PlayerInputStatus,
-    photo: '' as string
+    photo: '' as string,
+    phone: ''
   });
 
   const { data: players, isLoading } = useListPlayers(activeTeamId!, {
@@ -75,14 +76,15 @@ export function Players() {
         age: formData.age ? Number(formData.age) : undefined,
         nationality: formData.nationality || undefined,
         status: formData.status,
-        ...(formData.photo && { photo: formData.photo })
+        ...(formData.photo && { photo: formData.photo }),
+        ...(formData.phone.trim() && { phone: formData.phone.trim() })
       }
     }, {
       onError: showApiError,
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(activeTeamId) });
         setOpen(false);
-        setFormData({ name: '', jerseyNumber: '', position: 'forward', age: '', nationality: '', status: 'active', photo: '' });
+        setFormData({ name: '', jerseyNumber: '', position: 'forward', age: '', nationality: '', status: 'active', photo: '', phone: '' });
       }
     });
   };
@@ -161,6 +163,10 @@ export function Players() {
                 <div className="space-y-2">
                   <Label>{t('common.nationality')}</Label>
                   <Input value={formData.nationality} onChange={e => setFormData({...formData, nationality: e.target.value})} placeholder={t('common.nationalityPlaceholder')} />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('common.phone')}</Label>
+                  <Input type="tel" dir="ltr" placeholder="07xx xxx xxxx" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">

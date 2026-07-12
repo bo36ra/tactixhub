@@ -66,6 +66,8 @@ export interface Player {
   status: PlayerStatus;
   /** @nullable */
   photo?: string | null;
+  /** @nullable */
+  phone?: string | null;
   createdAt: string;
 }
 
@@ -98,6 +100,7 @@ export interface PlayerInput {
   status: PlayerInputStatus;
   /** @nullable */
   photo?: string | null;
+  phone?: string;
 }
 
 export type PlayerUpdatePosition = typeof PlayerUpdatePosition[keyof typeof PlayerUpdatePosition];
@@ -128,6 +131,7 @@ export interface PlayerUpdate {
   status?: PlayerUpdateStatus;
   /** @nullable */
   photo?: string | null;
+  phone?: string;
 }
 
 export type MatchType = typeof MatchType[keyof typeof MatchType];

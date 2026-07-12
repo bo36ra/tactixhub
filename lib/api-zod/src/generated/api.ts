@@ -122,6 +122,7 @@ export const ListPlayersResponseItem = zod.object({
   "nationality": zod.string().nullish(),
   "status": zod.enum(['active', 'injured', 'suspended']),
   "photo": zod.string().nullish(),
+  "phone": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const ListPlayersResponse = zod.array(ListPlayersResponseItem)
@@ -144,7 +145,8 @@ export const CreatePlayerBody = zod.object({
   "age": zod.number().optional(),
   "nationality": zod.string().optional(),
   "status": zod.enum(['active', 'injured', 'suspended']),
-  "photo": zod.string().nullish()
+  "photo": zod.string().nullish(),
+  "phone": zod.string().optional()
 })
 
 export const CreatePlayerResponse = zod.object({
@@ -157,6 +159,7 @@ export const CreatePlayerResponse = zod.object({
   "nationality": zod.string().nullish(),
   "status": zod.enum(['active', 'injured', 'suspended']),
   "photo": zod.string().nullish(),
+  "phone": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -176,7 +179,8 @@ export const UpdatePlayerBody = zod.object({
   "age": zod.number().optional(),
   "nationality": zod.string().optional(),
   "status": zod.enum(['active', 'injured', 'suspended']).optional(),
-  "photo": zod.string().nullish()
+  "photo": zod.string().nullish(),
+  "phone": zod.string().optional()
 })
 
 export const UpdatePlayerResponse = zod.object({
@@ -189,6 +193,7 @@ export const UpdatePlayerResponse = zod.object({
   "nationality": zod.string().nullish(),
   "status": zod.enum(['active', 'injured', 'suspended']),
   "photo": zod.string().nullish(),
+  "phone": zod.string().nullish(),
   "createdAt": zod.string()
 })
 

@@ -16,6 +16,7 @@ export const playersTable = pgTable("players", {
   // JPEG before upload, so rows stay small). No external file storage
   // is configured, so the database is the simplest reliable home.
   photo: text("photo"),
+  phone: text("phone"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

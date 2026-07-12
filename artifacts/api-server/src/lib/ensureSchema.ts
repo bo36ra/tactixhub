@@ -129,6 +129,7 @@ const STATEMENTS = [
   `ALTER TABLE "attendance" ADD COLUMN IF NOT EXISTS "status" text NOT NULL DEFAULT 'present'`,
   `ALTER TABLE "goals" ADD COLUMN IF NOT EXISTS "note" text`,
   `ALTER TABLE "players" ADD COLUMN IF NOT EXISTS "photo" text`,
+  `ALTER TABLE "players" ADD COLUMN IF NOT EXISTS "phone" text`,
   `ALTER TABLE "trainings" ADD COLUMN IF NOT EXISTS "intensity" text`,
   `ALTER TABLE "attendance" ADD COLUMN IF NOT EXISTS "note" text`,
   `CREATE TABLE IF NOT EXISTS "player_availability" (

@@ -1050,6 +1050,8 @@ components:
           enum: [active, injured, suspended]
         photo:
           type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
         createdAt:
           type: string
 
@@ -1074,6 +1076,8 @@ components:
           enum: [active, injured, suspended]
         photo:
           type: ["string", "null"]
+        phone:
+          type: string
 
     PlayerUpdate:
       type: object
@@ -1094,6 +1098,8 @@ components:
           enum: [active, injured, suspended]
         photo:
           type: ["string", "null"]
+        phone:
+          type: string
 
     Match:
       type: object

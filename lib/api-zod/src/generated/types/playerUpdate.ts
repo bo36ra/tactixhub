@@ -17,4 +17,5 @@ export interface PlayerUpdate {
   status?: PlayerUpdateStatus;
   /** @nullable */
   photo?: string | null;
+  phone?: string;
 }

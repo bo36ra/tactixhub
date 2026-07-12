@@ -52,7 +52,7 @@ router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
     res.status(403).json({ error: "Forbidden" });
     return;
   }
-  const { name, jerseyNumber, position, age, nationality, status, photo } = req.body;
+  const { name, jerseyNumber, position, age, nationality, status, photo, phone } = req.body;
   if (!name || !jerseyNumber || !position) {
     res.status(400).json({ error: "name, jerseyNumber, and position are required" });
     return;
@@ -60,7 +60,7 @@ router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
   try {
     const [player] = await db
       .insert(playersTable)
-      .values({ teamId, name, jerseyNumber, position, age: age || null, nationality: nationality || null, status: status || "active", photo: sanitizePhoto(photo) ?? null })
+      .values({ teamId, name, jerseyNumber, position, age: age || null, nationality: nationality || null, status: status || "active", photo: sanitizePhoto(photo) ?? null, phone: typeof phone === "string" && phone.trim() ? phone.trim() : null })
       .returning();
     res.status(201).json(mapPlayer(player));
   } catch (err) {
@@ -78,7 +78,7 @@ router.patch("/teams/:teamId/players/:playerId", requireAuth, async (req, res) =
     res.status(403).json({ error: "Forbidden" });
     return;
   }
-  const { name, jerseyNumber, position, age, nationality, status, photo } = req.body;
+  const { name, jerseyNumber, position, age, nationality, status, photo, phone } = req.body;
   const cleanPhoto = sanitizePhoto(photo);
   try {
     const [player] = await db
@@ -91,6 +91,7 @@ router.patch("/teams/:teamId/players/:playerId", requireAuth, async (req, res) =
         ...(nationality !== undefined && { nationality }),
         ...(status !== undefined && { status }),
         ...(cleanPhoto !== undefined && { photo: cleanPhoto }),
+        ...(phone !== undefined && { phone: typeof phone === "string" && phone.trim() ? phone.trim() : null }),
       })
       .where(and(eq(playersTable.id, playerId), eq(playersTable.teamId, teamId)))
       .returning();
@@ -136,6 +137,7 @@ function mapPlayer(p: typeof playersTable.$inferSelect) {
     nationality: p.nationality,
     status: p.status,
     photo: p.photo,
+    phone: p.phone,
     createdAt: p.createdAt.toISOString(),
   };
 }

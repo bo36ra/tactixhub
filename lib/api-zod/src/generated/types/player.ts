@@ -21,5 +21,7 @@ export interface Player {
   status: PlayerStatus;
   /** @nullable */
   photo?: string | null;
+  /** @nullable */
+  phone?: string | null;
   createdAt: string;
 }
