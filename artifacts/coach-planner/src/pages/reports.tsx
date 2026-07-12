@@ -24,6 +24,7 @@ import { format, startOfWeek, endOfWeek, startOfMonth, addMonths, getDaysInMonth
 import { FileBarChart2, User, CalendarDays, ChevronLeft, ChevronRight, GitCompareArrows } from 'lucide-react';
 import { STATUS_STYLES } from '@/pages/attendance';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { usePlayerRatings } from '@/lib/dev-api';
 import { PlayerAvatar } from '@/components/player-avatar';
 
@@ -46,6 +47,8 @@ export function Reports() {
   const [scheduleDays, setScheduleDays] = useState<number | undefined>(30);
   const [gridMonth, setGridMonth] = useState(() => startOfMonth(new Date()));
   const [gridPlayer, setGridPlayer] = useState<string>('all');
+  // Tap popup for a day tile carrying an excuse note
+  const [tilePopup, setTilePopup] = useState<{ day: number; recs: { status: string; note: string | null }[] } | null>(null);
   const [cmpA, setCmpA] = useState<string>('');
   const [cmpB, setCmpB] = useState<string>('');
   const { data: ratingsA } = usePlayerRatings(tid, cmpA ? Number(cmpA) : undefined);
@@ -536,16 +539,6 @@ export function Reports() {
                   const anyRecord = monthGrid
                     ? Array.from(monthGrid.byDay.values()).some((m) => m.has(pid))
                     : false;
-                  // Full-text notes for the list under the calendar
-                  const monthNotes: { day: number; status: string; note: string }[] = [];
-                  if (monthGrid) {
-                    for (const [day, players] of monthGrid.byDay) {
-                      for (const rec of players.get(pid) ?? []) {
-                        if (rec.note) monthNotes.push({ day, status: rec.status, note: rec.note });
-                      }
-                    }
-                    monthNotes.sort((a, b) => a.day - b.day);
-                  }
                   if (!anyRecord) {
                     return (
                       <p className="px-6 py-10 text-center text-sm text-muted-foreground">
@@ -561,14 +554,16 @@ export function Reports() {
                           const date = new Date(gridMonth.getFullYear(), gridMonth.getMonth(), day);
                           const recs = monthGrid?.byDay.get(day)?.get(pid) ?? [];
                           const primary = recs[0]?.status;
-                          const note = recs.find((r) => r.note)?.note;
+                          const hasNote = recs.some((r) => r.note);
                           return (
                             <div
                               key={day}
+                              role={hasNote ? 'button' : undefined}
+                              onClick={() => hasNote && setTilePopup({ day, recs })}
                               title={recs.map((r) => `${t(`att.status.${r.status}`)}${r.note ? ` — ${r.note}` : ''}`).join(' · ')}
-                              className={`rounded-xl px-1 py-2 flex flex-col items-center gap-0.5 border overflow-hidden ${
+                              className={`relative rounded-xl px-1 py-2 flex flex-col items-center gap-0.5 border overflow-hidden ${
                                 primary ? STATUS_STYLES[primary] : 'bg-white/[0.02] border-white/[0.05] text-muted-foreground/50'
-                              }`}
+                              } ${hasNote ? 'cursor-pointer ring-1 ring-amber-400/40' : ''}`}
                             >
                               <span className="text-[9px] leading-none opacity-70">{weekdayFmt.format(date)}</span>
                               <span className="text-sm font-bold leading-none" dir="ltr">{day}</span>
@@ -577,27 +572,13 @@ export function Reports() {
                                   <span key={i} className={`w-1.5 h-1.5 rounded-full ${primary ? 'bg-current' : ''}`} />
                                 ))}
                               </span>
-                              {note && (
-                                <span className="text-[8px] leading-tight opacity-80 truncate max-w-full">{note}</span>
+                              {hasNote && (
+                                <span className="absolute top-1 end-1 w-1.5 h-1.5 rounded-full bg-amber-400" />
                               )}
                             </div>
                           );
                         })}
                       </div>
-                      {monthNotes.length > 0 && (
-                        <div className="mt-4 pt-3 border-t border-border/50 space-y-1.5">
-                          <p className="text-[11px] font-semibold text-muted-foreground">{t('reports.monthNotes')}</p>
-                          {monthNotes.map((n, i) => (
-                            <div key={i} className="flex items-start gap-2 text-xs">
-                              <span className={`inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-md border text-[9px] font-bold shrink-0 ${STATUS_STYLES[n.status] ?? ''}`} dir="ltr">
-                                {n.day}
-                              </span>
-                              <span className="text-muted-foreground shrink-0">{t(`att.status.${n.status}`)}:</span>
-                              <span className="text-foreground/90">{n.note}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   );
                 })()
@@ -720,6 +701,27 @@ export function Reports() {
             })}
           </div>
         )}
+        {/* Excuse popup for a tapped day tile */}
+        <Dialog open={tilePopup !== null} onOpenChange={(o) => !o && setTilePopup(null)}>
+          <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-base">
+                {t('reports.monthNotes')} — {format(gridMonth, 'MM/yyyy')}
+                <span className="text-primary" dir="ltr"> · {tilePopup?.day}</span>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              {(tilePopup?.recs ?? []).map((rec, i) => (
+                <div key={i} className="rounded-lg bg-white/[0.03] border border-border/50 px-3 py-2">
+                  <span className={`inline-block px-2 py-0.5 rounded-md border text-[11px] font-bold ${STATUS_STYLES[rec.status] ?? ''}`}>
+                    {t(`att.status.${rec.status}`)}
+                  </span>
+                  {rec.note && <p className="text-sm mt-1.5 whitespace-pre-wrap">{rec.note}</p>}
+                </div>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );

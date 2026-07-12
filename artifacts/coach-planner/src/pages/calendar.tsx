@@ -227,17 +227,11 @@ export function CalendarPage() {
                     {format(day, 'd')}
                   </span>
                   <div className="mt-0.5 space-y-0.5">
-                    {(excusesByDay.get(key) ?? []).slice(0, 2).map((ex, i) => (
-                      <div
-                        key={`ex${i}`}
-                        title={`${ex.playerName}: ${ex.note}`}
-                        className="text-[9px] leading-tight truncate text-amber-400/90"
-                      >
-                        {ex.playerName}: {ex.note}
-                      </div>
-                    ))}
-                    {(excusesByDay.get(key) ?? []).length > 2 && (
-                      <div className="text-[9px] text-amber-400/60">+{(excusesByDay.get(key) ?? []).length - 2}</div>
+                    {(excusesByDay.get(key) ?? []).length > 0 && (
+                      <span
+                        title={(excusesByDay.get(key) ?? []).map((ex) => `${ex.playerName}: ${ex.note}`).join(' · ')}
+                        className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400"
+                      />
                     )}
                     {events.map((ev, i) => (
                       <div
