@@ -130,6 +130,17 @@ const STATEMENTS = [
   `ALTER TABLE "goals" ADD COLUMN IF NOT EXISTS "note" text`,
   `ALTER TABLE "players" ADD COLUMN IF NOT EXISTS "photo" text`,
   `ALTER TABLE "trainings" ADD COLUMN IF NOT EXISTS "intensity" text`,
+  `ALTER TABLE "attendance" ADD COLUMN IF NOT EXISTS "note" text`,
+  `CREATE TABLE IF NOT EXISTS "player_availability" (
+    "id" serial PRIMARY KEY,
+    "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+    "player_id" integer NOT NULL REFERENCES "players"("id") ON DELETE CASCADE,
+    "type" text NOT NULL,
+    "start_date" text NOT NULL,
+    "end_date" text,
+    "note" text,
+    "created_at" timestamp DEFAULT now() NOT NULL
+  )`,
   `ALTER TABLE "trainings" ADD COLUMN IF NOT EXISTS "duration_minutes" integer`,
   // Legacy rows only had a boolean; new writes always set both fields
   // consistently, so present=false with status='present' can only be a

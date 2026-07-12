@@ -15,6 +15,9 @@ export const attendanceTable = pgTable("attendance", {
   // Match day: starter | substitute | not_called.
   // `present` is kept in sync (derived) so existing stats keep working.
   status: text("status").notNull().default("present"),
+  // Free-text note per record — e.g. the excuse type for an excused
+  // absence or lateness ("موعد طبي", "ظرف عائلي" …).
+  note: text("note"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

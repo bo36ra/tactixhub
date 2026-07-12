@@ -366,6 +366,7 @@ export const ListAttendanceResponseItem = zod.object({
   "sessionType": zod.enum(['training', 'match']),
   "present": zod.boolean(),
   "status": zod.enum(['present', 'late_excused', 'late_unexcused', 'absent', 'starter', 'substitute', 'not_called']).optional(),
+  "note": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const ListAttendanceResponse = zod.array(ListAttendanceResponseItem)
@@ -384,7 +385,8 @@ export const CreateAttendanceBody = zod.object({
   "records": zod.array(zod.object({
   "playerId": zod.number(),
   "present": zod.boolean().optional(),
-  "status": zod.enum(['present', 'late_excused', 'late_unexcused', 'absent', 'starter', 'substitute', 'not_called']).optional()
+  "status": zod.enum(['present', 'late_excused', 'late_unexcused', 'absent', 'starter', 'substitute', 'not_called']).optional(),
+  "note": zod.string().optional()
 }))
 })
 
@@ -396,6 +398,7 @@ export const CreateAttendanceResponse = zod.object({
   "sessionType": zod.enum(['training', 'match']),
   "present": zod.boolean(),
   "status": zod.enum(['present', 'late_excused', 'late_unexcused', 'absent', 'starter', 'substitute', 'not_called']).optional(),
+  "note": zod.string().nullish(),
   "createdAt": zod.string()
 })
 

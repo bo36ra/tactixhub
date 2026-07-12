@@ -8,10 +8,12 @@ import { useTeam } from '@/lib/team-context';
 import { compressImageFile } from '@/lib/image';
 import { PlayerAvatar } from '@/components/player-avatar';
 import { Button } from '@/components/ui/button';
-import { usePlayerRatings } from '@/lib/dev-api';
+import { usePlayerRatings, useAvailability, useCreateAvailability, useDeleteAvailability } from '@/lib/dev-api';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { format } from 'date-fns';
-import { ArrowRight, ArrowLeft, Swords, CalendarCheck, CircleDot, Square, Camera, Printer } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Swords, CalendarCheck, CircleDot, Square, Camera, Printer, Plane, Trash2, Plus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function PlayerProfile() {
   const { t, isRtl } = useLanguage();
@@ -26,6 +28,14 @@ export function PlayerProfile() {
   const updatePlayer = useUpdatePlayer();
   const photoInputRef = React.useRef<HTMLInputElement>(null);
   const { data: ratingHistory } = usePlayerRatings(activeTeamId ?? 0, playerId);
+  const { data: allAvailability } = useAvailability(activeTeamId ?? 0);
+  const createAvailability = useCreateAvailability(activeTeamId ?? 0);
+  const deleteAvailability = useDeleteAvailability(activeTeamId ?? 0);
+  const playerAvailability = React.useMemo(
+    () => (allAvailability ?? []).filter((a) => a.playerId === playerId),
+    [allAvailability, playerId],
+  );
+  const [avForm, setAvForm] = React.useState({ type: 'travel', startDate: '', endDate: '', note: '' });
 
   const ratingPoints = React.useMemo(
     () =>
@@ -159,6 +169,71 @@ export function PlayerProfile() {
             </div>
           </div>
         )}
+
+        {/* Planned availability: travel / national team / study */}
+        <div className="bg-card border rounded-xl p-4 space-y-3">
+          <h3 className="text-sm font-semibold flex items-center gap-1.5">
+            <Plane className="w-4 h-4 text-primary" /> {t('avail.title')}
+          </h3>
+          {playerAvailability.length === 0 ? (
+            <p className="text-xs text-muted-foreground">{t('avail.empty')}</p>
+          ) : (
+            <div className="space-y-1.5">
+              {playerAvailability.map((a) => (
+                <div key={a.id} className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-border/50 px-3 py-2">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
+                    {t(`avail.type.${a.type}`)}
+                  </span>
+                  <span className="text-xs text-muted-foreground" dir="ltr">
+                    {a.startDate} → {a.endDate ?? t('avail.ongoing')}
+                  </span>
+                  {a.note && <span className="text-xs text-foreground/80 truncate">{a.note}</span>}
+                  <button
+                    type="button"
+                    className="ms-auto text-muted-foreground hover:text-destructive shrink-0"
+                    onClick={() => {
+                      if (window.confirm(t('avail.deleteConfirm'))) deleteAvailability.mutate(a.id);
+                    }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Select value={avForm.type} onValueChange={(v) => setAvForm({ ...avForm, type: v })}>
+              <SelectTrigger className="sm:w-36 h-9 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(['travel', 'national_team', 'study', 'other'] as const).map((k) => (
+                  <SelectItem key={k} value={k}>{t(`avail.type.${k}`)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input type="date" className="h-9 text-xs sm:w-36" title={t('avail.from')} value={avForm.startDate} onChange={(e) => setAvForm({ ...avForm, startDate: e.target.value })} />
+            <Input type="date" className="h-9 text-xs sm:w-36" title={t('avail.to')} value={avForm.endDate} onChange={(e) => setAvForm({ ...avForm, endDate: e.target.value })} />
+            <Input className="h-9 text-xs flex-1" placeholder={t('avail.notePh')} value={avForm.note} onChange={(e) => setAvForm({ ...avForm, note: e.target.value })} />
+            <Button
+              size="sm"
+              className="h-9 gap-1"
+              disabled={!avForm.startDate || createAvailability.isPending || !playerId}
+              onClick={() =>
+                createAvailability.mutate(
+                  {
+                    playerId: playerId!,
+                    type: avForm.type,
+                    startDate: avForm.startDate,
+                    ...(avForm.endDate && { endDate: avForm.endDate }),
+                    ...(avForm.note.trim() && { note: avForm.note.trim() }),
+                  },
+                  { onSuccess: () => setAvForm({ type: 'travel', startDate: '', endDate: '', note: '' }) },
+                )
+              }
+            >
+              <Plus className="w-3.5 h-3.5" /> {t('avail.add')}
+            </Button>
+          </div>
+        </div>
 
         {ratingPoints.length >= 2 && (
           <div className="bg-card border rounded-xl p-4">

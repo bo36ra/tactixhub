@@ -76,7 +76,7 @@ router.post("/teams/:teamId/attendance", requireAuth, async (req, res) => {
       const inserted = await db
         .insert(attendanceTable)
         .values(
-          records.map((r: { playerId: number; present?: boolean; status?: string }) => {
+          records.map((r: { playerId: number; present?: boolean; status?: string; note?: string }) => {
             // Prefer the rich status; fall back to the legacy boolean so
             // older clients keep working. `present` stays derived so all
             // existing rate calculations remain valid.
@@ -93,6 +93,7 @@ router.post("/teams/:teamId/attendance", requireAuth, async (req, res) => {
               sessionType,
               status,
               present: PRESENT_STATUSES.includes(status),
+              note: typeof r.note === "string" && r.note.trim() ? r.note.trim() : null,
             };
           }),
         )
@@ -183,6 +184,7 @@ function mapAttendance(a: typeof attendanceTable.$inferSelect) {
     sessionType: a.sessionType,
     present: a.present,
     status: a.status,
+    note: a.note,
     createdAt: a.createdAt.toISOString(),
   };
 }

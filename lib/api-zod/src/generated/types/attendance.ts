@@ -16,5 +16,7 @@ export interface Attendance {
   sessionType: AttendanceSessionType;
   present: boolean;
   status?: AttendanceStatus;
+  /** @nullable */
+  note?: string | null;
   createdAt: string;
 }

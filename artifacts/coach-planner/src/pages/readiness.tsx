@@ -10,21 +10,22 @@ import {
   useGetAttendanceSummary,
   getGetAttendanceSummaryQueryKey,
 } from '@workspace/api-client-react';
-import { useInjuries } from '@/lib/dev-api';
+import { useInjuries, useAvailability } from '@/lib/dev-api';
 import { PlayerAvatar } from '@/components/player-avatar';
 import { Link } from 'wouter';
-import { CheckCircle2, HeartPulse, Ban, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, HeartPulse, Ban, AlertTriangle, Plane } from 'lucide-react';
 import { format } from 'date-fns';
 
 // One glance before naming the squad: who is injured, who is suspended
 // on cards, and whose attendance has dropped — aggregated from data the
 // coach already records elsewhere in the app.
-type Verdict = 'available' | 'injured' | 'suspended' | 'watch';
+type Verdict = 'available' | 'injured' | 'suspended' | 'away' | 'watch';
 
 const VERDICT_META: Record<Verdict, { icon: typeof CheckCircle2; pill: string }> = {
   available: { icon: CheckCircle2, pill: 'bg-green-500/15 text-green-500' },
   injured: { icon: HeartPulse, pill: 'bg-red-500/15 text-red-500' },
   suspended: { icon: Ban, pill: 'bg-orange-500/15 text-orange-400' },
+  away: { icon: Plane, pill: 'bg-sky-500/15 text-sky-400' },
   watch: { icon: AlertTriangle, pill: 'bg-yellow-500/15 text-yellow-500' },
 };
 
@@ -36,6 +37,7 @@ export function Readiness() {
 
   const { data: players } = useListPlayers(tid, { query: { enabled, queryKey: getListPlayersQueryKey(tid) } });
   const { data: injuries } = useInjuries(tid);
+  const { data: availability } = useAvailability(tid);
   const { data: cardsSummary } = useGetCardsSummary(tid, { query: { enabled, queryKey: getGetCardsSummaryQueryKey(tid) } });
   const { data: attendanceSummary } = useGetAttendanceSummary(tid, { query: { enabled, queryKey: getGetAttendanceSummaryQueryKey(tid) } });
 
@@ -47,11 +49,23 @@ export function Readiness() {
       );
       const cards = cardsSummary?.find((c) => c.playerId === p.id);
       const attendance = attendanceSummary?.find((a) => a.playerId === p.id);
+      const today = new Date().toISOString().slice(0, 10);
+      // Active planned absence right now; upcoming ones are shown as info.
+      const activeAway = (availability ?? []).find(
+        (a) => a.playerId === p.id && a.startDate <= today && (!a.endDate || a.endDate >= today),
+      );
+      const upcomingAway = (availability ?? []).find((a) => a.playerId === p.id && a.startDate > today);
 
       const reasons: string[] = [];
       let verdict: Verdict = 'available';
 
-      if (injury || p.status === 'injured') {
+      if (activeAway) {
+        verdict = 'away';
+        reasons.push(
+          `${t(`avail.type.${activeAway.type}`)}${activeAway.endDate ? ` — ${t('avail.to')} ${activeAway.endDate}` : ''}`,
+        );
+        if (activeAway.note) reasons.push(activeAway.note);
+      } else if (injury || p.status === 'injured') {
         verdict = 'injured';
         if (injury) {
           reasons.push(`${t('ready.reason.injury')}: ${injury.type}`);
@@ -69,12 +83,17 @@ export function Readiness() {
         reasons.push(`${t('ready.reason.lowAttendance')} (${Math.round(attendance.attendanceRate)}%)`);
       }
 
+      if (verdict === 'available' && upcomingAway) {
+        reasons.push(
+          `${t('ready.upcoming')}: ${t(`avail.type.${upcomingAway.type}`)} (${upcomingAway.startDate})`,
+        );
+      }
       return { player: p, verdict, reasons };
     });
-  }, [players, injuries, cardsSummary, attendanceSummary, t]);
+  }, [players, injuries, cardsSummary, attendanceSummary, availability, t]);
 
   const counts = React.useMemo(() => {
-    const c: Record<Verdict, number> = { available: 0, injured: 0, suspended: 0, watch: 0 };
+    const c: Record<Verdict, number> = { available: 0, injured: 0, suspended: 0, away: 0, watch: 0 };
     rows.forEach((r) => c[r.verdict]++);
     return c;
   }, [rows]);
@@ -84,6 +103,7 @@ export function Readiness() {
   const sections: { verdict: Verdict; label: string }[] = [
     { verdict: 'injured', label: t('ready.injured') },
     { verdict: 'suspended', label: t('ready.suspended') },
+    { verdict: 'away', label: t('ready.away') },
     { verdict: 'watch', label: t('ready.watch') },
     { verdict: 'available', label: t('ready.available') },
   ];
@@ -94,7 +114,7 @@ export function Readiness() {
         <h2 className="text-2xl font-bold">{t('ready.title')}</h2>
 
         {/* Summary counters */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {sections.map(({ verdict, label }) => {
             const Icon = VERDICT_META[verdict].icon;
             return (

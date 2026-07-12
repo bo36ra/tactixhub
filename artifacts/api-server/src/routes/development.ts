@@ -1,7 +1,7 @@
 import { dbErrorMessage } from "../lib/dbError";
 import { Router } from "express";
 import { eq, and, desc } from "drizzle-orm";
-import { db, trainingsTable, injuriesTable, ratingsTable, playersTable, teamsTable, matchesTable, matchPlansTable, weekCyclesTable, monthPlansTable } from "@workspace/db";
+import { db, trainingsTable, injuriesTable, ratingsTable, playersTable, teamsTable, matchesTable, matchPlansTable, weekCyclesTable, monthPlansTable, playerAvailabilityTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { verifyTeamAccess } from "../lib/teamAccess";
 
@@ -276,6 +276,67 @@ router.put("/teams/:teamId/month-plan/:month", requireAuth, guarded(async (req, 
     ? await db.update(monthPlansTable).set(values).where(eq(monthPlansTable.id, existing.id)).returning()
     : await db.insert(monthPlansTable).values(values).returning();
   res.json(plan);
+}));
+
+// ---- Planned player availability (travel / national team / study) ----
+const AVAILABILITY_TYPES = ["travel", "national_team", "study", "other"];
+
+router.get("/teams/:teamId/availability", requireAuth, guarded(async (_req, res, teamId) => {
+  const rows = await db
+    .select()
+    .from(playerAvailabilityTable)
+    .where(eq(playerAvailabilityTable.teamId, teamId))
+    .orderBy(playerAvailabilityTable.startDate);
+  res.json(rows);
+}));
+
+router.post("/teams/:teamId/availability", requireAuth, guarded(async (req, res, teamId) => {
+  const { playerId, type, startDate, endDate, note } = req.body ?? {};
+  if (!Number.isInteger(playerId)) {
+    res.status(400).json({ error: "playerId is required" });
+    return;
+  }
+  if (!AVAILABILITY_TYPES.includes(type)) {
+    res.status(400).json({ error: `type must be one of: ${AVAILABILITY_TYPES.join(", ")}` });
+    return;
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(startDate))) {
+    res.status(400).json({ error: "startDate must be YYYY-MM-DD" });
+    return;
+  }
+  if (endDate && !/^\d{4}-\d{2}-\d{2}$/.test(String(endDate))) {
+    res.status(400).json({ error: "endDate must be YYYY-MM-DD" });
+    return;
+  }
+  // The player must belong to this team
+  const [player] = await db
+    .select({ id: playersTable.id })
+    .from(playersTable)
+    .where(and(eq(playersTable.id, playerId), eq(playersTable.teamId, teamId)));
+  if (!player) {
+    res.status(404).json({ error: "Player not found" });
+    return;
+  }
+  const [row] = await db
+    .insert(playerAvailabilityTable)
+    .values({
+      teamId,
+      playerId,
+      type,
+      startDate,
+      endDate: endDate || null,
+      note: typeof note === "string" && note.trim() ? note.trim() : null,
+    })
+    .returning();
+  res.status(201).json(row);
+}));
+
+router.delete("/teams/:teamId/availability/:availabilityId", requireAuth, guarded(async (req, res, teamId) => {
+  const availabilityId = parseInt(req.params.availabilityId as string);
+  await db
+    .delete(playerAvailabilityTable)
+    .where(and(eq(playerAvailabilityTable.id, availabilityId), eq(playerAvailabilityTable.teamId, teamId)));
+  res.status(204).send();
 }));
 
 export default router;

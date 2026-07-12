@@ -34,6 +34,7 @@ export function Attendance() {
   const [date, setDate] = React.useState(format(new Date(), 'yyyy-MM-dd'));
   const [sessionType, setSessionType] = React.useState<AttendanceInputSessionType>('training');
   const [records, setRecords] = React.useState<Record<number, string>>({});
+  const [notes, setNotes] = React.useState<Record<number, string>>({});
 
   const { data: players } = useListPlayers(activeTeamId!, {
     query: { enabled: !!activeTeamId, queryKey: getListPlayersQueryKey(activeTeamId!) }
@@ -53,6 +54,7 @@ export function Attendance() {
     const initial: Record<number, string> = {};
     players.forEach(p => initial[p.id] = defaultStatus);
     setRecords(initial);
+    setNotes({});
   }, [players, sessionType]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -62,6 +64,7 @@ export function Attendance() {
     const entries = Object.entries(records).map(([playerId, status]) => ({
       playerId: Number(playerId),
       status: status as any,
+      ...(notes[Number(playerId)]?.trim() && { note: notes[Number(playerId)].trim() }),
     }));
 
     createAttendance.mutate({
@@ -78,6 +81,7 @@ export function Attendance() {
         const initial: Record<number, string> = {};
         players?.forEach(p => initial[p.id] = defaultStatus);
         setRecords(initial);
+        setNotes({});
       }
     });
   };
@@ -147,6 +151,15 @@ export function Attendance() {
                             </button>
                           ))}
                         </div>
+                        {current !== defaultStatus && (
+                          <input
+                            type="text"
+                            placeholder={t('att.notePh')}
+                            value={notes[player.id] ?? ''}
+                            onChange={e => setNotes(prev => ({ ...prev, [player.id]: e.target.value }))}
+                            className="w-full sm:w-auto sm:flex-1 bg-transparent border border-border/60 rounded-md px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/50"
+                          />
+                        )}
                       </div>
                     );
                   })}

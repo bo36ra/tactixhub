@@ -96,6 +96,31 @@ export function useSaveMonthPlan(teamId: number) {
   });
 }
 
+export interface Availability { id: number; teamId: number; playerId: number; type: string; startDate: string; endDate: string | null; note: string | null; createdAt: string }
+export function useAvailability(teamId: number) {
+  return useQuery({
+    queryKey: ['availability', teamId],
+    enabled: !!teamId,
+    queryFn: () => customFetch<Availability[]>(`/teams/${teamId}/availability`),
+  });
+}
+export function useCreateAvailability(teamId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { playerId: number; type: string; startDate: string; endDate?: string; note?: string }) =>
+      customFetch<Availability>(`/teams/${teamId}/availability`, { method: 'POST', body: JSON.stringify(input) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['availability', teamId] }),
+  });
+}
+export function useDeleteAvailability(teamId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) =>
+      customFetch<void>(`/teams/${teamId}/availability/${id}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['availability', teamId] }),
+  });
+}
+
 export function useInjuries(teamId: number) {
   return useQuery({ queryKey: ['injuries', teamId], queryFn: () => customFetch<Injury[]>(`/teams/${teamId}/injuries`) });
 }

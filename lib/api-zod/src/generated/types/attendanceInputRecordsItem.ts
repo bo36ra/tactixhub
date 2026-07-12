@@ -11,4 +11,5 @@ export type AttendanceInputRecordsItem = {
   playerId: number;
   present?: boolean;
   status?: AttendanceInputRecordsItemStatus;
+  note?: string;
 };
