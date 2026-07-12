@@ -79,6 +79,68 @@ router.post("/teams/:teamId/members", requireAuth, async (req, res) => {
   }
 });
 
+// Invite one person to several of the requester's teams in one shot —
+// e.g. a technical director sharing a coach with two of his squads.
+// Ownership is verified per team; non-owned teams are skipped, never
+// silently granted.
+router.post("/teams/:teamId/members/bulk", requireAuth, async (req, res) => {
+  const userId = (req as any).userId as string;
+  const anchorTeamId = parseInt(req.params.teamId as string);
+  const { email, role, displayName, teamIds } = req.body ?? {};
+
+  if ((await getTeamRole(userId, anchorTeamId)) !== "owner") {
+    res.status(403).json({ error: "Only the team owner can invite members" });
+    return;
+  }
+  if (!email || typeof email !== "string" || !email.includes("@")) {
+    res.status(400).json({ error: "A valid email is required" });
+    return;
+  }
+  if (!role || !INVITABLE_ROLES.includes(role)) {
+    res.status(400).json({ error: `role must be one of: ${INVITABLE_ROLES.join(", ")}` });
+    return;
+  }
+  const ids: number[] = Array.isArray(teamIds)
+    ? [...new Set(teamIds.filter((n: any) => Number.isInteger(n)))]
+    : [anchorTeamId];
+  if (ids.length === 0 || ids.length > 20) {
+    res.status(400).json({ error: "teamIds must contain 1-20 teams" });
+    return;
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const invited: number[] = [];
+  const skipped: { teamId: number; reason: string }[] = [];
+  try {
+    for (const tid of ids) {
+      if ((await getTeamRole(userId, tid)) !== "owner") {
+        skipped.push({ teamId: tid, reason: "not_owner" });
+        continue;
+      }
+      const existing = await db
+        .select({ id: teamMembersTable.id })
+        .from(teamMembersTable)
+        .where(and(eq(teamMembersTable.teamId, tid), eq(teamMembersTable.email, normalizedEmail)));
+      if (existing.length > 0) {
+        skipped.push({ teamId: tid, reason: "already_member" });
+        continue;
+      }
+      await db.insert(teamMembersTable).values({
+        teamId: tid,
+        email: normalizedEmail,
+        displayName: displayName?.trim() || null,
+        role,
+        status: "pending",
+      });
+      invited.push(tid);
+    }
+    res.status(201).json({ invited, skipped });
+  } catch (err) {
+    req.log.error({ err }, "Failed to bulk invite member");
+    res.status(500).json({ error: dbErrorMessage(err) });
+  }
+});
+
 // Change a member's role — owner only; the owner row itself is immutable
 router.patch("/teams/:teamId/members/:memberId", requireAuth, async (req, res) => {
   const userId = (req as any).userId as string;

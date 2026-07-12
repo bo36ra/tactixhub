@@ -4,6 +4,7 @@ import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { useUser } from '@clerk/react';
 import {
+  useListTeams,
   useListTeamMembers,
   useAddTeamMember,
   useUpdateTeamMember,
@@ -25,6 +26,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useQueryClient } from '@tanstack/react-query';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { useBulkInvite } from '@/lib/dev-api';
+import { useToast } from '@/hooks/use-toast';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2, MoreVertical, Crown, Mail } from 'lucide-react';
 
 const ASSIGNABLE_ROLES: TeamMemberInputRole[] = [
@@ -64,6 +68,14 @@ export function Staff() {
   const addMember = useAddTeamMember();
   const updateMember = useUpdateTeamMember();
   const removeMember = useRemoveTeamMember();
+  const bulkInvite = useBulkInvite(activeTeamId ?? 0);
+  const { toast } = useToast();
+  const { data: myTeams } = useListTeams();
+  // Which of the director's teams this invite covers (default: current)
+  const [inviteTeamIds, setInviteTeamIds] = React.useState<number[]>([]);
+  React.useEffect(() => {
+    if (open && activeTeamId) setInviteTeamIds([activeTeamId]);
+  }, [open, activeTeamId]);
 
   const myRole = members?.find((m) => m.userId === user?.id)?.role;
   const isOwner = myRole === 'owner';
@@ -73,21 +85,32 @@ export function Staff() {
 
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeTeamId || !formData.email.trim()) return;
-    addMember.mutate(
+    if (!activeTeamId || !formData.email.trim() || inviteTeamIds.length === 0) return;
+    bulkInvite.mutate(
       {
-        teamId: activeTeamId,
-        data: {
-          email: formData.email.trim(),
-          role: formData.role,
-          ...(formData.displayName.trim() && { displayName: formData.displayName.trim() }),
-        },
+        email: formData.email.trim(),
+        role: formData.role,
+        ...(formData.displayName.trim() && { displayName: formData.displayName.trim() }),
+        teamIds: inviteTeamIds,
       },
       {
-        onSuccess: () => {
+        onError: (err) =>
+          toast({
+            title: t('common.saveFailed'),
+            description: err instanceof Error ? err.message : undefined,
+            variant: 'destructive' as any,
+          }),
+        onSuccess: (r) => {
           invalidate();
           setOpen(false);
           setFormData({ email: '', displayName: '', role: TeamMemberInputRole.assistant });
+          const skippedExisting = r.skipped.filter((s) => s.reason === 'already_member').length;
+          toast({
+            title: t('staff.invitedTo').replace('{n}', String(r.invited.length)),
+            ...(skippedExisting > 0 && {
+              description: t('staff.skippedExisting').replace('{n}', String(skippedExisting)),
+            }),
+          });
         },
       },
     );
@@ -157,8 +180,29 @@ export function Staff() {
                       </SelectContent>
                     </Select>
                   </div>
+                  {(myTeams ?? []).length > 1 && (
+                    <div className="space-y-2">
+                      <Label>{t('staff.inviteTeams')}</Label>
+                      <div className="space-y-1.5 rounded-lg border border-border/60 p-2.5 max-h-36 overflow-y-auto">
+                        {(myTeams ?? []).map((team) => (
+                          <label key={team.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                            <Checkbox
+                              checked={inviteTeamIds.includes(team.id)}
+                              onCheckedChange={(checked) =>
+                                setInviteTeamIds((prev) =>
+                                  checked ? [...prev, team.id] : prev.filter((id) => id !== team.id),
+                                )
+                              }
+                            />
+                            <span className="truncate">{team.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">{t('staff.inviteTeamsHint')}</p>
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground">{t('staff.inviteHint')}</p>
-                  <Button type="submit" className="w-full" disabled={addMember.isPending}>
+                  <Button type="submit" className="w-full" disabled={bulkInvite.isPending || inviteTeamIds.length === 0}>
                     {t('staff.invite')}
                   </Button>
                 </form>

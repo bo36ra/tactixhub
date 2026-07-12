@@ -121,6 +121,16 @@ export function useDeleteAvailability(teamId: number) {
   });
 }
 
+export function useBulkInvite(teamId: number) {
+  return useMutation({
+    mutationFn: (input: { email: string; role: string; displayName?: string; teamIds: number[] }) =>
+      customFetch<{ invited: number[]; skipped: { teamId: number; reason: string }[] }>(
+        `/teams/${teamId}/members/bulk`,
+        { method: 'POST', body: JSON.stringify(input) },
+      ),
+  });
+}
+
 export function useInjuries(teamId: number) {
   return useQuery({ queryKey: ['injuries', teamId], queryFn: () => customFetch<Injury[]>(`/teams/${teamId}/injuries`) });
 }
