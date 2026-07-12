@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useQueryClient } from '@tanstack/react-query';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Pin, PinOff, Pencil, Trash2, Send, X } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -31,6 +32,7 @@ export function Notes() {
   const [editingId, setEditingId] = React.useState<number | null>(null);
   const [editContent, setEditContent] = React.useState('');
   const [editTitle, setEditTitle] = React.useState('');
+  const [deleteId, setDeleteId] = React.useState<number | null>(null);
 
   const { data: notes } = useListNotes(activeTeamId!, {
     query: { enabled: !!activeTeamId, queryKey: getListNotesQueryKey(activeTeamId!) },
@@ -90,9 +92,11 @@ export function Notes() {
     );
   };
 
-  const handleDelete = (noteId: number) => {
-    if (!window.confirm(t('notes.deleteConfirm'))) return;
-    deleteNote.mutate({ teamId: activeTeamId!, noteId }, { onSuccess: invalidate });
+  const handleDelete = (noteId: number) => setDeleteId(noteId);
+  const confirmDelete = () => {
+    if (deleteId === null) return;
+    deleteNote.mutate({ teamId: activeTeamId!, noteId: deleteId }, { onSuccess: invalidate });
+    setDeleteId(null);
   };
 
   if (!activeTeamId) return <NoTeamState />;
@@ -226,6 +230,12 @@ export function Notes() {
             })}
           </div>
         )}
+        <ConfirmDialog
+          open={deleteId !== null}
+          title={t('notes.deleteConfirm')}
+          onConfirm={confirmDelete}
+          onOpenChange={(o) => !o && setDeleteId(null)}
+        />
       </div>
     </AppLayout>
   );

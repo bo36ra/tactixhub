@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useQueryClient } from '@tanstack/react-query';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Plus, Trash2, MoreVertical, Crown, Mail } from 'lucide-react';
 
 const ASSIGNABLE_ROLES: TeamMemberInputRole[] = [
@@ -50,6 +51,7 @@ export function Staff() {
   const { user } = useUser();
   const queryClient = useQueryClient();
   const [open, setOpen] = React.useState(false);
+  const [removeId, setRemoveId] = React.useState<number | null>(null);
   const [formData, setFormData] = React.useState({
     email: '',
     displayName: '',
@@ -98,9 +100,11 @@ export function Staff() {
     );
   };
 
-  const handleRemove = (memberId: number) => {
-    if (!window.confirm(t('staff.removeConfirm'))) return;
-    removeMember.mutate({ teamId: activeTeamId!, memberId }, { onSuccess: invalidate });
+  const handleRemove = (memberId: number) => setRemoveId(memberId);
+  const confirmRemove = () => {
+    if (removeId === null) return;
+    removeMember.mutate({ teamId: activeTeamId!, memberId: removeId }, { onSuccess: invalidate });
+    setRemoveId(null);
   };
 
   if (!activeTeamId) return <NoTeamState />;
@@ -234,6 +238,12 @@ export function Staff() {
             })}
           </div>
         )}
+        <ConfirmDialog
+          open={removeId !== null}
+          title={t('staff.removeConfirm')}
+          onConfirm={confirmRemove}
+          onOpenChange={(o) => !o && setRemoveId(null)}
+        />
       </div>
     </AppLayout>
   );

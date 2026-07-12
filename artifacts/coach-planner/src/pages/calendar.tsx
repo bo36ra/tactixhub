@@ -5,7 +5,7 @@ import { useLanguage } from '@/lib/i18n';
 import { useListMatches, getListMatchesQueryKey } from '@workspace/api-client-react';
 import {
   useTrainings, useCreateTraining, useWeekCycle, useSaveWeekCycle, useApplyCycle,
-  useMonthPlan, useSaveMonthPlan, type CycleDay,
+  useMonthPlan, useSaveMonthPlan, useDeleteTraining, type CycleDay,
 } from '@/lib/dev-api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,7 @@ import {
   isSameMonth,
   isToday,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Swords, Dumbbell, Repeat, Target, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Swords, Dumbbell, Repeat, Target, Plus, Trash2 } from 'lucide-react';
 import { endOfMonth as eom } from 'date-fns';
 
 // One month view that merges matches and training sessions — the coach's
@@ -48,6 +48,7 @@ export function CalendarPage() {
   const saveCycle = useSaveWeekCycle(tid);
   const applyCycle = useApplyCycle(tid);
   const createTraining = useCreateTraining(tid);
+  const deleteTraining = useDeleteTraining(tid);
 
   // month goal inline editing
   const [goalDraft, setGoalDraft] = React.useState('');
@@ -366,6 +367,38 @@ export function CalendarPage() {
             <DialogHeader>
               <DialogTitle>{t('cal.dayTitle').replace('{date}', dayOpen ? format(new Date(dayOpen + 'T00:00:00'), 'dd/MM/yyyy') : '')}</DialogTitle>
             </DialogHeader>
+            {(() => {
+              const dayTrainings = (trainings ?? []).filter((tr) => tr.date === dayOpen);
+              const dayMatches = (matches ?? []).filter((m) => m.date === dayOpen);
+              if (dayTrainings.length === 0 && dayMatches.length === 0) return null;
+              return (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-semibold text-muted-foreground">{t('cal.onThisDay')}</p>
+                  {dayMatches.map((m) => (
+                    <div key={`m${m.id}`} className="flex items-center gap-2 rounded-lg bg-primary/[0.07] border border-primary/20 px-2.5 py-1.5 text-xs">
+                      <Swords className="w-3 h-3 text-primary shrink-0" />
+                      <span className="truncate">{m.opponent}</span>
+                      <span className="ms-auto font-mono" dir="ltr">{m.ourGoals} - {m.theirGoals}</span>
+                    </div>
+                  ))}
+                  {dayTrainings.map((tr) => (
+                    <div key={`t${tr.id}`} className="flex items-center gap-2 rounded-lg bg-white/[0.04] border border-border/50 px-2.5 py-1.5 text-xs">
+                      <Dumbbell className="w-3 h-3 text-muted-foreground shrink-0" />
+                      <span className="truncate">{t(`train.focus.${tr.focus}`)}</span>
+                      {tr.intensity && <span className="text-muted-foreground">{t(`train.intensity.${tr.intensity}`)}</span>}
+                      {tr.durationMinutes && <span className="text-muted-foreground" dir="ltr">{tr.durationMinutes}{t('train.minutes')}</span>}
+                      <button
+                        type="button"
+                        className="ms-auto text-muted-foreground hover:text-destructive shrink-0"
+                        onClick={() => deleteTraining.mutate(tr.id)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
             <div className="space-y-3">
               <Select value={dayFocus} onValueChange={setDayFocus}>
                 <SelectTrigger><SelectValue /></SelectTrigger>

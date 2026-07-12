@@ -163,8 +163,13 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
         {!isLoading && (trainings ?? []).length === 0 && !form && (
           <p className="text-sm text-muted-foreground">{t('train.empty')}</p>
         )}
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {(trainings ?? []).map((tr) => (
+        {(() => {
+          const today = format(new Date(), 'yyyy-MM-dd');
+          // Upcoming soonest-first so the next session leads; past stays
+          // newest-first (server order).
+          const upcoming = (trainings ?? []).filter((tr) => tr.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+          const past = (trainings ?? []).filter((tr) => tr.date < today);
+          const renderCard = (tr: (typeof upcoming)[number]) => (
             <div key={tr.id} className="border border-border rounded-lg p-3 bg-card space-y-1">
               <div className="flex items-center justify-between">
                 <span className="font-semibold">{tr.date}{tr.time ? ` · ${tr.time}` : ''}</span>
@@ -190,8 +195,24 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
               {tr.drills && <p className="text-xs whitespace-pre-wrap">{tr.drills}</p>}
               {tr.notes && <p className="text-xs text-muted-foreground">{tr.notes}</p>}
             </div>
-          ))}
-        </div>
+          );
+          return (
+            <>
+              {upcoming.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-muted-foreground">{t('train.upcoming')} ({upcoming.length})</h3>
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{upcoming.map(renderCard)}</div>
+                </div>
+              )}
+              {past.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-muted-foreground">{t('train.past')} ({past.length})</h3>
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{past.map(renderCard)}</div>
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
     </AppLayout>
   );

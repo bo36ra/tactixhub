@@ -13,6 +13,7 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 import { format } from 'date-fns';
 import { ArrowRight, ArrowLeft, Swords, CalendarCheck, CircleDot, Square, Camera, Printer, Plane, Trash2, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function PlayerProfile() {
@@ -36,6 +37,7 @@ export function PlayerProfile() {
     [allAvailability, playerId],
   );
   const [avForm, setAvForm] = React.useState({ type: 'travel', startDate: '', endDate: '', note: '' });
+  const [avDeleteId, setAvDeleteId] = React.useState<number | null>(null);
 
   const ratingPoints = React.useMemo(
     () =>
@@ -191,9 +193,7 @@ export function PlayerProfile() {
                   <button
                     type="button"
                     className="ms-auto text-muted-foreground hover:text-destructive shrink-0"
-                    onClick={() => {
-                      if (window.confirm(t('avail.deleteConfirm'))) deleteAvailability.mutate(a.id);
-                    }}
+                    onClick={() => setAvDeleteId(a.id)}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -240,6 +240,16 @@ export function PlayerProfile() {
             </Button>
           </div>
         </div>
+
+        <ConfirmDialog
+          open={avDeleteId !== null}
+          title={t('avail.deleteConfirm')}
+          onConfirm={() => {
+            if (avDeleteId !== null) deleteAvailability.mutate(avDeleteId);
+            setAvDeleteId(null);
+          }}
+          onOpenChange={(o) => !o && setAvDeleteId(null)}
+        />
 
         {ratingPoints.length >= 2 && (
           <div className="bg-card border rounded-xl p-4">
