@@ -23,7 +23,8 @@ import {
   ChevronsUpDown,
   Check,
   UserCog,
-  StickyNote
+  StickyNote,
+  ClipboardCheck
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -61,6 +62,7 @@ export function Sidebar() {
       label: t('nav.section.competition'),
       links: [
         { href: '/matches', label: t('nav.matches'), icon: Swords },
+{ href: '/readiness', label: t('nav.readiness'), icon: ClipboardCheck },
         { href: '/goals', label: t('nav.goals'), icon: Target },
         { href: '/cards', label: t('nav.cards'), icon: CreditCard },
         { href: '/playing-time', label: t('nav.playingTime'), icon: Clock },

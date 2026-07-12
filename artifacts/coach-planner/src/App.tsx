@@ -73,6 +73,7 @@ const Trainings = lazy(() => import('@/pages/trainings'));
 const Performance = lazy(() => import('@/pages/performance'));
 const MatchReport = lazy(() => import('@/pages/match-report'));
 const Staff = lazy(() => import('@/pages/staff'));
+const Readiness = lazy(() => import('@/pages/readiness'));
 const Notes = lazy(() => import('@/pages/notes'));
 const NotFound = lazy(() => import('@/pages/not-found'));
 
@@ -223,6 +224,7 @@ function ClerkProviderWithRoutes() {
                 <Route path="/playing-time"><ProtectedRoute component={PlayingTime} /></Route>
                 <Route path="/teams"><ProtectedRoute component={Teams} /></Route>
                 <Route path="/staff"><ProtectedRoute component={Staff} /></Route>
+                <Route path="/readiness"><ProtectedRoute component={Readiness} /></Route>
                 <Route path="/notes"><ProtectedRoute component={Notes} /></Route>
                 <Route path="/reports"><ProtectedRoute component={Reports} /></Route>
                 <Route path="/tactics"><ProtectedRoute component={Tactics} /></Route>

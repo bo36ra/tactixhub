@@ -1,7 +1,7 @@
 import { dbErrorMessage } from "../lib/dbError";
 import { Router } from "express";
 import { eq, and, desc } from "drizzle-orm";
-import { db, trainingsTable, injuriesTable, ratingsTable, playersTable, teamsTable } from "@workspace/db";
+import { db, trainingsTable, injuriesTable, ratingsTable, playersTable, teamsTable, matchesTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { verifyTeamAccess } from "../lib/teamAccess";
 
@@ -52,6 +52,26 @@ router.delete("/teams/:teamId/trainings/:id", requireAuth, guarded(async (req, r
 }));
 
 // ---------- Injuries ----------
+// All ratings for one player across matches — powers the development
+// curve on the player profile.
+router.get("/teams/:teamId/players/:playerId/ratings", requireAuth, guarded(async (req, res, teamId) => {
+  const playerId = parseInt(req.params.playerId as string);
+  const rows = await db
+    .select({
+      id: ratingsTable.id,
+      matchId: ratingsTable.matchId,
+      rating: ratingsTable.rating,
+      note: ratingsTable.note,
+      date: matchesTable.date,
+      opponent: matchesTable.opponent,
+    })
+    .from(ratingsTable)
+    .innerJoin(matchesTable, eq(ratingsTable.matchId, matchesTable.id))
+    .where(and(eq(ratingsTable.teamId, teamId), eq(ratingsTable.playerId, playerId)))
+    .orderBy(matchesTable.date);
+  res.json(rows);
+}));
+
 router.get("/teams/:teamId/injuries", requireAuth, guarded(async (_req, res, teamId) => {
   const rows = await db.select({ injury: injuriesTable, playerName: playersTable.name })
     .from(injuriesTable)

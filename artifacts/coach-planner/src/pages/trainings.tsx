@@ -1,3 +1,5 @@
+import { format, startOfWeek, addWeeks } from 'date-fns';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import React, { useState } from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
@@ -37,6 +39,28 @@ export default function Trainings() {
 
 function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
   const { data: trainings, isLoading } = useTrainings(teamId);
+  // Weekly training load = Σ intensity-factor × minutes, bucketed into
+  // the last 6 ISO weeks. Turns the intensity/duration fields into an
+  // at-a-glance overload check before injuries happen.
+  const weeklyLoad = React.useMemo(() => {
+    const factors: Record<string, number> = { light: 1, medium: 2, high: 3 };
+    const weeks: { key: string; label: string; load: number; sessions: number }[] = [];
+    const thisWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
+    for (let i = 5; i >= 0; i--) {
+      const start = addWeeks(thisWeek, -i);
+      weeks.push({ key: format(start, 'yyyy-MM-dd'), label: format(start, 'dd/MM'), load: 0, sessions: 0 });
+    }
+    for (const tr of trainings ?? []) {
+      const weekKey = format(startOfWeek(new Date(tr.date), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      const bucket = weeks.find((w) => w.key === weekKey);
+      if (!bucket) continue;
+      bucket.sessions += 1;
+      bucket.load += (factors[tr.intensity ?? 'medium'] ?? 2) * (tr.durationMinutes ?? 60);
+    }
+    return weeks;
+  }, [trainings]);
+  const hasLoad = weeklyLoad.some((w) => w.sessions > 0);
+
   const create = useCreateTraining(teamId);
   const del = useDeleteTraining(teamId);
   const [form, setForm] = useState<{ date: string; time: string; focus: string; intensity: string; duration: string; drills: string; notes: string } | null>(null);
@@ -67,6 +91,28 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
           <Dumbbell className="w-6 h-6 text-primary" />
           <h1 className="text-2xl font-bold font-display">{t('nav.trainings')}</h1>
         </div>
+
+        {hasLoad && (
+          <div className="bg-card border rounded-xl p-4">
+            <h3 className="text-sm font-semibold mb-1">{t('train.loadTitle')}</h3>
+            <p className="text-[11px] text-muted-foreground mb-3">{t('train.loadHint')}</p>
+            <div className="h-40" dir="ltr">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={weeklyLoad} margin={{ top: 4, right: 8, left: -22, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.45)' }} />
+                  <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.45)' }} />
+                  <Tooltip
+                    cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                    contentStyle={{ background: '#221f1b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
+                    formatter={(value: number, _name, item) => [`${value} · ${item?.payload?.sessions} ${t('train.sessions')}`, t('train.loadTitle')]}
+                  />
+                  <Bar dataKey="load" fill="#e8b64c" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
 
         {form ? (
           <div className="space-y-3 max-w-lg">

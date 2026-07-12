@@ -8,6 +8,8 @@ import { useTeam } from '@/lib/team-context';
 import { compressImageFile } from '@/lib/image';
 import { PlayerAvatar } from '@/components/player-avatar';
 import { Button } from '@/components/ui/button';
+import { usePlayerRatings } from '@/lib/dev-api';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { format } from 'date-fns';
 import { ArrowRight, ArrowLeft, Swords, CalendarCheck, CircleDot, Square, Camera } from 'lucide-react';
 
@@ -23,6 +25,19 @@ export function PlayerProfile() {
   const queryClient = useQueryClient();
   const updatePlayer = useUpdatePlayer();
   const photoInputRef = React.useRef<HTMLInputElement>(null);
+  const { data: ratingHistory } = usePlayerRatings(activeTeamId ?? 0, playerId);
+
+  const ratingPoints = React.useMemo(
+    () =>
+      (ratingHistory ?? []).map((r) => ({
+        label: `${format(new Date(r.date), 'dd/MM')} ${r.opponent}`,
+        rating: r.rating,
+      })),
+    [ratingHistory],
+  );
+  const avgRating = ratingPoints.length
+    ? ratingPoints.reduce((sum, r) => sum + r.rating, 0) / ratingPoints.length
+    : null;
 
   const savePhoto = (photo: string | null) => {
     if (!activeTeamId || !playerId) return;
@@ -99,6 +114,33 @@ export function PlayerProfile() {
                   </Button>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {ratingPoints.length >= 2 && (
+          <div className="bg-card border rounded-xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold">{t('profile.ratingCurve')}</h3>
+              {avgRating !== null && (
+                <span className="text-xs text-muted-foreground">
+                  {t('profile.avgRating')}: <span className="font-bold text-foreground">{avgRating.toFixed(1)}</span>/10
+                </span>
+              )}
+            </div>
+            <div className="h-44" dir="ltr">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={ratingPoints} margin={{ top: 8, right: 8, left: -22, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.45)' }} interval="preserveStartEnd" />
+                  <YAxis domain={[0, 10]} tickCount={6} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.45)' }} />
+                  <Tooltip
+                    contentStyle={{ background: '#221f1b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
+                    labelStyle={{ color: 'rgba(255,255,255,0.7)' }}
+                  />
+                  <Line type="monotone" dataKey="rating" stroke="#e8b64c" strokeWidth={2} dot={{ r: 3, fill: '#e8b64c' }} />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </div>
         )}

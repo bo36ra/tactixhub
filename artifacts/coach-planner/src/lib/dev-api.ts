@@ -26,6 +26,15 @@ export function useDeleteTraining(teamId: number) {
   });
 }
 
+export interface PlayerRatingPoint { id: number; matchId: number; rating: number; note: string | null; date: string; opponent: string }
+export function usePlayerRatings(teamId: number, playerId: number | undefined) {
+  return useQuery({
+    queryKey: ['player-ratings', teamId, playerId],
+    enabled: !!teamId && !!playerId,
+    queryFn: () => customFetch<PlayerRatingPoint[]>(`/teams/${teamId}/players/${playerId}/ratings`),
+  });
+}
+
 export function useInjuries(teamId: number) {
   return useQuery({ queryKey: ['injuries', teamId], queryFn: () => customFetch<Injury[]>(`/teams/${teamId}/injuries`) });
 }
