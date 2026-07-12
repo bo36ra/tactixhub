@@ -19,9 +19,24 @@ if (rawPort && (Number.isNaN(port) || port <= 0)) {
 
 const basePath = process.env.BASE_PATH || '/';
 
+// Render exposes the deployed commit as RENDER_GIT_COMMIT. Stamping it
+// into a meta tag makes "which version is live right now?" answerable by
+// fetching the page — no dashboard access needed.
+const buildCommit = (process.env.RENDER_GIT_COMMIT || 'dev').slice(0, 7);
+const buildVersionPlugin = () => ({
+  name: 'build-version-meta',
+  transformIndexHtml(html: string) {
+    return html.replace(
+      '</title>',
+      `</title>\n    <meta name="build-commit" content="${buildCommit}" />\n    <meta name="build-time" content="${new Date().toISOString()}" />`,
+    );
+  },
+});
+
 export default defineConfig({
   base: basePath,
   plugins: [
+    buildVersionPlugin(),
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
