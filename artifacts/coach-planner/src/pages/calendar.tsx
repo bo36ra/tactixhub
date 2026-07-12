@@ -2,7 +2,9 @@ import React from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
-import { useListMatches, getListMatchesQueryKey, useListAttendance, getListAttendanceQueryKey, useListPlayers, getListPlayersQueryKey } from '@workspace/api-client-react';
+import { useListMatches, getListMatchesQueryKey, useListAttendance, getListAttendanceQueryKey, useListPlayers, getListPlayersQueryKey, useCreateMatch, type MatchInputType } from '@workspace/api-client-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Label } from '@/components/ui/label';
 import {
   useTrainings, useCreateTraining, useWeekCycle, useSaveWeekCycle, useApplyCycle,
   useMonthPlan, useSaveMonthPlan, useDeleteTraining, type CycleDay,
@@ -65,6 +67,8 @@ export function CalendarPage() {
   const applyCycle = useApplyCycle(tid);
   const createTraining = useCreateTraining(tid);
   const deleteTraining = useDeleteTraining(tid);
+  const createMatch = useCreateMatch();
+  const queryClient = useQueryClient();
 
   // month goal inline editing
   const [goalDraft, setGoalDraft] = React.useState('');
@@ -90,6 +94,9 @@ export function CalendarPage() {
   const [dayFocus, setDayFocus] = React.useState('tactics');
   const [dayIntensity, setDayIntensity] = React.useState('medium');
   const [dayDuration, setDayDuration] = React.useState('90');
+  const [dayKind, setDayKind] = React.useState<'training' | 'match'>('training');
+  const [dayOpponent, setDayOpponent] = React.useState('');
+  const [dayMatchType, setDayMatchType] = React.useState<'league' | 'friendly' | 'cup'>('league');
   // A fully past month can't receive planned sessions
   const monthInPast = eom(month) < new Date(new Date().toDateString());
   const showError = (err: unknown) =>
@@ -435,6 +442,78 @@ export function CalendarPage() {
               );
             })()}
             <div className="space-y-3">
+              {/* What is being added: a training session or a match */}
+              <div className="grid grid-cols-2 rounded-lg border border-border/60 overflow-hidden">
+                {(['training', 'match'] as const).map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setDayKind(k)}
+                    className={`py-2 text-sm font-semibold transition-colors ${
+                      dayKind === k ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-white/[0.04]'
+                    }`}
+                  >
+                    {t(k === 'training' ? 'cal.kindTraining' : 'cal.kindMatch')}
+                  </button>
+                ))}
+              </div>
+
+              {dayKind === 'match' ? (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">{t('cal.opponent')}</Label>
+                    <Input
+                      placeholder={t('cal.opponentPh')}
+                      value={dayOpponent}
+                      onChange={(e) => setDayOpponent(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">{t('match.matchType')}</Label>
+                    <div className="flex rounded-lg border border-border/60 overflow-hidden w-fit">
+                      {(['league', 'friendly', 'cup'] as const).map((k) => (
+                        <button
+                          key={k}
+                          type="button"
+                          onClick={() => setDayMatchType(k)}
+                          className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                            dayMatchType === k ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-white/[0.04]'
+                          }`}
+                        >
+                          {t(`match.${k}`)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <Button
+                    className="w-full gap-1.5"
+                    disabled={!dayOpponent.trim() || createMatch.isPending}
+                    onClick={() => {
+                      if (!dayOpen || !activeTeamId) return;
+                      createMatch.mutate(
+                        {
+                          teamId: activeTeamId,
+                          data: { opponent: dayOpponent.trim(), date: dayOpen, type: dayMatchType as MatchInputType, ourGoals: 0, theirGoals: 0 },
+                        },
+                        {
+                          onError: showError,
+                          onSuccess: () => {
+                            toast({ title: t('match.saved') });
+                            queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(activeTeamId) });
+                            setDayOpponent('');
+                            setDayOpen(null);
+                          },
+                        },
+                      );
+                    }}
+                  >
+                    <Plus className="w-4 h-4" /> {t('cal.addMatch')}
+                  </Button>
+                </>
+              ) : (
+              <>
+              <div className="space-y-1.5">
+              <Label className="text-xs">{t('cal.focusLabel')}</Label>
               {/* Focus as a tappable chip grid — every option visible at
                   once, no dropdown to fight with on a phone. */}
               <div className="grid grid-cols-3 gap-1.5">
@@ -453,7 +532,10 @@ export function CalendarPage() {
                   </button>
                 ))}
               </div>
-              <div className="flex gap-2">
+              </div>
+              <div className="flex gap-3 flex-wrap">
+                <div className="space-y-1.5">
+                <Label className="text-xs">{t('train.intensity')}</Label>
                 <div className="flex rounded-lg border border-border/60 overflow-hidden shrink-0">
                   {(['light', 'medium', 'high'] as const).map((k) => (
                     <button
@@ -470,14 +552,17 @@ export function CalendarPage() {
                     </button>
                   ))}
                 </div>
+                </div>
+                <div className="space-y-1.5 flex-1 min-w-24">
+                <Label className="text-xs">{t('train.duration')}</Label>
                 <Input
                   type="number"
                   min="1"
                   max="600"
-                  placeholder={t('train.duration')}
                   value={dayDuration}
                   onChange={(e) => setDayDuration(e.target.value)}
                 />
+                </div>
               </div>
               <Button
                 className="w-full gap-1.5"
@@ -503,6 +588,8 @@ export function CalendarPage() {
               >
                 <Plus className="w-4 h-4" /> {t('cal.addTraining')}
               </Button>
+              </>
+              )}
             </div>
           </DialogContent>
         </Dialog>
