@@ -11,6 +11,7 @@ import { GoalInputType, GoalInputMethod } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -22,6 +23,9 @@ export function Goals() {
   const { t, isRtl } = useLanguage();
   const { activeTeamId } = useTeam();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const showApiError = (err: unknown) =>
+    toast({ title: t('common.saveFailed'), description: err instanceof Error ? err.message : undefined, variant: 'destructive' as any });
   const [open, setOpen] = React.useState(false);
 
   const [formData, setFormData] = React.useState({
@@ -55,7 +59,9 @@ export function Goals() {
         ...(formData.note.trim() && { note: formData.note.trim() })
       }
     }, {
+      onError: showApiError,
       onSuccess: () => {
+        toast({ title: t('goal.saved') });
         queryClient.invalidateQueries({ queryKey: getListGoalsQueryKey(activeTeamId) });
         queryClient.invalidateQueries({ queryKey: getGetTopScorersQueryKey(activeTeamId) });
         setOpen(false);

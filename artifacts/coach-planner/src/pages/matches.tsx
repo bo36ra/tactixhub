@@ -15,11 +15,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Trash2, Plus, Calendar, LayoutGrid, ClipboardList } from 'lucide-react';
 import { format } from 'date-fns';
 import { MatchPlanDialog } from '@/components/match-plan-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 export function Matches() {
   const { t, isRtl } = useLanguage();
   const { activeTeamId } = useTeam();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const showApiError = (err: unknown) =>
+    toast({ title: t('common.saveFailed'), description: err instanceof Error ? err.message : undefined, variant: 'destructive' as any });
   const [open, setOpen] = React.useState(false);
   const [planMatchId, setPlanMatchId] = React.useState<number | null>(null);
 
@@ -51,7 +55,9 @@ export function Matches() {
         theirGoals: parseInt(formData.theirGoals, 10)
       }
     }, {
+      onError: showApiError,
       onSuccess: () => {
+        toast({ title: t('match.saved') });
         queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(activeTeamId) });
         setOpen(false);
         setFormData({ opponent: '', date: format(new Date(), 'yyyy-MM-dd'), type: 'league', ourGoals: '0', theirGoals: '0' });

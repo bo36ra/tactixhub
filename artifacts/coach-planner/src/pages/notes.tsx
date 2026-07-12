@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useQueryClient } from '@tanstack/react-query';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { useToast } from '@/hooks/use-toast';
 import { Pin, PinOff, Pencil, Trash2, Send, X } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -33,6 +34,7 @@ export function Notes() {
   const [editContent, setEditContent] = React.useState('');
   const [editTitle, setEditTitle] = React.useState('');
   const [deleteId, setDeleteId] = React.useState<number | null>(null);
+  const { toast } = useToast();
 
   const { data: notes } = useListNotes(activeTeamId!, {
     query: { enabled: !!activeTeamId, queryKey: getListNotesQueryKey(activeTeamId!) },
@@ -58,6 +60,7 @@ export function Notes() {
       },
       {
         onSuccess: () => {
+          toast({ title: t('notes.saved') });
           invalidate();
           setTitle('');
           setContent('');

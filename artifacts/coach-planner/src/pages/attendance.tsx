@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 // Statuses differ by session type: trainings track lateness with/without
 // an excuse; match days track the call-up (starter / sub / not called).
@@ -35,6 +36,9 @@ export function Attendance() {
 
   const [date, setDate] = React.useState(format(new Date(), 'yyyy-MM-dd'));
   const [sessionType, setSessionType] = React.useState<AttendanceInputSessionType>('training');
+  const { toast } = useToast();
+  const showApiError = (err: unknown) =>
+    toast({ title: t('common.saveFailed'), description: err instanceof Error ? err.message : undefined, variant: 'destructive' as any });
   const [records, setRecords] = React.useState<Record<number, string>>({});
   const [notes, setNotes] = React.useState<Record<number, string>>({});
 
@@ -77,7 +81,9 @@ export function Attendance() {
         records: entries
       }
     }, {
+      onError: showApiError,
       onSuccess: () => {
+        toast({ title: t('att.saved') });
         queryClient.invalidateQueries({ queryKey: getGetAttendanceSummaryQueryKey(activeTeamId) });
         // Reset to defaults for convenience
         const initial: Record<number, string> = {};
