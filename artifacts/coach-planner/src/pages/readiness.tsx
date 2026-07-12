@@ -7,8 +7,8 @@ import {
   getListPlayersQueryKey,
   useGetCardsSummary,
   getGetCardsSummaryQueryKey,
-  useGetAttendanceSummary,
-  getGetAttendanceSummaryQueryKey,
+  useListAttendance,
+  getListAttendanceQueryKey,
 } from '@workspace/api-client-react';
 import { useInjuries, useAvailability } from '@/lib/dev-api';
 import { PlayerAvatar } from '@/components/player-avatar';
@@ -39,7 +39,22 @@ export function Readiness() {
   const { data: injuries } = useInjuries(tid);
   const { data: availability } = useAvailability(tid);
   const { data: cardsSummary } = useGetCardsSummary(tid, { query: { enabled, queryKey: getGetCardsSummaryQueryKey(tid) } });
-  const { data: attendanceSummary } = useGetAttendanceSummary(tid, { query: { enabled, queryKey: getGetAttendanceSummaryQueryKey(tid) } });
+  const { data: allAttendance } = useListAttendance(tid, { query: { enabled, queryKey: getListAttendanceQueryKey(tid) } });
+
+  // Recent attendance: last 30 days only, so an old bad patch doesn't flag
+  // a player forever. not_called counts neither way.
+  const recentRates = React.useMemo(() => {
+    const cutoff = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const map = new Map<number, { present: number; total: number }>();
+    for (const rec of allAttendance ?? []) {
+      if (rec.date < cutoff || rec.status === 'not_called') continue;
+      const cur = map.get(rec.playerId) ?? { present: 0, total: 0 };
+      cur.total += 1;
+      if (rec.present) cur.present += 1;
+      map.set(rec.playerId, cur);
+    }
+    return map;
+  }, [allAttendance]);
 
   const rows = React.useMemo(() => {
     if (!players) return [];
@@ -48,7 +63,7 @@ export function Readiness() {
         (i) => i.playerId === p.id && (i.status === 'out' || i.status === 'recovering'),
       );
       const cards = cardsSummary?.find((c) => c.playerId === p.id);
-      const attendance = attendanceSummary?.find((a) => a.playerId === p.id);
+      const attendance = recentRates.get(p.id);
       const today = new Date().toISOString().slice(0, 10);
       // Active planned absence right now; upcoming ones are shown as info.
       const activeAway = (availability ?? []).find(
@@ -78,9 +93,12 @@ export function Readiness() {
       } else if (cards?.status === 'suspended' || p.status === 'suspended') {
         verdict = 'suspended';
         reasons.push(cards?.status === 'suspended' ? t('ready.reason.suspendedCards') : t('ready.reason.playerStatus'));
-      } else if (attendance && attendance.totalPresent + attendance.totalAbsent > 0 && attendance.attendanceRate < 60) {
+      }
+
+      const recentRate = attendance && attendance.total > 0 ? (attendance.present / attendance.total) * 100 : null;
+      if (verdict === 'available' && recentRate !== null && attendance!.total >= 3 && recentRate < 60) {
         verdict = 'watch';
-        reasons.push(`${t('ready.reason.lowAttendance')} (${Math.round(attendance.attendanceRate)}%)`);
+        reasons.push(`${t('ready.reason.lowAttendance')} (${Math.round(recentRate)}%)`);
       }
 
       if (verdict === 'available' && upcomingAway) {
@@ -90,7 +108,7 @@ export function Readiness() {
       }
       return { player: p, verdict, reasons };
     });
-  }, [players, injuries, cardsSummary, attendanceSummary, availability, t]);
+  }, [players, injuries, cardsSummary, recentRates, availability, t]);
 
   const counts = React.useMemo(() => {
     const c: Record<Verdict, number> = { available: 0, injured: 0, suspended: 0, away: 0, watch: 0 };

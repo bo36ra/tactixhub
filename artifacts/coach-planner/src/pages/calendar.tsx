@@ -73,6 +73,10 @@ export function CalendarPage() {
   const [dayFocus, setDayFocus] = React.useState('tactics');
   const [dayIntensity, setDayIntensity] = React.useState('medium');
   const [dayDuration, setDayDuration] = React.useState('90');
+  // A fully past month can't receive planned sessions
+  const monthInPast = eom(month) < new Date(new Date().toDateString());
+  const showError = (err: unknown) =>
+    toast({ title: err instanceof Error ? err.message : 'Error', variant: 'destructive' as any });
 
   const eventsByDay = React.useMemo(() => {
     const map = new Map<string, { kind: 'match' | 'training'; label: string; sub?: string; planned?: boolean }[]>();
@@ -313,16 +317,18 @@ export function CalendarPage() {
             <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2">
               <Button
                 variant="outline"
-                disabled={saveCycle.isPending || applyCycle.isPending}
+                disabled={saveCycle.isPending || applyCycle.isPending || monthInPast}
                 onClick={() => {
                   const days = cycleDraft.filter(Boolean) as CycleDay[];
                   saveCycle.mutate(days, {
+                    onError: showError,
                     onSuccess: () => {
                       const from = format(new Date() > month ? new Date() : month, 'yyyy-MM-dd');
                       const to = format(eom(month), 'yyyy-MM-dd');
                       applyCycle.mutate(
                         { from, to },
                         {
+                          onError: showError,
                           onSuccess: (r) => {
                             toast({ title: t('cal.applied').replace('{n}', String(r.created)) });
                             setCycleOpen(false);
@@ -340,6 +346,7 @@ export function CalendarPage() {
                 onClick={() => {
                   const days = cycleDraft.filter(Boolean) as CycleDay[];
                   saveCycle.mutate(days, {
+                    onError: showError,
                     onSuccess: () => {
                       toast({ title: t('cal.cycleSaved') });
                       setCycleOpen(false);
@@ -357,7 +364,7 @@ export function CalendarPage() {
         <Dialog open={dayOpen !== null} onOpenChange={(o) => !o && setDayOpen(null)}>
           <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-w-sm">
             <DialogHeader>
-              <DialogTitle>{t('cal.dayTitle').replace('{date}', dayOpen ?? '')}</DialogTitle>
+              <DialogTitle>{t('cal.dayTitle').replace('{date}', dayOpen ? format(new Date(dayOpen + 'T00:00:00'), 'dd/MM/yyyy') : '')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
               <Select value={dayFocus} onValueChange={setDayFocus}>
@@ -399,6 +406,7 @@ export function CalendarPage() {
                       durationMinutes: dayDuration ? Number(dayDuration) : undefined,
                     },
                     {
+                      onError: showError,
                       onSuccess: () => {
                         toast({ title: t('tactics.saved') });
                         setDayOpen(null);

@@ -15,6 +15,8 @@ import { format } from 'date-fns';
 // an excuse; match days track the call-up (starter / sub / not called).
 export const TRAINING_STATUSES = ['present', 'late_excused', 'late_unexcused', 'absent'] as const;
 export const MATCH_STATUSES = ['starter', 'substitute', 'not_called'] as const;
+// Statuses where the coach usually wants to record the reason
+export const NOTE_STATUSES = ['late_excused', 'late_unexcused', 'absent', 'not_called'];
 
 export const STATUS_STYLES: Record<string, string> = {
   present: 'bg-green-500/15 text-green-500 border-green-500/30',
@@ -151,7 +153,7 @@ export function Attendance() {
                             </button>
                           ))}
                         </div>
-                        {current !== defaultStatus && (
+                        {NOTE_STATUSES.includes(current) && (
                           <input
                             type="text"
                             placeholder={t('att.notePh')}

@@ -210,8 +210,14 @@ export function PlayerProfile() {
                 ))}
               </SelectContent>
             </Select>
-            <Input type="date" className="h-9 text-xs sm:w-36" title={t('avail.from')} value={avForm.startDate} onChange={(e) => setAvForm({ ...avForm, startDate: e.target.value })} />
-            <Input type="date" className="h-9 text-xs sm:w-36" title={t('avail.to')} value={avForm.endDate} onChange={(e) => setAvForm({ ...avForm, endDate: e.target.value })} />
+            <div className="flex flex-col gap-1 sm:w-36">
+              <span className="text-[10px] text-muted-foreground">{t('avail.from')}</span>
+              <Input type="date" className="h-9 text-xs" value={avForm.startDate} onChange={(e) => setAvForm({ ...avForm, startDate: e.target.value })} />
+            </div>
+            <div className="flex flex-col gap-1 sm:w-36">
+              <span className="text-[10px] text-muted-foreground">{t('avail.to')}</span>
+              <Input type="date" className="h-9 text-xs" value={avForm.endDate} onChange={(e) => setAvForm({ ...avForm, endDate: e.target.value })} />
+            </div>
             <Input className="h-9 text-xs flex-1" placeholder={t('avail.notePh')} value={avForm.note} onChange={(e) => setAvForm({ ...avForm, note: e.target.value })} />
             <Button
               size="sm"
