@@ -11,3 +11,4 @@ export * from "./development";
 export * from "./team-members";
 export * from "./notes";
 export * from "./notifications";
+export * from "./match-plans";

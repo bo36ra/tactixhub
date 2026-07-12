@@ -35,6 +35,26 @@ export function usePlayerRatings(teamId: number, playerId: number | undefined) {
   });
 }
 
+export interface MatchPlan { id: number; teamId: number; matchId: number; opponentNotes: string | null; instructions: string | null; updatedAt: string }
+export function useMatchPlan(teamId: number, matchId: number | null) {
+  return useQuery({
+    queryKey: ['match-plan', teamId, matchId],
+    enabled: !!teamId && !!matchId,
+    queryFn: () => customFetch<MatchPlan | null>(`/teams/${teamId}/matches/${matchId}/plan`),
+  });
+}
+export function useSaveMatchPlan(teamId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { matchId: number; opponentNotes?: string; instructions?: string }) =>
+      customFetch<MatchPlan>(`/teams/${teamId}/matches/${input.matchId}/plan`, {
+        method: 'PUT',
+        body: JSON.stringify({ opponentNotes: input.opponentNotes, instructions: input.instructions }),
+      }),
+    onSuccess: (_data, vars) => qc.invalidateQueries({ queryKey: ['match-plan', teamId, vars.matchId] }),
+  });
+}
+
 export function useInjuries(teamId: number) {
   return useQuery({ queryKey: ['injuries', teamId], queryFn: () => customFetch<Injury[]>(`/teams/${teamId}/injuries`) });
 }

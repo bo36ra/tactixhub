@@ -12,14 +12,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQueryClient } from '@tanstack/react-query';
-import { Trash2, Plus, Calendar, LayoutGrid } from 'lucide-react';
+import { Trash2, Plus, Calendar, LayoutGrid, ClipboardList } from 'lucide-react';
 import { format } from 'date-fns';
+import { MatchPlanDialog } from '@/components/match-plan-dialog';
 
 export function Matches() {
   const { t, isRtl } = useLanguage();
   const { activeTeamId } = useTeam();
   const queryClient = useQueryClient();
   const [open, setOpen] = React.useState(false);
+  const [planMatchId, setPlanMatchId] = React.useState<number | null>(null);
 
   const [formData, setFormData] = React.useState({
     opponent: '',
@@ -170,12 +172,18 @@ export function Matches() {
                   <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mt-2 ${pillClass}`}>
                     {t(`match.${result}`)}
                   </span>
-                  <Link href={`/matches/${match.id}/lineup`}>
-                    <Button variant="outline" size="sm" className="gap-1.5 mt-1">
-                      <LayoutGrid className="w-3.5 h-3.5" />
-                      {t('match.lineup')}
+                  <div className="flex gap-2 mt-1">
+                    <Link href={`/matches/${match.id}/lineup`}>
+                      <Button variant="outline" size="sm" className="gap-1.5">
+                        <LayoutGrid className="w-3.5 h-3.5" />
+                        {t('match.lineup')}
+                      </Button>
+                    </Link>
+                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setPlanMatchId(match.id)}>
+                      <ClipboardList className="w-3.5 h-3.5" />
+                      {t('plan.open')}
                     </Button>
-                  </Link>
+                  </div>
                 </div>
               </div>
             );
@@ -186,6 +194,16 @@ export function Matches() {
             </div>
           )}
         </div>
+
+        {planMatchId !== null && activeTeamId && matches && (
+          <MatchPlanDialog
+            teamId={activeTeamId}
+            match={matches.find((m) => m.id === planMatchId)!}
+            allMatches={matches}
+            open={planMatchId !== null}
+            onOpenChange={(o) => !o && setPlanMatchId(null)}
+          />
+        )}
       </div>
     </AppLayout>
   );

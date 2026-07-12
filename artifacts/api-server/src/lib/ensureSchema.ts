@@ -135,6 +135,14 @@ const STATEMENTS = [
   // consistently, so present=false with status='present' can only be a
   // pre-status row. Idempotent.
   `UPDATE "attendance" SET "status" = 'absent' WHERE "present" = false AND "status" = 'present'`,
+  `CREATE TABLE IF NOT EXISTS "match_plans" (
+    "id" serial PRIMARY KEY,
+    "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+    "match_id" integer NOT NULL UNIQUE REFERENCES "matches"("id") ON DELETE CASCADE,
+    "opponent_notes" text,
+    "instructions" text,
+    "updated_at" timestamp DEFAULT now() NOT NULL
+  )`,
   `CREATE TABLE IF NOT EXISTS "team_members" (
     "id" serial PRIMARY KEY,
     "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,

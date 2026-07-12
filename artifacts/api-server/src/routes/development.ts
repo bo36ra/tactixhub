@@ -1,7 +1,7 @@
 import { dbErrorMessage } from "../lib/dbError";
 import { Router } from "express";
 import { eq, and, desc } from "drizzle-orm";
-import { db, trainingsTable, injuriesTable, ratingsTable, playersTable, teamsTable, matchesTable } from "@workspace/db";
+import { db, trainingsTable, injuriesTable, ratingsTable, playersTable, teamsTable, matchesTable, matchPlansTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { verifyTeamAccess } from "../lib/teamAccess";
 
@@ -123,6 +123,43 @@ router.post("/teams/:teamId/matches/:matchId/ratings", requireAuth, guarded(asyn
     : (await db.insert(ratingsTable)
         .values({ teamId, matchId, playerId, rating, note: note || null }).returning())[0];
   res.status(existing ? 200 : 201).json(row);
+}));
+
+// ---- Match plans ----
+router.get("/teams/:teamId/matches/:matchId/plan", requireAuth, guarded(async (req, res, teamId) => {
+  const matchId = parseInt(req.params.matchId as string);
+  const [plan] = await db
+    .select()
+    .from(matchPlansTable)
+    .where(and(eq(matchPlansTable.teamId, teamId), eq(matchPlansTable.matchId, matchId)));
+  res.json(plan ?? null);
+}));
+
+router.put("/teams/:teamId/matches/:matchId/plan", requireAuth, guarded(async (req, res, teamId) => {
+  const matchId = parseInt(req.params.matchId as string);
+  const { opponentNotes, instructions } = req.body ?? {};
+  // Make sure the match actually belongs to this team before upserting.
+  const [match] = await db
+    .select({ id: matchesTable.id })
+    .from(matchesTable)
+    .where(and(eq(matchesTable.id, matchId), eq(matchesTable.teamId, teamId)));
+  if (!match) {
+    res.status(404).json({ error: "Match not found" });
+    return;
+  }
+  const values = {
+    teamId,
+    matchId,
+    opponentNotes: typeof opponentNotes === "string" && opponentNotes.trim() ? opponentNotes.trim() : null,
+    instructions: typeof instructions === "string" && instructions.trim() ? instructions.trim() : null,
+    updatedAt: new Date(),
+  };
+  const [plan] = await db
+    .insert(matchPlansTable)
+    .values(values)
+    .onConflictDoUpdate({ target: matchPlansTable.matchId, set: values })
+    .returning();
+  res.json(plan);
 }));
 
 export default router;
