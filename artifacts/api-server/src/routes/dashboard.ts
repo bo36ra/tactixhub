@@ -72,7 +72,9 @@ router.get("/teams/:teamId/dashboard", requireAuth, async (req, res) => {
       };
     });
     scorers.sort((a, b) => b.goalsScored - a.goalsScored);
-    const topScorers = scorers.slice(0, 5);
+    // Only actual scorers, and just the podium — a striker with zero
+    // goals has no business on the leaderboard.
+    const topScorers = scorers.filter((s) => s.goalsScored > 0).slice(0, 3);
 
     // Card warnings
     const cardWarnings = players

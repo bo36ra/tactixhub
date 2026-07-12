@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 import { compressImageFile } from '@/lib/image';
 import { PlayerAvatar } from '@/components/player-avatar';
 import { Trash2, Plus, Search } from 'lucide-react';
@@ -22,6 +23,17 @@ export function Players() {
   const queryClient = useQueryClient();
   const [open, setOpen] = React.useState(false);
   const photoInputRef = React.useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  // Surface API failures (duplicate jersey, oversized photo, network…) as
+  // a visible notification instead of failing silently.
+  const showApiError = (err: unknown) =>
+    toast({
+      title: t('common.saveFailed'),
+      description: err instanceof Error ? err.message : undefined,
+      variant: 'destructive' as any,
+    });
+
+  const Req = () => <span className="text-destructive ms-0.5">*</span>;
 
   const [formData, setFormData] = React.useState({
     name: '',
@@ -66,6 +78,7 @@ export function Players() {
         ...(formData.photo && { photo: formData.photo })
       }
     }, {
+      onError: showApiError,
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(activeTeamId) });
         setOpen(false);
@@ -132,12 +145,12 @@ export function Players() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>{t('common.name')}</Label>
+                  <Label>{t('common.name')} <Req /></Label>
                   <Input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>{t('common.jersey')}</Label>
+                    <Label>{t('common.jersey')} <Req /></Label>
                     <Input type="number" required min="1" max="99" value={formData.jerseyNumber} onChange={e => setFormData({...formData, jerseyNumber: e.target.value})} />
                   </div>
                   <div className="space-y-2">
@@ -151,7 +164,7 @@ export function Players() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>{t('common.position')}</Label>
+                    <Label>{t('common.position')} <Req /></Label>
                     <Select value={formData.position} onValueChange={(val: PlayerInputPosition) => setFormData({...formData, position: val})}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
