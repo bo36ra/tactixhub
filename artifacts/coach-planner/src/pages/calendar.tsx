@@ -435,23 +435,41 @@ export function CalendarPage() {
               );
             })()}
             <div className="space-y-3">
-              <Select value={dayFocus} onValueChange={setDayFocus}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {FOCUS_KEYS.map((k) => (
-                    <SelectItem key={k} value={k}>{t(`train.focus.${k}`)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Focus as a tappable chip grid — every option visible at
+                  once, no dropdown to fight with on a phone. */}
+              <div className="grid grid-cols-3 gap-1.5">
+                {FOCUS_KEYS.map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setDayFocus(k)}
+                    className={`px-1.5 py-2 rounded-lg text-[11px] leading-tight font-medium border transition-colors ${
+                      dayFocus === k
+                        ? 'bg-primary/15 text-primary border-primary/40'
+                        : 'border-border/60 text-muted-foreground hover:bg-white/[0.04]'
+                    }`}
+                  >
+                    {t(`train.focus.${k}`)}
+                  </button>
+                ))}
+              </div>
               <div className="flex gap-2">
-                <Select value={dayIntensity} onValueChange={setDayIntensity}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {(['light', 'medium', 'high'] as const).map((k) => (
-                      <SelectItem key={k} value={k}>{t(`train.intensity.${k}`)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex rounded-lg border border-border/60 overflow-hidden shrink-0">
+                  {(['light', 'medium', 'high'] as const).map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setDayIntensity(k)}
+                      className={`px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                        dayIntensity === k
+                          ? k === 'high' ? 'bg-red-500/20 text-red-400' : k === 'medium' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-green-500/20 text-green-500'
+                          : 'text-muted-foreground hover:bg-white/[0.04]'
+                      }`}
+                    >
+                      {t(`train.intensity.${k}`)}
+                    </button>
+                  ))}
+                </div>
                 <Input
                   type="number"
                   min="1"
