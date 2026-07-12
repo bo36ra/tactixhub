@@ -2,7 +2,7 @@ import React from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
-import { useListMatches, getListMatchesQueryKey } from '@workspace/api-client-react';
+import { useListMatches, getListMatchesQueryKey, useListAttendance, getListAttendanceQueryKey, useListPlayers, getListPlayersQueryKey } from '@workspace/api-client-react';
 import {
   useTrainings, useCreateTraining, useWeekCycle, useSaveWeekCycle, useApplyCycle,
   useMonthPlan, useSaveMonthPlan, useDeleteTraining, type CycleDay,
@@ -42,6 +42,22 @@ export function CalendarPage() {
 
   const { data: matches } = useListMatches(tid, { query: { enabled, queryKey: getListMatchesQueryKey(tid) } });
   const { data: trainings } = useTrainings(tid);
+  const { data: allAttendance } = useListAttendance(tid, { query: { enabled, queryKey: getListAttendanceQueryKey(tid) } });
+  const { data: players } = useListPlayers(tid, { query: { enabled, queryKey: getListPlayersQueryKey(tid) } });
+
+  // Per-day absence/excuse notes: "player — reason" for every attendance
+  // record that carries a note.
+  const excusesByDay = React.useMemo(() => {
+    const nameOf = new Map((players ?? []).map((p) => [p.id, p.name]));
+    const map = new Map<string, { playerName: string; status: string; note: string }[]>();
+    for (const rec of allAttendance ?? []) {
+      if (!rec.note) continue;
+      const list = map.get(rec.date) ?? [];
+      list.push({ playerName: nameOf.get(rec.playerId) ?? '', status: rec.status ?? 'absent', note: rec.note });
+      map.set(rec.date, list);
+    }
+    return map;
+  }, [allAttendance, players]);
   const { data: monthPlan } = useMonthPlan(tid, monthKey);
   const saveMonthPlan = useSaveMonthPlan(tid);
   const { data: cycle } = useWeekCycle(tid);
@@ -211,6 +227,18 @@ export function CalendarPage() {
                     {format(day, 'd')}
                   </span>
                   <div className="mt-0.5 space-y-0.5">
+                    {(excusesByDay.get(key) ?? []).slice(0, 2).map((ex, i) => (
+                      <div
+                        key={`ex${i}`}
+                        title={`${ex.playerName}: ${ex.note}`}
+                        className="text-[9px] leading-tight truncate text-amber-400/90"
+                      >
+                        {ex.playerName}: {ex.note}
+                      </div>
+                    ))}
+                    {(excusesByDay.get(key) ?? []).length > 2 && (
+                      <div className="text-[9px] text-amber-400/60">+{(excusesByDay.get(key) ?? []).length - 2}</div>
+                    )}
                     {events.map((ev, i) => (
                       <div
                         key={i}
@@ -370,7 +398,8 @@ export function CalendarPage() {
             {(() => {
               const dayTrainings = (trainings ?? []).filter((tr) => tr.date === dayOpen);
               const dayMatches = (matches ?? []).filter((m) => m.date === dayOpen);
-              if (dayTrainings.length === 0 && dayMatches.length === 0) return null;
+              const dayExcuses = excusesByDay.get(dayOpen ?? '') ?? [];
+              if (dayTrainings.length === 0 && dayMatches.length === 0 && dayExcuses.length === 0) return null;
               return (
                 <div className="space-y-1.5">
                   <p className="text-[11px] font-semibold text-muted-foreground">{t('cal.onThisDay')}</p>
@@ -396,6 +425,18 @@ export function CalendarPage() {
                       </button>
                     </div>
                   ))}
+                  {dayExcuses.length > 0 && (
+                    <div className="pt-1.5 space-y-1">
+                      <p className="text-[10px] font-semibold text-amber-400/90">{t('cal.excuses')}</p>
+                      {dayExcuses.map((ex, i) => (
+                        <div key={i} className="flex items-start gap-1.5 text-xs">
+                          <span className="font-medium shrink-0">{ex.playerName}</span>
+                          <span className="text-muted-foreground shrink-0">({t(`att.status.${ex.status}`)})</span>
+                          <span className="text-foreground/90">{ex.note}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })()}
