@@ -385,7 +385,7 @@ export function CalendarPage() {
 
         {/* Quick add training on a day */}
         <Dialog open={dayOpen !== null} onOpenChange={(o) => !o && setDayOpen(null)}>
-          <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-w-sm">
+          <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-w-sm max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{t('cal.dayTitle').replace('{date}', dayOpen ? format(new Date(dayOpen + 'T00:00:00'), 'dd/MM/yyyy') : '')}</DialogTitle>
             </DialogHeader>

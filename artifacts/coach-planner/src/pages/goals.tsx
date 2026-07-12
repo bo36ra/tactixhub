@@ -97,7 +97,7 @@ export function Goals() {
             <DialogTrigger asChild>
               <Button className="gap-2"><Plus className="w-4 h-4" /> {t('goal.add')}</Button>
             </DialogTrigger>
-            <DialogContent dir={isRtl ? 'rtl' : 'ltr'}>
+            <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-h-[85vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{t('goal.add')}</DialogTitle>
               </DialogHeader>

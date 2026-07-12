@@ -92,7 +92,7 @@ export function Teams() {
                 <Plus className="w-4 h-4" /> {t('team.create')}
               </Button>
             </DialogTrigger>
-            <DialogContent dir={isRtl ? 'rtl' : 'ltr'}>
+            <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-h-[85vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{t('team.create')}</DialogTitle>
               </DialogHeader>

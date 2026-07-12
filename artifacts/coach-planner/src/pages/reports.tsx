@@ -703,7 +703,7 @@ export function Reports() {
         )}
         {/* Excuse popup for a tapped day tile */}
         <Dialog open={tilePopup !== null} onOpenChange={(o) => !o && setTilePopup(null)}>
-          <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-w-sm">
+          <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-w-sm max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-base">
                 {t('reports.monthNotes')} — {format(gridMonth, 'MM/yyyy')}

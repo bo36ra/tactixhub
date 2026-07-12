@@ -143,7 +143,7 @@ export function Staff() {
               <DialogTrigger asChild>
                 <Button className="gap-2"><Plus className="w-4 h-4" /> {t('staff.invite')}</Button>
               </DialogTrigger>
-              <DialogContent dir={isRtl ? 'rtl' : 'ltr'}>
+              <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>{t('staff.invite')}</DialogTitle>
                 </DialogHeader>

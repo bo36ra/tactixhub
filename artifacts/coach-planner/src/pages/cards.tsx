@@ -76,7 +76,7 @@ export function Cards() {
             <DialogTrigger asChild>
               <Button className="gap-2"><Plus className="w-4 h-4" /> {t('card.add')}</Button>
             </DialogTrigger>
-            <DialogContent dir={isRtl ? 'rtl' : 'ltr'}>
+            <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-h-[85vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{t('card.add')}</DialogTitle>
               </DialogHeader>
