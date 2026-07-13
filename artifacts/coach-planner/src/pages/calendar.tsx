@@ -2,9 +2,10 @@ import React from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
-import { useListMatches, getListMatchesQueryKey, useListAttendance, getListAttendanceQueryKey, useListPlayers, getListPlayersQueryKey, useCreateMatch, useUpdateMatch, type MatchInputType } from '@workspace/api-client-react';
+import { useListMatches, getListMatchesQueryKey, useListAttendance, getListAttendanceQueryKey, useListPlayers, getListPlayersQueryKey, useCreateMatch, useUpdateMatch, useDeleteMatch, type MatchInputType } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Label } from '@/components/ui/label';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import {
   useTrainings, useCreateTraining, useWeekCycle, useSaveWeekCycle, useApplyCycle,
   useMonthPlan, useSaveMonthPlan, useDeleteTraining, useUpdateTraining, type CycleDay,
@@ -69,6 +70,8 @@ export function CalendarPage() {
   const deleteTraining = useDeleteTraining(tid);
   const createMatch = useCreateMatch();
   const updateMatch = useUpdateMatch();
+  const deleteMatch = useDeleteMatch();
+  const [matchDeleteId, setMatchDeleteId] = React.useState<number | null>(null);
   const updateTraining = useUpdateTraining(tid);
   const queryClient = useQueryClient();
 
@@ -440,6 +443,13 @@ export function CalendarPage() {
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-destructive shrink-0"
+                        onClick={() => setMatchDeleteId(m.id)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   ))}
                   {dayTrainings.map((tr) => (
@@ -673,6 +683,23 @@ export function CalendarPage() {
             </div>
           </DialogContent>
         </Dialog>
+        <ConfirmDialog
+          open={matchDeleteId !== null}
+          title={t('match.deleteConfirm')}
+          onConfirm={() => {
+            if (matchDeleteId !== null && activeTeamId) {
+              deleteMatch.mutate(
+                { teamId: activeTeamId, matchId: matchDeleteId },
+                {
+                  onError: showError,
+                  onSuccess: () => queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(activeTeamId) }),
+                },
+              );
+            }
+            setMatchDeleteId(null);
+          }}
+          onOpenChange={(o) => !o && setMatchDeleteId(null)}
+        />
       </div>
     </AppLayout>
   );
