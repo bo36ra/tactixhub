@@ -25,7 +25,8 @@ import {
   UserCog,
   StickyNote,
   ClipboardCheck,
-  CalendarDays
+  CalendarDays,
+  Plane
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -65,6 +66,7 @@ export function Sidebar() {
         { href: '/matches', label: t('nav.matches'), icon: Swords },
 { href: '/readiness', label: t('nav.readiness'), icon: ClipboardCheck },
         { href: '/calendar', label: t('nav.calendar'), icon: CalendarDays },
+        { href: '/availability', label: t('nav.availability'), icon: Plane },
         { href: '/goals', label: t('nav.goals'), icon: Target },
         { href: '/cards', label: t('nav.cards'), icon: CreditCard },
         { href: '/playing-time', label: t('nav.playingTime'), icon: Clock },
