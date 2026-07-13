@@ -39,15 +39,16 @@ const ASSIGNABLE_ROLES: TeamMemberInputRole[] = [
   TeamMemberInputRole.admin,
 ];
 
-function initials(member: TeamMember): string {
-  const source = member.displayName || member.email || '?';
-  return source
-    .split(/[\s@.]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]!.toUpperCase())
-    .join('');
-}
+// Standard football-staff abbreviations for the avatar circle — reads
+// cleaner than initials, especially with Arabic names.
+const ROLE_BADGES: Record<string, string> = {
+  technical_director: 'TD',
+  coach: 'C',
+  assistant: 'AC',
+  fitness_coach: 'FC',
+  admin: 'TM', // Team Manager — the standard football term for the admin role
+  analyst: 'AN',
+};
 
 export function Staff() {
   const { t, isRtl } = useLanguage();
@@ -223,8 +224,8 @@ export function Staff() {
                   key={member.id}
                   className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 flex items-start gap-3"
                 >
-                  <div className="w-10 h-10 rounded-full bg-primary/15 text-primary flex items-center justify-center font-display font-bold text-sm shrink-0">
-                    {initials(member)}
+                  <div className="w-10 h-10 rounded-full bg-primary/15 text-primary flex items-center justify-center font-mono font-bold text-xs shrink-0" dir="ltr">
+                    {member.role === 'owner' ? <Crown className="w-4 h-4" /> : ROLE_BADGES[member.role] ?? '·'}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
