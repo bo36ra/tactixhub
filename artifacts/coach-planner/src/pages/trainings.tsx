@@ -31,6 +31,14 @@ export const FOCUS_KEYS = [
   'recovery',
 ] as const;
 
+// A training's focus is free text in the database — most values come
+// from the chip grid (known FOCUS_KEYS), but a coach can also type a
+// custom focus of their own. Known keys get translated; anything else
+// (a custom focus) is shown as-is.
+export function focusLabel(t: (k: string) => string, focus: string): string {
+  return (FOCUS_KEYS as readonly string[]).includes(focus) ? t(`train.focus.${focus}`) : focus;
+}
+
 export default function Trainings() {
   const { t } = useLanguage();
   const { activeTeamId } = useTeam();
@@ -64,10 +72,10 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
 
   const create = useCreateTraining(teamId);
   const del = useDeleteTraining(teamId);
-  const [form, setForm] = useState<{ date: string; time: string; focus: string; intensity: string; duration: string; drills: string; notes: string } | null>(null);
+  const [form, setForm] = useState<{ date: string; time: string; focus: string; customFocus: string; intensity: string; duration: string; drills: string; notes: string } | null>(null);
 
   const save = () => {
-    if (!form?.date || !form.focus) {
+    if (!form?.date || !form.focus || (form.focus === '__custom__' && !form.customFocus.trim())) {
       toast({ variant: 'destructive', title: t('train.required') });
       return;
     }
@@ -75,7 +83,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
       {
         date: form.date,
         time: form.time || undefined,
-        focus: form.focus,
+        focus: form.focus === '__custom__' ? form.customFocus.trim() : form.focus,
         intensity: form.intensity || undefined,
         durationMinutes: form.duration ? Number(form.duration) : undefined,
         drills: form.drills || undefined,
@@ -125,8 +133,16 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
               <SelectTrigger><SelectValue placeholder={t('train.focus')} /></SelectTrigger>
               <SelectContent>
                 {FOCUS_KEYS.map((k) => <SelectItem key={k} value={k}>{t(`train.focus.${k}`)}</SelectItem>)}
+                <SelectItem value="__custom__">{t('train.focus.custom')}</SelectItem>
               </SelectContent>
             </Select>
+            {form.focus === '__custom__' && (
+              <Input
+                placeholder={t('train.focusCustomPh')}
+                value={form.customFocus}
+                onChange={(e) => setForm({ ...form, customFocus: e.target.value })}
+              />
+            )}
             <div className="flex gap-2">
               <Select value={form.intensity} onValueChange={(v) => setForm({ ...form, intensity: v })}>
                 <SelectTrigger><SelectValue placeholder={t('train.intensity')} /></SelectTrigger>
@@ -155,7 +171,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
             </div>
           </div>
         ) : (
-          <Button onClick={() => setForm({ date: '', time: '', focus: '', intensity: '', duration: '', drills: '', notes: '' })}>
+          <Button onClick={() => setForm({ date: '', time: '', focus: '', customFocus: '', intensity: '', duration: '', drills: '', notes: '' })}>
             <Plus className="w-4 h-4 me-1" />{t('train.new')}
           </Button>
         )}
@@ -179,7 +195,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
                 </Button>
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="pill-beige rounded px-2 py-0.5 text-xs">{t(`train.focus.${tr.focus}`)}</span>
+                <span className="pill-beige rounded px-2 py-0.5 text-xs">{focusLabel(t, tr.focus)}</span>
                 {tr.intensity && (
                   <span className={`rounded px-2 py-0.5 text-xs ${
                     tr.intensity === 'high' ? 'pill-red' : tr.intensity === 'medium' ? 'pill-yellow' : 'pill-green'

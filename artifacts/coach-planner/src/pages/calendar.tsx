@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { FOCUS_KEYS } from '@/pages/trainings';
+import { FOCUS_KEYS, focusLabel } from '@/pages/trainings';
 import {
   format,
   startOfMonth,
@@ -102,6 +102,7 @@ export function CalendarPage() {
   const [dayFocus, setDayFocus] = React.useState('tactics');
   const [dayIntensity, setDayIntensity] = React.useState('medium');
   const [dayDuration, setDayDuration] = React.useState('90');
+  const [dayCustomFocus, setDayCustomFocus] = React.useState('');
   const [dayKind, setDayKind] = React.useState<'training' | 'match'>('training');
   const [dayOpponent, setDayOpponent] = React.useState('');
   const [dayMatchType, setDayMatchType] = React.useState<'league' | 'friendly' | 'cup'>('league');
@@ -118,6 +119,7 @@ export function CalendarPage() {
     setDayScoreUs('0');
     setDayScoreThem('0');
     setDayKind('training');
+    setDayCustomFocus('');
   };
   // A fully past month can't receive planned sessions
   const monthInPast = eom(month) < new Date(new Date().toDateString());
@@ -135,7 +137,7 @@ export function CalendarPage() {
       push(m.date, { kind: 'match', label: m.opponent, sub: `${m.ourGoals}-${m.theirGoals}` });
     }
     for (const tr of trainings ?? []) {
-      push(tr.date, { kind: 'training', label: t(`train.focus.${tr.focus}`), sub: tr.time ?? undefined, planned: tr.date > todayIso });
+      push(tr.date, { kind: 'training', label: focusLabel(t, tr.focus), sub: tr.time ?? undefined, planned: tr.date > todayIso });
     }
     return map;
   }, [matches, trainings, t, todayIso]);
@@ -352,7 +354,7 @@ export function CalendarPage() {
                       className="w-full flex items-center gap-2 rounded-lg bg-white/[0.04] border border-border/50 px-3 py-2 text-sm text-start hover:bg-white/[0.08] transition-colors"
                     >
                       <Dumbbell className="w-4 h-4 text-muted-foreground shrink-0" />
-                      <span className="truncate flex-1">{t(`train.focus.${tr.focus}`)}</span>
+                      <span className="truncate flex-1">{focusLabel(t, tr.focus)}</span>
                       {tr.intensity && <span className="text-xs text-muted-foreground">{t(`train.intensity.${tr.intensity}`)}</span>}
                       {tr.durationMinutes && <span className="text-xs text-muted-foreground" dir="ltr">{tr.durationMinutes}{t('train.minutes')}</span>}
                     </button>
@@ -538,7 +540,7 @@ export function CalendarPage() {
                   {dayTrainings.map((tr) => (
                     <div key={`t${tr.id}`} className="flex items-center gap-2 rounded-lg bg-white/[0.04] border border-border/50 px-2.5 py-1.5 text-xs">
                       <Dumbbell className="w-3 h-3 text-muted-foreground shrink-0" />
-                      <span className="truncate">{t(`train.focus.${tr.focus}`)}</span>
+                      <span className="truncate">{focusLabel(t, tr.focus)}</span>
                       {tr.intensity && <span className="text-muted-foreground">{t(`train.intensity.${tr.intensity}`)}</span>}
                       {tr.durationMinutes && <span className="text-muted-foreground" dir="ltr">{tr.durationMinutes}{t('train.minutes')}</span>}
                       <button
@@ -555,7 +557,9 @@ export function CalendarPage() {
                           setDayKind('training');
                           setEditTrainingId(tr.id);
                           setEditMatchId(null);
-                          setDayFocus(tr.focus);
+                          const known = (FOCUS_KEYS as readonly string[]).includes(tr.focus);
+                          setDayFocus(known ? tr.focus : '__custom__');
+                          setDayCustomFocus(known ? '' : tr.focus);
                           setDayIntensity(tr.intensity ?? 'medium');
                           setDayDuration(tr.durationMinutes ? String(tr.durationMinutes) : '');
                         }}
@@ -700,7 +704,25 @@ export function CalendarPage() {
                     {t(`train.focus.${k}`)}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => setDayFocus('__custom__')}
+                  className={`px-1.5 py-2 rounded-lg text-[11px] leading-tight font-medium border transition-colors ${
+                    dayFocus === '__custom__'
+                      ? 'bg-primary/15 text-primary border-primary/40'
+                      : 'border-border/60 text-muted-foreground hover:bg-white/[0.04]'
+                  }`}
+                >
+                  {t('train.focus.custom')}
+                </button>
               </div>
+              {dayFocus === '__custom__' && (
+                <Input
+                  placeholder={t('train.focusCustomPh')}
+                  value={dayCustomFocus}
+                  onChange={(e) => setDayCustomFocus(e.target.value)}
+                />
+              )}
               </div>
               <div className="flex gap-3 flex-wrap">
                 <div className="space-y-1.5">
@@ -735,9 +757,10 @@ export function CalendarPage() {
               </div>
               <Button
                 className="w-full gap-1.5"
-                disabled={createTraining.isPending || updateTraining.isPending}
+                disabled={createTraining.isPending || updateTraining.isPending || (dayFocus === '__custom__' && !dayCustomFocus.trim())}
                 onClick={() => {
                   if (!dayOpen) return;
+                  const resolvedFocus = dayFocus === '__custom__' ? dayCustomFocus.trim() : dayFocus;
                   const done = () => {
                     toast({ title: t('tactics.saved') });
                     resetDayForm();
@@ -747,7 +770,7 @@ export function CalendarPage() {
                     updateTraining.mutate(
                       {
                         id: editTrainingId,
-                        focus: dayFocus,
+                        focus: resolvedFocus,
                         intensity: dayIntensity,
                         durationMinutes: dayDuration ? Number(dayDuration) : null,
                       },
@@ -757,7 +780,7 @@ export function CalendarPage() {
                     createTraining.mutate(
                       {
                         date: dayOpen,
-                        focus: dayFocus,
+                        focus: resolvedFocus,
                         intensity: dayIntensity,
                         durationMinutes: dayDuration ? Number(dayDuration) : undefined,
                       },
@@ -786,7 +809,7 @@ export function CalendarPage() {
                     <DialogHeader>
                       <DialogTitle className="text-base flex items-center gap-2">
                         <Dumbbell className="w-4 h-4 text-primary" />
-                        {t(`train.focus.${tr.focus}`)}
+                        {focusLabel(t, tr.focus)}
                         <span className="text-sm font-normal text-muted-foreground" dir="ltr">{tr.date}</span>
                       </DialogTitle>
                     </DialogHeader>
