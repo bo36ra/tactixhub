@@ -13,6 +13,7 @@ import { toast } from '@/hooks/use-toast';
 import { Dumbbell, Plus, Trash2, Save } from 'lucide-react';
 
 export const FOCUS_KEYS = [
+  'preparation',
   'warmup',
   'fitness',
   'speed_agility',
