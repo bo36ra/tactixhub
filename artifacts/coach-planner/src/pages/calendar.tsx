@@ -2,7 +2,7 @@ import React from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
-import { useListMatches, getListMatchesQueryKey, useListAttendance, getListAttendanceQueryKey, useListPlayers, getListPlayersQueryKey, useCreateMatch, useUpdateMatch, useDeleteMatch, type MatchInputType } from '@workspace/api-client-react';
+import { useListMatches, getListMatchesQueryKey, useListAttendance, getListAttendanceQueryKey, useListPlayers, getListPlayersQueryKey, useCreateMatch, useUpdateMatch, useDeleteMatch, useListGoals, getListGoalsQueryKey, type MatchInputType } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -27,7 +27,7 @@ import {
   isSameMonth,
   isToday,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Swords, Dumbbell, Repeat, Target, Plus, Trash2, Pencil } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Swords, Dumbbell, Repeat, Target, Plus, Trash2, Pencil, Eye } from 'lucide-react';
 import { endOfMonth as eom } from 'date-fns';
 
 // One month view that merges matches and training sessions — the coach's
@@ -47,6 +47,7 @@ export function CalendarPage() {
   const { data: trainings } = useTrainings(tid);
   const { data: allAttendance } = useListAttendance(tid, { query: { enabled, queryKey: getListAttendanceQueryKey(tid) } });
   const { data: players } = useListPlayers(tid, { query: { enabled, queryKey: getListPlayersQueryKey(tid) } });
+  const { data: allGoals } = useListGoals(tid, { query: { enabled, queryKey: getListGoalsQueryKey(tid) } });
 
   // Per-day absence/excuse notes: "player — reason" for every attendance
   // record that carries a note.
@@ -72,6 +73,7 @@ export function CalendarPage() {
   const updateMatch = useUpdateMatch();
   const deleteMatch = useDeleteMatch();
   const [matchDeleteId, setMatchDeleteId] = React.useState<number | null>(null);
+  const [detail, setDetail] = React.useState<{ kind: 'training' | 'match'; id: number } | null>(null);
   const updateTraining = useUpdateTraining(tid);
   const queryClient = useQueryClient();
 
@@ -431,6 +433,13 @@ export function CalendarPage() {
                       <button
                         type="button"
                         className="text-muted-foreground hover:text-primary shrink-0"
+                        onClick={() => setDetail({ kind: 'match', id: m.id })}
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-primary shrink-0"
                         onClick={() => {
                           setDayKind('match');
                           setEditMatchId(m.id);
@@ -461,6 +470,13 @@ export function CalendarPage() {
                       <button
                         type="button"
                         className="ms-auto text-muted-foreground hover:text-primary shrink-0"
+                        onClick={() => setDetail({ kind: 'training', id: tr.id })}
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-primary shrink-0"
                         onClick={() => {
                           setDayKind('training');
                           setEditTrainingId(tr.id);
@@ -683,6 +699,108 @@ export function CalendarPage() {
             </div>
           </DialogContent>
         </Dialog>
+        {/* Details viewer: full content of a training or match */}
+        <Dialog open={detail !== null} onOpenChange={(o) => !o && setDetail(null)}>
+          <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-w-sm max-h-[85vh] overflow-y-auto">
+            {(() => {
+              if (!detail) return null;
+              if (detail.kind === 'training') {
+                const tr = (trainings ?? []).find((x) => x.id === detail.id);
+                if (!tr) return null;
+                return (
+                  <>
+                    <DialogHeader>
+                      <DialogTitle className="text-base flex items-center gap-2">
+                        <Dumbbell className="w-4 h-4 text-primary" />
+                        {t(`train.focus.${tr.focus}`)}
+                        <span className="text-sm font-normal text-muted-foreground" dir="ltr">{tr.date}</span>
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="flex flex-wrap gap-1.5">
+                      {tr.intensity && (
+                        <span className={`rounded px-2 py-0.5 text-xs ${
+                          tr.intensity === 'high' ? 'bg-red-500/15 text-red-400' : tr.intensity === 'medium' ? 'bg-yellow-500/15 text-yellow-500' : 'bg-green-500/15 text-green-500'
+                        }`}>
+                          {t(`train.intensity.${tr.intensity}`)}
+                        </span>
+                      )}
+                      {tr.durationMinutes && (
+                        <span className="rounded px-2 py-0.5 text-xs bg-white/[0.06] text-muted-foreground" dir="ltr">
+                          {tr.durationMinutes} {t('train.minutes')}
+                        </span>
+                      )}
+                      {tr.time && (
+                        <span className="rounded px-2 py-0.5 text-xs bg-white/[0.06] text-muted-foreground" dir="ltr">{tr.time}</span>
+                      )}
+                    </div>
+                    {tr.drills && (
+                      <div className="space-y-1">
+                        <p className="text-[11px] font-semibold text-muted-foreground">{t('train.drills')}</p>
+                        <p className="text-sm whitespace-pre-wrap rounded-lg bg-white/[0.03] border border-border/50 px-3 py-2">{tr.drills}</p>
+                      </div>
+                    )}
+                    {tr.notes && (
+                      <div className="space-y-1">
+                        <p className="text-[11px] font-semibold text-muted-foreground">{t('train.notes')}</p>
+                        <p className="text-sm whitespace-pre-wrap text-muted-foreground">{tr.notes}</p>
+                      </div>
+                    )}
+                    {!tr.drills && !tr.notes && (
+                      <p className="text-xs text-muted-foreground">{t('cal.noContent')}</p>
+                    )}
+                  </>
+                );
+              }
+              const m = (matches ?? []).find((x) => x.id === detail.id);
+              if (!m) return null;
+              const matchGoals = (allGoals ?? []).filter((g) => g.matchId === m.id);
+              const ourGoals = matchGoals.filter((g) => g.type === 'scored').sort((a, b) => a.minute - b.minute);
+              const theirGoals = matchGoals.filter((g) => g.type === 'conceded').sort((a, b) => a.minute - b.minute);
+              return (
+                <>
+                  <DialogHeader>
+                    <DialogTitle className="text-base flex items-center gap-2">
+                      <Swords className="w-4 h-4 text-primary" />
+                      {m.opponent}
+                      <span className="ms-auto font-mono text-lg" dir="ltr">{m.ourGoals} - {m.theirGoals}</span>
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="rounded px-2 py-0.5 text-xs bg-primary/10 text-primary">{t(`match.${m.type}`)}</span>
+                    <span className="rounded px-2 py-0.5 text-xs bg-white/[0.06] text-muted-foreground" dir="ltr">{m.date}</span>
+                  </div>
+                  {ourGoals.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-semibold text-green-500">{t('cal.goalsFor')}</p>
+                      {ourGoals.map((g) => (
+                        <div key={g.id} className="flex items-start gap-2 text-sm rounded-lg bg-white/[0.03] border border-border/50 px-3 py-1.5">
+                          <span className="font-mono text-xs text-muted-foreground shrink-0" dir="ltr">{g.minute}'</span>
+                          <span>{g.scorerName ?? '—'}</span>
+                          {g.note && <span className="text-xs text-muted-foreground">{g.note}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {theirGoals.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-semibold text-red-400">{t('cal.goalsAgainst')}</p>
+                      {theirGoals.map((g) => (
+                        <div key={g.id} className="flex items-start gap-2 text-sm rounded-lg bg-white/[0.03] border border-border/50 px-3 py-1.5">
+                          <span className="font-mono text-xs text-muted-foreground shrink-0" dir="ltr">{g.minute}'</span>
+                          {g.note ? <span className="text-xs text-muted-foreground">{g.note}</span> : <span className="text-muted-foreground">—</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {matchGoals.length === 0 && (
+                    <p className="text-xs text-muted-foreground">{t('cal.noContent')}</p>
+                  )}
+                </>
+              );
+            })()}
+          </DialogContent>
+        </Dialog>
+
         <ConfirmDialog
           open={matchDeleteId !== null}
           title={t('match.deleteConfirm')}
