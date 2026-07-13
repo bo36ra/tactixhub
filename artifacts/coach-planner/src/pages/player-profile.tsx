@@ -11,9 +11,12 @@ import { Button } from '@/components/ui/button';
 import { usePlayerRatings, useAvailability, useCreateAvailability, useDeleteAvailability } from '@/lib/dev-api';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { format } from 'date-fns';
-import { ArrowRight, ArrowLeft, Swords, CalendarCheck, CircleDot, Square, Camera, Printer, Plane, Trash2, Plus } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Swords, CalendarCheck, CircleDot, Square, Camera, Printer, Plane, Trash2, Plus, Pencil } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function PlayerProfile() {
@@ -38,6 +41,59 @@ export function PlayerProfile() {
   );
   const [avForm, setAvForm] = React.useState({ type: 'travel', startDate: '', endDate: '', note: '' });
   const [avDeleteId, setAvDeleteId] = React.useState<number | null>(null);
+  const { toast } = useToast();
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [editForm, setEditForm] = React.useState({
+    name: '', jerseyNumber: '', position: 'forward', age: '', nationality: '', phone: '', status: 'active',
+  });
+
+  const openEdit = () => {
+    if (!player) return;
+    setEditForm({
+      name: player.name,
+      jerseyNumber: String(player.jerseyNumber),
+      position: player.position,
+      age: player.age != null ? String(player.age) : '',
+      nationality: player.nationality ?? '',
+      phone: player.phone ?? '',
+      status: player.status ?? 'active',
+    });
+    setEditOpen(true);
+  };
+
+  const handleEditSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeTeamId || !playerId || !editForm.name.trim() || !editForm.jerseyNumber) return;
+    updatePlayer.mutate(
+      {
+        teamId: activeTeamId,
+        playerId,
+        data: {
+          name: editForm.name.trim(),
+          jerseyNumber: Number(editForm.jerseyNumber),
+          position: editForm.position as any,
+          age: editForm.age ? Number(editForm.age) : undefined,
+          nationality: editForm.nationality.trim() || undefined,
+          phone: editForm.phone.trim(),
+          status: editForm.status as any,
+        },
+      },
+      {
+        onError: (err) =>
+          toast({
+            title: t('common.saveFailed'),
+            description: err instanceof Error ? err.message : undefined,
+            variant: 'destructive' as any,
+          }),
+        onSuccess: () => {
+          toast({ title: t('tactics.saved') });
+          queryClient.invalidateQueries({ queryKey: getGetPlayerTimelineQueryKey(playerId) });
+          queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(activeTeamId) });
+          setEditOpen(false);
+        },
+      },
+    );
+  };
 
   const ratingPoints = React.useMemo(
     () =>
@@ -170,6 +226,9 @@ export function PlayerProfile() {
                     {player.phone}
                   </a>
                 )}
+                <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={openEdit}>
+                  <Pencil className="w-3 h-3" /> {t('common.edit')}
+                </Button>
                 <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => window.print()}>
                   <Printer className="w-3 h-3" /> {t('profile.printCard')}
                 </Button>
@@ -246,6 +305,64 @@ export function PlayerProfile() {
             </Button>
           </div>
         </div>
+
+        {/* Edit player details */}
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{t('common.edit')} — {player?.name}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleEditSave} className="space-y-4">
+              <div className="space-y-2">
+                <Label>{t('common.name')} <span className="text-destructive">*</span></Label>
+                <Input required value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>{t('common.jersey')} <span className="text-destructive">*</span></Label>
+                  <Input type="number" min="1" max="99" required value={editForm.jerseyNumber} onChange={(e) => setEditForm({ ...editForm, jerseyNumber: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('common.age')}</Label>
+                  <Input type="number" min="5" max="60" value={editForm.age} onChange={(e) => setEditForm({ ...editForm, age: e.target.value })} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>{t('common.position')} <span className="text-destructive">*</span></Label>
+                <Select value={editForm.position} onValueChange={(v) => setEditForm({ ...editForm, position: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(['goalkeeper', 'defender', 'midfielder', 'forward'] as const).map((k) => (
+                      <SelectItem key={k} value={k}>{t(`position.${k}`)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{t('common.status')}</Label>
+                <Select value={editForm.status} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(['active', 'injured', 'suspended'] as const).map((k) => (
+                      <SelectItem key={k} value={k}>{t(`status.${k}`)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{t('common.nationality')}</Label>
+                <Input value={editForm.nationality} onChange={(e) => setEditForm({ ...editForm, nationality: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('common.phone')}</Label>
+                <Input type="tel" dir="ltr" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+              </div>
+              <Button type="submit" className="w-full" disabled={updatePlayer.isPending}>
+                {t('common.save')}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         <ConfirmDialog
           open={avDeleteId !== null}
