@@ -74,6 +74,7 @@ export function CalendarPage() {
   const deleteMatch = useDeleteMatch();
   const [matchDeleteId, setMatchDeleteId] = React.useState<number | null>(null);
   const [detail, setDetail] = React.useState<{ kind: 'training' | 'match'; id: number } | null>(null);
+  const [summaryDay, setSummaryDay] = React.useState<string | null>(null);
   const updateTraining = useUpdateTraining(tid);
   const queryClient = useQueryClient();
 
@@ -237,15 +238,26 @@ export function CalendarPage() {
               const key = format(day, 'yyyy-MM-dd');
               const events = eventsByDay.get(key) ?? [];
               const inMonth = isSameMonth(day, month);
+              const hasContent = events.length > 0 || (excusesByDay.get(key) ?? []).length > 0;
               return (
                 <div
                   key={key}
                   role="button"
                   onClick={() => { if (inMonth) { setDayOpen(key); } }}
-                  className={`min-h-20 sm:min-h-24 border-t border-e border-border/40 p-1 sm:p-1.5 cursor-pointer hover:bg-white/[0.03] transition-colors ${
+                  className={`relative min-h-20 sm:min-h-24 border-t border-e border-border/40 p-1 sm:p-1.5 cursor-pointer hover:bg-white/[0.03] transition-colors ${
                     inMonth ? '' : 'opacity-35 pointer-events-none'
                   }`}
                 >
+                  {hasContent && (
+                    <button
+                      type="button"
+                      aria-label={t('cal.details')}
+                      onClick={(e) => { e.stopPropagation(); setSummaryDay(key); }}
+                      className="absolute top-0.5 end-0.5 z-10 p-1 rounded-md text-muted-foreground hover:text-primary hover:bg-white/[0.08]"
+                    >
+                      <Eye className="w-3 h-3" />
+                    </button>
+                  )}
                   <span
                     className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-mono ${
                       isToday(day) ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground'
@@ -300,6 +312,68 @@ export function CalendarPage() {
             <span className="w-3 h-3 rounded border border-dashed border-white/40" /> {t('cal.planned')}
           </span>
         </div>
+        {/* Direct day summary — tap the eye on a calendar cell to see
+            everything committed that day without opening the add/edit
+            form first. Read-only; each row still opens full detail. */}
+        <Dialog open={summaryDay !== null} onOpenChange={(o) => !o && setSummaryDay(null)}>
+          <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-w-sm max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-base">
+                {summaryDay ? format(new Date(summaryDay + 'T00:00:00'), 'dd/MM/yyyy') : ''}
+              </DialogTitle>
+            </DialogHeader>
+            {(() => {
+              if (!summaryDay) return null;
+              const dayTrainings = (trainings ?? []).filter((tr) => tr.date === summaryDay);
+              const dayMatches = (matches ?? []).filter((m) => m.date === summaryDay);
+              const dayExcuses = excusesByDay.get(summaryDay) ?? [];
+              if (dayTrainings.length === 0 && dayMatches.length === 0 && dayExcuses.length === 0) {
+                return <p className="text-sm text-muted-foreground">{t('cal.noContent')}</p>;
+              }
+              return (
+                <div className="space-y-2">
+                  {dayMatches.map((m) => (
+                    <button
+                      key={`m${m.id}`}
+                      type="button"
+                      onClick={() => { setDetail({ kind: 'match', id: m.id }); setSummaryDay(null); }}
+                      className="w-full flex items-center gap-2 rounded-lg bg-primary/[0.07] border border-primary/20 px-3 py-2 text-sm text-start hover:bg-primary/[0.12] transition-colors"
+                    >
+                      <Swords className="w-4 h-4 text-primary shrink-0" />
+                      <span className="truncate flex-1">{m.opponent}</span>
+                      <span className="font-mono" dir="ltr">{m.ourGoals} - {m.theirGoals}</span>
+                    </button>
+                  ))}
+                  {dayTrainings.map((tr) => (
+                    <button
+                      key={`t${tr.id}`}
+                      type="button"
+                      onClick={() => { setDetail({ kind: 'training', id: tr.id }); setSummaryDay(null); }}
+                      className="w-full flex items-center gap-2 rounded-lg bg-white/[0.04] border border-border/50 px-3 py-2 text-sm text-start hover:bg-white/[0.08] transition-colors"
+                    >
+                      <Dumbbell className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="truncate flex-1">{t(`train.focus.${tr.focus}`)}</span>
+                      {tr.intensity && <span className="text-xs text-muted-foreground">{t(`train.intensity.${tr.intensity}`)}</span>}
+                      {tr.durationMinutes && <span className="text-xs text-muted-foreground" dir="ltr">{tr.durationMinutes}{t('train.minutes')}</span>}
+                    </button>
+                  ))}
+                  {dayExcuses.length > 0 && (
+                    <div className="pt-1.5 space-y-1">
+                      <p className="text-[10px] font-semibold text-amber-400/90">{t('cal.excuses')}</p>
+                      {dayExcuses.map((ex, i) => (
+                        <div key={i} className="flex items-start gap-1.5 text-xs">
+                          <span className="font-medium shrink-0">{ex.playerName}</span>
+                          <span className="text-foreground/90">{ex.note}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </DialogContent>
+        </Dialog>
+
         {/* Weekly cycle editor */}
         <Dialog open={cycleOpen} onOpenChange={setCycleOpen}>
           <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-w-lg max-h-[85vh] overflow-y-auto">
