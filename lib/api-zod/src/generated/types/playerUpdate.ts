@@ -18,4 +18,5 @@ export interface PlayerUpdate {
   /** @nullable */
   photo?: string | null;
   phone?: string;
+  birthYear?: number;
 }

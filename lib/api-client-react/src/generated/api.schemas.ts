@@ -68,6 +68,8 @@ export interface Player {
   photo?: string | null;
   /** @nullable */
   phone?: string | null;
+  /** @nullable */
+  birthYear?: number | null;
   createdAt: string;
 }
 
@@ -101,6 +103,7 @@ export interface PlayerInput {
   /** @nullable */
   photo?: string | null;
   phone?: string;
+  birthYear?: number;
 }
 
 export type PlayerUpdatePosition = typeof PlayerUpdatePosition[keyof typeof PlayerUpdatePosition];
@@ -132,6 +135,7 @@ export interface PlayerUpdate {
   /** @nullable */
   photo?: string | null;
   phone?: string;
+  birthYear?: number;
 }
 
 export type MatchType = typeof MatchType[keyof typeof MatchType];
@@ -190,6 +194,8 @@ export type PlayerTimelinePlayer = {
   photo?: string | null;
   /** @nullable */
   phone?: string | null;
+  /** @nullable */
+  birthYear?: number | null;
 };
 
 export interface PlayerTimeline {

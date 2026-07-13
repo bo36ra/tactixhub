@@ -10,6 +10,7 @@ export const playersTable = pgTable("players", {
   jerseyNumber: integer("jersey_number").notNull(),
   position: text("position").notNull(), // goalkeeper, defender, midfielder, forward
   age: integer("age"),
+  birthYear: integer("birth_year"),
   nationality: text("nationality"),
   status: text("status").notNull().default("active"), // active, injured, suspended
   // Player photo as a compressed data URL (client downsizes to ~256px

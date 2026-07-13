@@ -129,6 +129,7 @@ export async function buildPlayerTimeline(playerId: number) {
       status: player.status,
       photo: player.photo,
       phone: player.phone,
+      birthYear: player.birthYear,
     },
     timeline,
   };

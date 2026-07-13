@@ -1080,6 +1080,8 @@ components:
           type: ["string", "null"]
         phone:
           type: ["string", "null"]
+        birthYear:
+          type: ["integer", "null"]
         createdAt:
           type: string
 
@@ -1106,6 +1108,8 @@ components:
           type: ["string", "null"]
         phone:
           type: string
+        birthYear:
+          type: integer
 
     PlayerUpdate:
       type: object
@@ -1128,6 +1132,8 @@ components:
           type: ["string", "null"]
         phone:
           type: string
+        birthYear:
+          type: integer
 
     Match:
       type: object
@@ -1209,6 +1215,8 @@ components:
               type: ["string", "null"]
             phone:
               type: ["string", "null"]
+            birthYear:
+              type: ["integer", "null"]
         timeline:
           type: array
           items:

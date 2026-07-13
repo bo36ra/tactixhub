@@ -123,6 +123,7 @@ export const ListPlayersResponseItem = zod.object({
   "status": zod.enum(['active', 'injured', 'suspended']),
   "photo": zod.string().nullish(),
   "phone": zod.string().nullish(),
+  "birthYear": zod.number().nullish(),
   "createdAt": zod.string()
 })
 export const ListPlayersResponse = zod.array(ListPlayersResponseItem)
@@ -146,7 +147,8 @@ export const CreatePlayerBody = zod.object({
   "nationality": zod.string().optional(),
   "status": zod.enum(['active', 'injured', 'suspended']),
   "photo": zod.string().nullish(),
-  "phone": zod.string().optional()
+  "phone": zod.string().optional(),
+  "birthYear": zod.number().optional()
 })
 
 export const CreatePlayerResponse = zod.object({
@@ -160,6 +162,7 @@ export const CreatePlayerResponse = zod.object({
   "status": zod.enum(['active', 'injured', 'suspended']),
   "photo": zod.string().nullish(),
   "phone": zod.string().nullish(),
+  "birthYear": zod.number().nullish(),
   "createdAt": zod.string()
 })
 
@@ -180,7 +183,8 @@ export const UpdatePlayerBody = zod.object({
   "nationality": zod.string().optional(),
   "status": zod.enum(['active', 'injured', 'suspended']).optional(),
   "photo": zod.string().nullish(),
-  "phone": zod.string().optional()
+  "phone": zod.string().optional(),
+  "birthYear": zod.number().optional()
 })
 
 export const UpdatePlayerResponse = zod.object({
@@ -194,6 +198,7 @@ export const UpdatePlayerResponse = zod.object({
   "status": zod.enum(['active', 'injured', 'suspended']),
   "photo": zod.string().nullish(),
   "phone": zod.string().nullish(),
+  "birthYear": zod.number().nullish(),
   "createdAt": zod.string()
 })
 
@@ -329,7 +334,8 @@ export const GetPlayerTimelineResponse = zod.object({
   "nationality": zod.string().optional(),
   "status": zod.string().optional(),
   "photo": zod.string().nullish(),
-  "phone": zod.string().nullish()
+  "phone": zod.string().nullish(),
+  "birthYear": zod.number().nullish()
 }),
   "timeline": zod.array(zod.object({
   "date": zod.string(),

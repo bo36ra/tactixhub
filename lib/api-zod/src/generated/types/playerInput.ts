@@ -19,4 +19,5 @@ export interface PlayerInput {
   /** @nullable */
   photo?: string | null;
   phone?: string;
+  birthYear?: number;
 }

@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { playerAge } from '@/lib/age';
 import { compressImageFile } from '@/lib/image';
 import { PlayerAvatar } from '@/components/player-avatar';
 import { Trash2, Plus, Search } from 'lucide-react';
@@ -39,7 +40,7 @@ export function Players() {
     name: '',
     jerseyNumber: '',
     position: 'forward' as PlayerInputPosition,
-    age: '',
+    birthYear: '',
     nationality: '',
     status: 'active' as PlayerInputStatus,
     photo: '' as string,
@@ -73,7 +74,7 @@ export function Players() {
         name: formData.name,
         jerseyNumber: Number(formData.jerseyNumber),
         position: formData.position,
-        age: formData.age ? Number(formData.age) : undefined,
+        ...(formData.birthYear && { birthYear: Number(formData.birthYear) }),
         nationality: formData.nationality || undefined,
         status: formData.status,
         ...(formData.photo && { photo: formData.photo }),
@@ -84,7 +85,7 @@ export function Players() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(activeTeamId) });
         setOpen(false);
-        setFormData({ name: '', jerseyNumber: '', position: 'forward', age: '', nationality: '', status: 'active', photo: '', phone: '' });
+        setFormData({ name: '', jerseyNumber: '', position: 'forward', birthYear: '', nationality: '', status: 'active', photo: '', phone: '' });
       }
     });
   };
@@ -156,8 +157,8 @@ export function Players() {
                     <Input type="number" required min="1" max="99" value={formData.jerseyNumber} onChange={e => setFormData({...formData, jerseyNumber: e.target.value})} />
                   </div>
                   <div className="space-y-2">
-                    <Label>{t('common.age')}</Label>
-                    <Input type="number" min="10" max="60" value={formData.age} onChange={e => setFormData({...formData, age: e.target.value})} />
+                    <Label>{t('common.birthYear')}</Label>
+                    <Input type="number" min="1950" max={new Date().getFullYear()} placeholder="2008" dir="ltr" value={formData.birthYear} onChange={e => setFormData({...formData, birthYear: e.target.value})} />
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -259,7 +260,7 @@ export function Players() {
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-foreground truncate">{player.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {t(`position.${player.position}`)}{player.age ? ` · ${player.age}` : ''}{player.nationality ? ` · ${player.nationality}` : ''}
+                        {t(`position.${player.position}`)}{playerAge(player) ? ` · ${playerAge(player)}` : ''}{player.nationality ? ` · ${player.nationality}` : ''}
                       </p>
                     </div>
                   </Link>
@@ -320,7 +321,7 @@ export function Players() {
                           </Link>
                         </td>
                         <td className="px-6 py-4">{t(`position.${player.position}`)}</td>
-                        <td className="px-6 py-4">{player.age || '-'}</td>
+                        <td className="px-6 py-4">{playerAge(player) ?? '-'}</td>
                         <td className="px-6 py-4">{player.nationality || '-'}</td>
                         <td className="px-6 py-4">
                           <span className={`px-2.5 py-1 rounded-full text-xs font-medium inline-block ${pillClass}`}>

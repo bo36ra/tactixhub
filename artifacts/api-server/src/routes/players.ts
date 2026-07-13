@@ -7,6 +7,13 @@ import { verifyTeamAccess } from "../lib/teamAccess";
 
 const router = Router({ mergeParams: true });
 
+// Birth years must be plausible (1950..current year); anything else is null
+function sanitizeBirthYear(value: unknown): number | null {
+  const year = Number(value);
+  const current = new Date().getFullYear();
+  return Number.isInteger(year) && year >= 1950 && year <= current ? year : null;
+}
+
 // Photos arrive as data URLs; cap them well under the body limit and
 // reject anything that isn't an image payload.
 const MAX_PHOTO_LENGTH = 500_000;
@@ -52,7 +59,7 @@ router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
     res.status(403).json({ error: "Forbidden" });
     return;
   }
-  const { name, jerseyNumber, position, age, nationality, status, photo, phone } = req.body;
+  const { name, jerseyNumber, position, age, birthYear, nationality, status, photo, phone } = req.body;
   if (!name || !jerseyNumber || !position) {
     res.status(400).json({ error: "name, jerseyNumber, and position are required" });
     return;
@@ -60,7 +67,7 @@ router.post("/teams/:teamId/players", requireAuth, async (req, res) => {
   try {
     const [player] = await db
       .insert(playersTable)
-      .values({ teamId, name, jerseyNumber, position, age: age || null, nationality: nationality || null, status: status || "active", photo: sanitizePhoto(photo) ?? null, phone: typeof phone === "string" && phone.trim() ? phone.trim() : null })
+      .values({ teamId, name, jerseyNumber, position, age: age || null, nationality: nationality || null, status: status || "active", photo: sanitizePhoto(photo) ?? null, phone: typeof phone === "string" && phone.trim() ? phone.trim() : null, birthYear: sanitizeBirthYear(birthYear) })
       .returning();
     res.status(201).json(mapPlayer(player));
   } catch (err) {
@@ -78,7 +85,7 @@ router.patch("/teams/:teamId/players/:playerId", requireAuth, async (req, res) =
     res.status(403).json({ error: "Forbidden" });
     return;
   }
-  const { name, jerseyNumber, position, age, nationality, status, photo, phone } = req.body;
+  const { name, jerseyNumber, position, age, birthYear, nationality, status, photo, phone } = req.body;
   const cleanPhoto = sanitizePhoto(photo);
   try {
     const [player] = await db
@@ -92,6 +99,7 @@ router.patch("/teams/:teamId/players/:playerId", requireAuth, async (req, res) =
         ...(status !== undefined && { status }),
         ...(cleanPhoto !== undefined && { photo: cleanPhoto }),
         ...(phone !== undefined && { phone: typeof phone === "string" && phone.trim() ? phone.trim() : null }),
+        ...(birthYear !== undefined && { birthYear: sanitizeBirthYear(birthYear) }),
       })
       .where(and(eq(playersTable.id, playerId), eq(playersTable.teamId, teamId)))
       .returning();
@@ -138,6 +146,7 @@ function mapPlayer(p: typeof playersTable.$inferSelect) {
     status: p.status,
     photo: p.photo,
     phone: p.phone,
+    birthYear: p.birthYear,
     createdAt: p.createdAt.toISOString(),
   };
 }

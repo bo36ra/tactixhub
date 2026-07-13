@@ -18,4 +18,6 @@ export type PlayerTimelinePlayer = {
   photo?: string | null;
   /** @nullable */
   phone?: string | null;
+  /** @nullable */
+  birthYear?: number | null;
 };

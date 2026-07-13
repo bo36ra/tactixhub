@@ -23,5 +23,7 @@ export interface Player {
   photo?: string | null;
   /** @nullable */
   phone?: string | null;
+  /** @nullable */
+  birthYear?: number | null;
   createdAt: string;
 }

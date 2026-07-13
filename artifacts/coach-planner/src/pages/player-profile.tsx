@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { ArrowRight, ArrowLeft, Swords, CalendarCheck, CircleDot, Square, Camera, Printer, Plane, Trash2, Plus, Pencil } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { playerAge } from '@/lib/age';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -44,7 +45,7 @@ export function PlayerProfile() {
   const { toast } = useToast();
   const [editOpen, setEditOpen] = React.useState(false);
   const [editForm, setEditForm] = React.useState({
-    name: '', jerseyNumber: '', position: 'forward', age: '', nationality: '', phone: '', status: 'active',
+    name: '', jerseyNumber: '', position: 'forward', birthYear: '', nationality: '', phone: '', status: 'active',
   });
 
   const openEdit = () => {
@@ -53,7 +54,7 @@ export function PlayerProfile() {
       name: player.name,
       jerseyNumber: String(player.jerseyNumber),
       position: player.position,
-      age: player.age != null ? String(player.age) : '',
+      birthYear: player.birthYear != null ? String(player.birthYear) : player.age != null ? String(new Date().getFullYear() - player.age) : '',
       nationality: player.nationality ?? '',
       phone: player.phone ?? '',
       status: player.status ?? 'active',
@@ -72,7 +73,7 @@ export function PlayerProfile() {
           name: editForm.name.trim(),
           jerseyNumber: Number(editForm.jerseyNumber),
           position: editForm.position as any,
-          age: editForm.age ? Number(editForm.age) : undefined,
+          ...(editForm.birthYear && { birthYear: Number(editForm.birthYear) }),
           nationality: editForm.nationality.trim() || undefined,
           phone: editForm.phone.trim(),
           status: editForm.status as any,
@@ -154,7 +155,7 @@ export function PlayerProfile() {
               <div>
                 <p style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>{player.name}</p>
                 <p style={{ margin: '2px 0', fontSize: 14 }}>#{player.jerseyNumber} · {t(`position.${player.position}`)}</p>
-                {player.age != null && <p style={{ margin: 0, fontSize: 13 }}>{t('common.age')}: {player.age}</p>}
+                {playerAge(player) != null && <p style={{ margin: 0, fontSize: 13 }}>{t('common.age')}: {playerAge(player)}{player.birthYear ? ` (${player.birthYear})` : ''}</p>}
                 {player.nationality && <p style={{ margin: 0, fontSize: 13 }}>{player.nationality}</p>}
               {player.phone && <p style={{ margin: 0, fontSize: 13, direction: 'ltr' }}>{player.phone}</p>}
               </div>
@@ -209,7 +210,7 @@ export function PlayerProfile() {
               <h2 className="text-2xl font-bold">{player.name}</h2>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-sm text-muted-foreground">
-                  {t(`position.${player.position}`)}{player.age ? ` · ${player.age}` : ''}{player.nationality ? ` · ${player.nationality}` : ''}
+                  {t(`position.${player.position}`)}{playerAge(player) ? ` · ${playerAge(player)}` : ''}{player.nationality ? ` · ${player.nationality}` : ''}
                 </span>
                 {player.status && (
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${pillClass}`}>
@@ -323,8 +324,8 @@ export function PlayerProfile() {
                   <Input type="number" min="1" max="99" required value={editForm.jerseyNumber} onChange={(e) => setEditForm({ ...editForm, jerseyNumber: e.target.value })} />
                 </div>
                 <div className="space-y-2">
-                  <Label>{t('common.age')}</Label>
-                  <Input type="number" min="5" max="60" value={editForm.age} onChange={(e) => setEditForm({ ...editForm, age: e.target.value })} />
+                  <Label>{t('common.birthYear')}</Label>
+                  <Input type="number" min="1950" max={new Date().getFullYear()} placeholder="2008" dir="ltr" value={editForm.birthYear} onChange={(e) => setEditForm({ ...editForm, birthYear: e.target.value })} />
                 </div>
               </div>
               <div className="space-y-2">
