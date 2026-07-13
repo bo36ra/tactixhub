@@ -41,6 +41,19 @@
       window.addEventListener('unhandledrejection', function (e) {
         window.__logBoot('unhandled rejection: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
       });
+      // Boot watchdog: if React hasn't replaced the fallback within 12s the
+      // cached HTML is probably referencing assets deleted by a newer deploy.
+      // Do ONE cache-busting reload (guarded so it can never loop).
+      setTimeout(function () {
+        var stillPreBoot = document.getElementById('pre-boot-fallback');
+        var alreadyTried = sessionStorage.getItem('tx-boot-retry');
+        if (stillPreBoot && !alreadyTried) {
+          sessionStorage.setItem('tx-boot-retry', String(Date.now()));
+          window.__logBoot('boot watchdog: retrying with cache bypass…');
+          var sep = location.search ? '&' : '?';
+          location.replace(location.pathname + location.search + sep + 'bust=' + Date.now() + location.hash);
+        }
+      }, 12000);
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
