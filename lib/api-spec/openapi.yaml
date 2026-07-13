@@ -274,6 +274,34 @@ paths:
                 $ref: "#/components/schemas/Match"
 
   /teams/{teamId}/matches/{matchId}:
+    patch:
+      operationId: updateMatch
+      tags: [matches]
+      summary: Update a match
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchUpdate"
+      responses:
+        "200":
+          description: Updated match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
     delete:
       operationId: deleteMatch
       tags: [matches]
@@ -1218,6 +1246,24 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/LineupEntry"
+
+    MatchUpdate:
+      type: object
+      properties:
+        opponent:
+          type: string
+          minLength: 1
+        date:
+          type: string
+        type:
+          type: string
+          enum: [league, friendly, cup]
+        ourGoals:
+          type: integer
+          minimum: 0
+        theirGoals:
+          type: integer
+          minimum: 0
 
     MatchInput:
       type: object

@@ -36,6 +36,7 @@ import type {
   Lineup,
   Match,
   MatchInput,
+  MatchUpdate,
   Note,
   NoteInput,
   NoteUpdate,
@@ -966,6 +967,79 @@ export const useCreateMatch = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateMatchMutationOptions(options));
+    }
+
+export const getUpdateMatchUrl = (teamId: number,
+    matchId: number,) => {
+
+
+
+
+  return `/api/teams/${teamId}/matches/${matchId}`
+}
+
+/**
+ * @summary Update a match
+ */
+export const updateMatch = async (teamId: number,
+    matchId: number,
+    matchUpdate: MatchUpdate, options?: RequestInit): Promise<Match> => {
+
+  return customFetch<Match>(getUpdateMatchUrl(teamId,matchId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(matchUpdate)
+  }
+);}
+
+
+
+
+export const getUpdateMatchMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMatch>>, TError,{teamId: number;matchId: number;data: BodyType<MatchUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMatch>>, TError,{teamId: number;matchId: number;data: BodyType<MatchUpdate>}, TContext> => {
+
+const mutationKey = ['updateMatch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMatch>>, {teamId: number;matchId: number;data: BodyType<MatchUpdate>}> = (props) => {
+          const {teamId,matchId,data} = props ?? {};
+
+          return  updateMatch(teamId,matchId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateMatch>>>
+    export type UpdateMatchMutationBody = BodyType<MatchUpdate>
+    export type UpdateMatchMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a match
+ */
+export const useUpdateMatch = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMatch>>, TError,{teamId: number;matchId: number;data: BodyType<MatchUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateMatch>>,
+        TError,
+        {teamId: number;matchId: number;data: BodyType<MatchUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateMatchMutationOptions(options));
     }
 
 export const getDeleteMatchUrl = (teamId: number,

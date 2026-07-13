@@ -65,6 +65,39 @@ router.post("/teams/:teamId/matches", requireAuth, async (req, res) => {
 });
 
 // Delete match
+// Update a match (opponent, date, type, score)
+router.patch("/teams/:teamId/matches/:matchId", requireAuth, async (req, res) => {
+  const userId = (req as any).userId as string;
+  const teamId = parseInt(req.params.teamId as string);
+  const matchId = parseInt(req.params.matchId as string);
+  const { opponent, date, type, ourGoals, theirGoals } = req.body ?? {};
+  if (!(await verifyTeamOwnership(userId, teamId))) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  try {
+    const [match] = await db
+      .update(matchesTable)
+      .set({
+        ...(typeof opponent === "string" && opponent.trim() && { opponent: opponent.trim() }),
+        ...(typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date) && { date }),
+        ...(["league", "friendly", "cup"].includes(type) && { type }),
+        ...(Number.isInteger(ourGoals) && ourGoals >= 0 && { ourGoals }),
+        ...(Number.isInteger(theirGoals) && theirGoals >= 0 && { theirGoals }),
+      })
+      .where(and(eq(matchesTable.id, matchId), eq(matchesTable.teamId, teamId)))
+      .returning();
+    if (!match) {
+      res.status(404).json({ error: "Match not found" });
+      return;
+    }
+    res.json(mapMatch(match));
+  } catch (err) {
+    req.log.error({ err }, "Failed to update match");
+    res.status(500).json({ error: dbErrorMessage(err) });
+  }
+});
+
 router.delete("/teams/:teamId/matches/:matchId", requireAuth, async (req, res) => {
   const userId = (req as any).userId as string;
   const teamId = parseInt(req.params.teamId as string);

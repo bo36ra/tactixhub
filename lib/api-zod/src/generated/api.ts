@@ -266,6 +266,42 @@ export const CreateMatchResponse = zod.object({
 
 
 /**
+ * @summary Update a match
+ */
+export const UpdateMatchParams = zod.object({
+  "teamId": zod.coerce.number(),
+  "matchId": zod.coerce.number()
+})
+
+
+export const updateMatchBodyOurGoalsMin = 0;
+
+export const updateMatchBodyTheirGoalsMin = 0;
+
+
+
+export const UpdateMatchBody = zod.object({
+  "opponent": zod.string().min(1).optional(),
+  "date": zod.string().optional(),
+  "type": zod.enum(['league', 'friendly', 'cup']).optional(),
+  "ourGoals": zod.number().min(updateMatchBodyOurGoalsMin).optional(),
+  "theirGoals": zod.number().min(updateMatchBodyTheirGoalsMin).optional()
+})
+
+export const UpdateMatchResponse = zod.object({
+  "id": zod.number(),
+  "teamId": zod.number(),
+  "opponent": zod.string(),
+  "date": zod.string(),
+  "type": zod.enum(['league', 'friendly', 'cup']),
+  "formation": zod.string().optional(),
+  "ourGoals": zod.number(),
+  "theirGoals": zod.number(),
+  "createdAt": zod.string()
+})
+
+
+/**
  * @summary Delete a match
  */
 export const DeleteMatchParams = zod.object({

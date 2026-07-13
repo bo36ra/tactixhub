@@ -41,6 +41,8 @@ export * from './match';
 export * from './matchInput';
 export * from './matchInputType';
 export * from './matchType';
+export * from './matchUpdate';
+export * from './matchUpdateType';
 export * from './note';
 export * from './noteInput';
 export * from './noteUpdate';

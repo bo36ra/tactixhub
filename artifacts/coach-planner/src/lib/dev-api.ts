@@ -18,6 +18,15 @@ export function useCreateTraining(teamId: number) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['trainings', teamId] }),
   });
 }
+export function useUpdateTraining(teamId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: number; date?: string; time?: string | null; focus?: string; intensity?: string | null; durationMinutes?: number | null; drills?: string | null; notes?: string | null }) =>
+      customFetch<Training>(`/api/teams/${teamId}/trainings/${input.id}`, { method: 'PATCH', body: JSON.stringify(input) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['trainings', teamId] }),
+  });
+}
+
 export function useDeleteTraining(teamId: number) {
   const qc = useQueryClient();
   return useMutation({

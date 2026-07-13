@@ -125,6 +125,36 @@ router.post("/teams/:teamId/matches/:matchId/ratings", requireAuth, guarded(asyn
   res.status(existing ? 200 : 201).json(row);
 }));
 
+router.patch("/teams/:teamId/trainings/:trainingId", requireAuth, guarded(async (req, res, teamId) => {
+  const trainingId = parseInt(req.params.trainingId as string);
+  const { date, time, focus, intensity, durationMinutes, drills, notes } = req.body ?? {};
+  const cleanIntensity = intensity === null ? null : ["light", "medium", "high"].includes(intensity) ? intensity : undefined;
+  const cleanDuration =
+    durationMinutes === null
+      ? null
+      : Number.isFinite(Number(durationMinutes)) && Number(durationMinutes) > 0
+        ? Math.min(Math.round(Number(durationMinutes)), 600)
+        : undefined;
+  const [row] = await db
+    .update(trainingsTable)
+    .set({
+      ...(typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date) && { date }),
+      ...(time !== undefined && { time: time || null }),
+      ...(typeof focus === "string" && focus && { focus }),
+      ...(cleanIntensity !== undefined && { intensity: cleanIntensity }),
+      ...(cleanDuration !== undefined && { durationMinutes: cleanDuration }),
+      ...(drills !== undefined && { drills: drills || null }),
+      ...(notes !== undefined && { notes: notes || null }),
+    })
+    .where(and(eq(trainingsTable.id, trainingId), eq(trainingsTable.teamId, teamId)))
+    .returning();
+  if (!row) {
+    res.status(404).json({ error: "Training not found" });
+    return;
+  }
+  res.json(row);
+}));
+
 // ---- Match plans ----
 router.get("/teams/:teamId/matches/:matchId/plan", requireAuth, guarded(async (req, res, teamId) => {
   const matchId = parseInt(req.params.matchId as string);

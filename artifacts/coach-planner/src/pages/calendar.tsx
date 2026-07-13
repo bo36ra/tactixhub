@@ -2,12 +2,12 @@ import React from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
-import { useListMatches, getListMatchesQueryKey, useListAttendance, getListAttendanceQueryKey, useListPlayers, getListPlayersQueryKey, useCreateMatch, type MatchInputType } from '@workspace/api-client-react';
+import { useListMatches, getListMatchesQueryKey, useListAttendance, getListAttendanceQueryKey, useListPlayers, getListPlayersQueryKey, useCreateMatch, useUpdateMatch, type MatchInputType } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Label } from '@/components/ui/label';
 import {
   useTrainings, useCreateTraining, useWeekCycle, useSaveWeekCycle, useApplyCycle,
-  useMonthPlan, useSaveMonthPlan, useDeleteTraining, type CycleDay,
+  useMonthPlan, useSaveMonthPlan, useDeleteTraining, useUpdateTraining, type CycleDay,
 } from '@/lib/dev-api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,7 @@ import {
   isSameMonth,
   isToday,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Swords, Dumbbell, Repeat, Target, Plus, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Swords, Dumbbell, Repeat, Target, Plus, Trash2, Pencil } from 'lucide-react';
 import { endOfMonth as eom } from 'date-fns';
 
 // One month view that merges matches and training sessions — the coach's
@@ -68,6 +68,8 @@ export function CalendarPage() {
   const createTraining = useCreateTraining(tid);
   const deleteTraining = useDeleteTraining(tid);
   const createMatch = useCreateMatch();
+  const updateMatch = useUpdateMatch();
+  const updateTraining = useUpdateTraining(tid);
   const queryClient = useQueryClient();
 
   // month goal inline editing
@@ -97,6 +99,20 @@ export function CalendarPage() {
   const [dayKind, setDayKind] = React.useState<'training' | 'match'>('training');
   const [dayOpponent, setDayOpponent] = React.useState('');
   const [dayMatchType, setDayMatchType] = React.useState<'league' | 'friendly' | 'cup'>('league');
+  // Editing an existing item from this day (null = adding new)
+  const [editTrainingId, setEditTrainingId] = React.useState<number | null>(null);
+  const [editMatchId, setEditMatchId] = React.useState<number | null>(null);
+  const [dayScoreUs, setDayScoreUs] = React.useState('0');
+  const [dayScoreThem, setDayScoreThem] = React.useState('0');
+
+  const resetDayForm = () => {
+    setEditTrainingId(null);
+    setEditMatchId(null);
+    setDayOpponent('');
+    setDayScoreUs('0');
+    setDayScoreThem('0');
+    setDayKind('training');
+  };
   // A fully past month can't receive planned sessions
   const monthInPast = eom(month) < new Date(new Date().toDateString());
   const showError = (err: unknown) =>
@@ -391,7 +407,7 @@ export function CalendarPage() {
         </Dialog>
 
         {/* Quick add training on a day */}
-        <Dialog open={dayOpen !== null} onOpenChange={(o) => !o && setDayOpen(null)}>
+        <Dialog open={dayOpen !== null} onOpenChange={(o) => { if (!o) { setDayOpen(null); resetDayForm(); } }}>
           <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-w-sm max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{t('cal.dayTitle').replace('{date}', dayOpen ? format(new Date(dayOpen + 'T00:00:00'), 'dd/MM/yyyy') : '')}</DialogTitle>
@@ -409,6 +425,21 @@ export function CalendarPage() {
                       <Swords className="w-3 h-3 text-primary shrink-0" />
                       <span className="truncate">{m.opponent}</span>
                       <span className="ms-auto font-mono" dir="ltr">{m.ourGoals} - {m.theirGoals}</span>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-primary shrink-0"
+                        onClick={() => {
+                          setDayKind('match');
+                          setEditMatchId(m.id);
+                          setEditTrainingId(null);
+                          setDayOpponent(m.opponent);
+                          setDayMatchType(m.type as any);
+                          setDayScoreUs(String(m.ourGoals));
+                          setDayScoreThem(String(m.theirGoals));
+                        }}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   ))}
                   {dayTrainings.map((tr) => (
@@ -419,7 +450,21 @@ export function CalendarPage() {
                       {tr.durationMinutes && <span className="text-muted-foreground" dir="ltr">{tr.durationMinutes}{t('train.minutes')}</span>}
                       <button
                         type="button"
-                        className="ms-auto text-muted-foreground hover:text-destructive shrink-0"
+                        className="ms-auto text-muted-foreground hover:text-primary shrink-0"
+                        onClick={() => {
+                          setDayKind('training');
+                          setEditTrainingId(tr.id);
+                          setEditMatchId(null);
+                          setDayFocus(tr.focus);
+                          setDayIntensity(tr.intensity ?? 'medium');
+                          setDayDuration(tr.durationMinutes ? String(tr.durationMinutes) : '');
+                        }}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-destructive shrink-0"
                         onClick={() => deleteTraining.mutate(tr.id)}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -485,29 +530,53 @@ export function CalendarPage() {
                       ))}
                     </div>
                   </div>
+                  {editMatchId !== null && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">{t('cal.score')}</Label>
+                      <div className="flex items-center gap-2" dir="ltr">
+                        <Input type="number" min="0" className="w-20 text-center" value={dayScoreUs} onChange={(e) => setDayScoreUs(e.target.value)} />
+                        <span className="text-muted-foreground">-</span>
+                        <Input type="number" min="0" className="w-20 text-center" value={dayScoreThem} onChange={(e) => setDayScoreThem(e.target.value)} />
+                      </div>
+                    </div>
+                  )}
                   <Button
                     className="w-full gap-1.5"
-                    disabled={!dayOpponent.trim() || createMatch.isPending}
+                    disabled={!dayOpponent.trim() || createMatch.isPending || updateMatch.isPending}
                     onClick={() => {
                       if (!dayOpen || !activeTeamId) return;
-                      createMatch.mutate(
-                        {
-                          teamId: activeTeamId,
-                          data: { opponent: dayOpponent.trim(), date: dayOpen, type: dayMatchType as MatchInputType, ourGoals: 0, theirGoals: 0 },
-                        },
-                        {
-                          onError: showError,
-                          onSuccess: () => {
-                            toast({ title: t('match.saved') });
-                            queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(activeTeamId) });
-                            setDayOpponent('');
-                            setDayOpen(null);
+                      const done = () => {
+                        toast({ title: t('match.saved') });
+                        queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(activeTeamId) });
+                        resetDayForm();
+                        setDayOpen(null);
+                      };
+                      if (editMatchId !== null) {
+                        updateMatch.mutate(
+                          {
+                            teamId: activeTeamId,
+                            matchId: editMatchId,
+                            data: {
+                              opponent: dayOpponent.trim(),
+                              type: dayMatchType as any,
+                              ourGoals: Math.max(0, Number(dayScoreUs) || 0),
+                              theirGoals: Math.max(0, Number(dayScoreThem) || 0),
+                            },
                           },
-                        },
-                      );
+                          { onError: showError, onSuccess: done },
+                        );
+                      } else {
+                        createMatch.mutate(
+                          {
+                            teamId: activeTeamId,
+                            data: { opponent: dayOpponent.trim(), date: dayOpen, type: dayMatchType as MatchInputType, ourGoals: 0, theirGoals: 0 },
+                          },
+                          { onError: showError, onSuccess: done },
+                        );
+                      }
                     }}
                   >
-                    <Plus className="w-4 h-4" /> {t('cal.addMatch')}
+                    {editMatchId !== null ? t('cal.saveEdit') : (<><Plus className="w-4 h-4" /> {t('cal.addMatch')}</>)}
                   </Button>
                 </>
               ) : (
@@ -566,27 +635,38 @@ export function CalendarPage() {
               </div>
               <Button
                 className="w-full gap-1.5"
-                disabled={createTraining.isPending}
+                disabled={createTraining.isPending || updateTraining.isPending}
                 onClick={() => {
                   if (!dayOpen) return;
-                  createTraining.mutate(
-                    {
-                      date: dayOpen,
-                      focus: dayFocus,
-                      intensity: dayIntensity,
-                      durationMinutes: dayDuration ? Number(dayDuration) : undefined,
-                    },
-                    {
-                      onError: showError,
-                      onSuccess: () => {
-                        toast({ title: t('tactics.saved') });
-                        setDayOpen(null);
+                  const done = () => {
+                    toast({ title: t('tactics.saved') });
+                    resetDayForm();
+                    setDayOpen(null);
+                  };
+                  if (editTrainingId !== null) {
+                    updateTraining.mutate(
+                      {
+                        id: editTrainingId,
+                        focus: dayFocus,
+                        intensity: dayIntensity,
+                        durationMinutes: dayDuration ? Number(dayDuration) : null,
                       },
-                    },
-                  );
+                      { onError: showError, onSuccess: done },
+                    );
+                  } else {
+                    createTraining.mutate(
+                      {
+                        date: dayOpen,
+                        focus: dayFocus,
+                        intensity: dayIntensity,
+                        durationMinutes: dayDuration ? Number(dayDuration) : undefined,
+                      },
+                      { onError: showError, onSuccess: done },
+                    );
+                  }
                 }}
               >
-                <Plus className="w-4 h-4" /> {t('cal.addTraining')}
+                {editTrainingId !== null ? t('cal.saveEdit') : (<><Plus className="w-4 h-4" /> {t('cal.addTraining')}</>)}
               </Button>
               </>
               )}

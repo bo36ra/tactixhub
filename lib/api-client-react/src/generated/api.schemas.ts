@@ -213,6 +213,26 @@ export interface Lineup {
   entries: LineupEntry[];
 }
 
+export type MatchUpdateType = typeof MatchUpdateType[keyof typeof MatchUpdateType];
+
+
+export const MatchUpdateType = {
+  league: 'league',
+  friendly: 'friendly',
+  cup: 'cup',
+} as const;
+
+export interface MatchUpdate {
+  /** @minLength 1 */
+  opponent?: string;
+  date?: string;
+  type?: MatchUpdateType;
+  /** @minimum 0 */
+  ourGoals?: number;
+  /** @minimum 0 */
+  theirGoals?: number;
+}
+
 export type MatchInputType = typeof MatchInputType[keyof typeof MatchInputType];
 
 
