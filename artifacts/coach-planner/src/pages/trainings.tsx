@@ -36,6 +36,7 @@ export const FOCUS_KEYS = [
 // custom focus of their own. Known keys get translated; anything else
 // (a custom focus) is shown as-is.
 export function focusLabel(t: (k: string) => string, focus: string): string {
+  if (focus === 'rest_day') return `🌙 ${t('cal.kindRest')}`;
   return (FOCUS_KEYS as readonly string[]).includes(focus) ? t(`train.focus.${focus}`) : focus;
 }
 
@@ -60,6 +61,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
       weeks.push({ key: format(start, 'yyyy-MM-dd'), label: format(start, 'dd/MM'), load: 0, sessions: 0 });
     }
     for (const tr of trainings ?? []) {
+      if (tr.focus === 'rest_day') continue; // rest days carry no load
       const weekKey = format(startOfWeek(new Date(tr.date), { weekStartsOn: 1 }), 'yyyy-MM-dd');
       const bucket = weeks.find((w) => w.key === weekKey);
       if (!bucket) continue;

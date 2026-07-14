@@ -103,7 +103,8 @@ export function CalendarPage() {
   const [dayIntensity, setDayIntensity] = React.useState('medium');
   const [dayDuration, setDayDuration] = React.useState('90');
   const [dayCustomFocus, setDayCustomFocus] = React.useState('');
-  const [dayKind, setDayKind] = React.useState<'training' | 'match'>('training');
+  const [dayKind, setDayKind] = React.useState<'training' | 'match' | 'rest'>('training');
+  const [dayRestNote, setDayRestNote] = React.useState('');
   const [dayOpponent, setDayOpponent] = React.useState('');
   const [dayMatchType, setDayMatchType] = React.useState<'league' | 'friendly' | 'cup'>('league');
   // Editing an existing item from this day (null = adding new)
@@ -120,6 +121,7 @@ export function CalendarPage() {
     setDayScoreThem('0');
     setDayKind('training');
     setDayCustomFocus('');
+    setDayRestNote('');
   };
   // A fully past month can't receive planned sessions
   const monthInPast = eom(month) < new Date(new Date().toDateString());
@@ -554,9 +556,14 @@ export function CalendarPage() {
                         type="button"
                         className="text-muted-foreground hover:text-primary shrink-0"
                         onClick={() => {
-                          setDayKind('training');
                           setEditTrainingId(tr.id);
                           setEditMatchId(null);
+                          if (tr.focus === 'rest_day') {
+                            setDayKind('rest');
+                            setDayRestNote(tr.notes ?? '');
+                            return;
+                          }
+                          setDayKind('training');
                           const known = (FOCUS_KEYS as readonly string[]).includes(tr.focus);
                           setDayFocus(known ? tr.focus : '__custom__');
                           setDayCustomFocus(known ? '' : tr.focus);
@@ -592,17 +599,17 @@ export function CalendarPage() {
             })()}
             <div className="space-y-3">
               {/* What is being added: a training session or a match */}
-              <div className="grid grid-cols-2 rounded-lg border border-border/60 overflow-hidden">
-                {(['training', 'match'] as const).map((k) => (
+              <div className="grid grid-cols-3 rounded-lg border border-border/60 overflow-hidden">
+                {(['training', 'match', 'rest'] as const).map((k) => (
                   <button
                     key={k}
                     type="button"
                     onClick={() => setDayKind(k)}
-                    className={`py-2 text-sm font-semibold transition-colors ${
+                    className={`py-2 text-xs sm:text-sm font-semibold transition-colors ${
                       dayKind === k ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-white/[0.04]'
                     }`}
                   >
-                    {t(k === 'training' ? 'cal.kindTraining' : 'cal.kindMatch')}
+                    {t(k === 'training' ? 'cal.kindTraining' : k === 'match' ? 'cal.kindMatch' : 'cal.kindRest')}
                   </button>
                 ))}
               </div>
@@ -681,6 +688,46 @@ export function CalendarPage() {
                     }}
                   >
                     {editMatchId !== null ? t('cal.saveEdit') : (<><Plus className="w-4 h-4" /> {t('cal.addMatch')}</>)}
+                  </Button>
+                </>
+              ) : dayKind === 'rest' ? (
+                <>
+                  <div className="rounded-xl bg-white/[0.03] border border-border/50 px-4 py-5 flex flex-col items-center gap-2 text-center">
+                    <span className="text-2xl">🌙</span>
+                    <p className="text-sm text-muted-foreground">{t('cal.restMarked')}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">{t('cal.restNote')}</Label>
+                    <Input
+                      placeholder={t('cal.restNote')}
+                      value={dayRestNote}
+                      onChange={(e) => setDayRestNote(e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    className="w-full gap-1.5"
+                    disabled={createTraining.isPending || updateTraining.isPending}
+                    onClick={() => {
+                      if (!dayOpen) return;
+                      const done = () => {
+                        toast({ title: t('tactics.saved') });
+                        resetDayForm();
+                        setDayOpen(null);
+                      };
+                      if (editTrainingId !== null) {
+                        updateTraining.mutate(
+                          { id: editTrainingId, focus: 'rest_day', intensity: null, durationMinutes: null, notes: dayRestNote.trim() || null },
+                          { onError: showError, onSuccess: done },
+                        );
+                      } else {
+                        createTraining.mutate(
+                          { date: dayOpen, focus: 'rest_day', notes: dayRestNote.trim() || undefined },
+                          { onError: showError, onSuccess: done },
+                        );
+                      }
+                    }}
+                  >
+                    {editTrainingId !== null ? t('cal.saveEdit') : (<><Plus className="w-4 h-4" /> {t('cal.kindRest')}</>)}
                   </Button>
                 </>
               ) : (
