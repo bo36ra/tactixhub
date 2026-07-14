@@ -77,6 +77,7 @@ const Readiness = lazy(() => import('@/pages/readiness'));
 const CalendarPage = lazy(() => import('@/pages/calendar'));
 const AvailabilityPage = lazy(() => import('@/pages/availability'));
 const TrainingPlanPage = lazy(() => import('@/pages/training-plan'));
+const AdminPage = lazy(() => import('@/pages/admin'));
 const Notes = lazy(() => import('@/pages/notes'));
 const NotFound = lazy(() => import('@/pages/not-found'));
 
@@ -231,6 +232,7 @@ function ClerkProviderWithRoutes() {
                 <Route path="/calendar"><ProtectedRoute component={CalendarPage} /></Route>
                 <Route path="/availability"><ProtectedRoute component={AvailabilityPage} /></Route>
                 <Route path="/training-plan/:trainingId"><ProtectedRoute component={TrainingPlanPage} /></Route>
+                <Route path="/admin"><ProtectedRoute component={AdminPage} /></Route>
                 <Route path="/notes"><ProtectedRoute component={Notes} /></Route>
                 <Route path="/reports"><ProtectedRoute component={Reports} /></Route>
                 <Route path="/tactics"><ProtectedRoute component={Tactics} /></Route>

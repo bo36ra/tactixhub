@@ -25,6 +25,7 @@ export const ListTeamsResponseItem = zod.object({
   "ageGroup": zod.string().nullish(),
   "season": zod.string().nullish(),
   "userId": zod.string(),
+  "tier": zod.string().optional(),
   "createdAt": zod.string()
 })
 export const ListTeamsResponse = zod.array(ListTeamsResponseItem)
@@ -48,6 +49,7 @@ export const CreateTeamResponse = zod.object({
   "ageGroup": zod.string().nullish(),
   "season": zod.string().nullish(),
   "userId": zod.string(),
+  "tier": zod.string().optional(),
   "createdAt": zod.string()
 })
 
@@ -65,6 +67,7 @@ export const GetTeamResponse = zod.object({
   "ageGroup": zod.string().nullish(),
   "season": zod.string().nullish(),
   "userId": zod.string(),
+  "tier": zod.string().optional(),
   "createdAt": zod.string()
 })
 
@@ -91,6 +94,7 @@ export const UpdateTeamResponse = zod.object({
   "ageGroup": zod.string().nullish(),
   "season": zod.string().nullish(),
   "userId": zod.string(),
+  "tier": zod.string().optional(),
   "createdAt": zod.string()
 })
 

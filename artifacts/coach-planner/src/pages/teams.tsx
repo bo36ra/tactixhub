@@ -9,6 +9,7 @@ import {
   getListTeamsQueryKey,
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,6 +42,7 @@ export function Teams() {
   const [formData, setFormData] = React.useState({ name: '', ageGroup: '', season: '' });
 
   const { data: teams, isLoading } = useListTeams();
+  const { toast } = useToast();
   const createTeam = useCreateTeam();
   const deleteTeam = useDeleteTeam();
 
@@ -56,6 +58,16 @@ export function Teams() {
         },
       },
       {
+        onError: (err: unknown) => {
+          const message = err instanceof Error ? err.message : '';
+          if (message.includes('access_pending')) {
+            queryClient.invalidateQueries({ queryKey: ['access-status'] });
+            toast({ title: t('access.pendingTitle'), description: t('access.pendingBody') });
+            setOpen(false);
+            return;
+          }
+          toast({ title: t('common.saveFailed'), variant: 'destructive' as any });
+        },
         onSuccess: (team) => {
           queryClient.invalidateQueries({ queryKey: getListTeamsQueryKey() });
           setActiveTeamId(team.id);

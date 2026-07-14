@@ -199,6 +199,17 @@ const STATEMENTS = [
     "updated_at" timestamp DEFAULT now() NOT NULL,
     UNIQUE ("team_id", "month")
   )`,
+  `ALTER TABLE "teams" ADD COLUMN IF NOT EXISTS "tier" text NOT NULL DEFAULT 'free'`,
+  `CREATE TABLE IF NOT EXISTS "access_requests" (
+    "id" serial PRIMARY KEY,
+    "user_id" text NOT NULL UNIQUE,
+    "email" text,
+    "display_name" text,
+    "note" text,
+    "status" text NOT NULL DEFAULT 'pending',
+    "created_at" timestamp DEFAULT now() NOT NULL,
+    "decided_at" timestamp
+  )`,
   `CREATE TABLE IF NOT EXISTS "team_members" (
     "id" serial PRIMARY KEY,
     "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,

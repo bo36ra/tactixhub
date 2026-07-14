@@ -5,6 +5,8 @@ import { db, teamsTable, teamMembersTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { getTeamRole, verifyTeamOwner } from "../lib/teamAccess";
 import { getClerkUserInfo } from "../lib/clerkUsers";
+import { isSuperAdmin } from "../lib/superAdmin";
+import { accessRequestsTable } from "@workspace/db";
 import { notifyUser, notifyTeamMembers } from "../lib/notify";
 
 const router = Router();
@@ -69,6 +71,16 @@ router.get("/teams", requireAuth, async (req, res) => {
 
     const teamIds = [...new Set([...memberships.map((m) => m.teamId), ...legacyOwned.map((t) => t.id)])];
     if (teamIds.length === 0) {
+      const { email, displayName } = await getClerkUserInfo(userId);
+      if (!isSuperAdmin(email)) {
+        const [existing] = await db
+          .select({ id: accessRequestsTable.id })
+          .from(accessRequestsTable)
+          .where(eq(accessRequestsTable.userId, userId));
+        if (!existing) {
+          await db.insert(accessRequestsTable).values({ userId, email, displayName });
+        }
+      }
       res.json([]);
       return;
     }
@@ -93,13 +105,26 @@ router.post("/teams", requireAuth, async (req, res) => {
     res.status(400).json({ error: "name is required" });
     return;
   }
+  const { email, displayName } = await getClerkUserInfo(userId);
+  if (!isSuperAdmin(email)) {
+    const [existing] = await db
+      .select({ status: accessRequestsTable.status })
+      .from(accessRequestsTable)
+      .where(eq(accessRequestsTable.userId, userId));
+    if (existing?.status !== "approved") {
+      if (!existing) {
+        await db.insert(accessRequestsTable).values({ userId, email, displayName });
+      }
+      res.status(403).json({ error: "access_pending", status: existing?.status ?? "pending" });
+      return;
+    }
+  }
   try {
     const [team] = await db
       .insert(teamsTable)
       .values({ name, ageGroup: ageGroup || null, season: season || null, userId })
       .returning();
 
-    const { email, displayName } = await getClerkUserInfo(userId);
     await db.insert(teamMembersTable).values({
       teamId: team.id,
       userId,
@@ -197,6 +222,7 @@ function mapTeam(t: typeof teamsTable.$inferSelect) {
     ageGroup: t.ageGroup,
     season: t.season,
     userId: t.userId,
+    tier: t.tier,
     createdAt: t.createdAt.toISOString(),
   };
 }

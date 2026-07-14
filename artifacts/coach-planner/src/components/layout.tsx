@@ -3,6 +3,7 @@ import { Link, useLocation } from 'wouter';
 import { useLanguage } from '../lib/i18n';
 import { useTeam } from '../lib/team-context';
 import { useListTeams } from '@workspace/api-client-react';
+import { useAccessStatus } from '../lib/dev-api';
 import { 
   LayoutDashboard, 
   ClipboardList,
@@ -26,7 +27,8 @@ import {
   StickyNote,
   ClipboardCheck,
   CalendarDays,
-  Plane
+  Plane,
+  ShieldCheck
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -45,6 +47,8 @@ export function Sidebar() {
   const { activeTeamId, setActiveTeamId } = useTeam();
   const { data: teams } = useListTeams();
   const { signOut } = useClerk();
+
+  const { data: access } = useAccessStatus();
 
   const navSections = [
     {
@@ -83,6 +87,7 @@ export function Sidebar() {
         { href: '/trainings', label: t('nav.trainings'), icon: Dumbbell },
         { href: '/performance', label: t('nav.performance'), icon: Activity },
         { href: '/match-report', label: t('nav.matchReport'), icon: FileText },
+        ...(access?.isAdmin ? [{ href: '/admin', label: t('nav.admin'), icon: ShieldCheck }] : []),
       ],
     },
   ];
@@ -254,12 +259,28 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 export function NoTeamState() {
   const { t } = useLanguage();
   const { isLoading } = useTeam();
+  const { data: access, isLoading: accessLoading } = useAccessStatus();
+
+  const loading = isLoading || accessLoading;
 
   return (
     <AppLayout>
-      {isLoading ? (
+      {loading ? (
         <div className="flex items-center justify-center h-[60vh]">
           <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+        </div>
+      ) : access?.status === 'pending' ? (
+        <div className="flex flex-col items-center justify-center h-[60vh] gap-3 text-center px-6">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+            <div className="w-5 h-5 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground">{t('access.pendingTitle')}</h2>
+          <p className="text-sm text-muted-foreground max-w-sm">{t('access.pendingBody')}</p>
+        </div>
+      ) : access?.status === 'rejected' ? (
+        <div className="flex flex-col items-center justify-center h-[60vh] gap-3 text-center px-6">
+          <h2 className="text-xl font-bold text-foreground">{t('access.rejectedTitle')}</h2>
+          <p className="text-sm text-muted-foreground max-w-sm">{t('access.rejectedBody')}</p>
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center h-[60vh] gap-4 text-center">

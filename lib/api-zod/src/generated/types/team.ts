@@ -14,5 +14,6 @@ export interface Team {
   /** @nullable */
   season?: string | null;
   userId: string;
+  tier?: string;
   createdAt: string;
 }

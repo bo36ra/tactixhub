@@ -14,6 +14,7 @@ import developmentRouter from "./development";
 import membersRouter from "./members";
 import notesRouter from "./notes";
 import notificationsRouter from "./notifications";
+import accessRouter from "./access";
 
 const router: IRouter = Router();
 
@@ -32,5 +33,6 @@ router.use(developmentRouter);
 router.use(membersRouter);
 router.use(notesRouter);
 router.use(notificationsRouter);
+router.use(accessRouter);
 
 export default router;

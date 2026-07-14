@@ -172,6 +172,48 @@ export function useSaveTrainingBlocks(teamId: number, trainingId: number | null)
   });
 }
 
+export interface AccessStatus { status: 'none' | 'pending' | 'approved' | 'rejected'; isAdmin: boolean }
+export function useAccessStatus() {
+  return useQuery({
+    queryKey: ['access-status'],
+    queryFn: () => customFetch<AccessStatus>(`/api/access-requests/me`),
+  });
+}
+
+export interface AccessRequestRow {
+  id: number; userId: string; email: string | null; displayName: string | null;
+  note: string | null; status: string; createdAt: string; decidedAt: string | null;
+}
+export function useAdminAccessRequests() {
+  return useQuery({
+    queryKey: ['admin-access-requests'],
+    queryFn: () => customFetch<AccessRequestRow[]>(`/api/admin/access-requests`),
+  });
+}
+export function useDecideAccessRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, decision }: { id: number; decision: 'approve' | 'reject' }) =>
+      customFetch<AccessRequestRow>(`/api/admin/access-requests/${id}/${decision}`, { method: 'POST' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-access-requests'] }),
+  });
+}
+export interface AdminTeamRow { id: number; name: string; userId: string; tier: string; createdAt: string }
+export function useAdminTeams() {
+  return useQuery({
+    queryKey: ['admin-teams'],
+    queryFn: () => customFetch<AdminTeamRow[]>(`/api/admin/teams`),
+  });
+}
+export function useUpdateTeamTier() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ teamId, tier }: { teamId: number; tier: 'free' | 'pro' }) =>
+      customFetch<AdminTeamRow>(`/api/admin/teams/${teamId}`, { method: 'PATCH', body: JSON.stringify({ tier }) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-teams'] }),
+  });
+}
+
 export function useInjuries(teamId: number) {
   return useQuery({ queryKey: ['injuries', teamId], queryFn: () => customFetch<Injury[]>(`/api/teams/${teamId}/injuries`) });
 }

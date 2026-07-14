@@ -14,3 +14,4 @@ export * from "./notifications";
 export * from "./match-plans";
 export * from "./planning";
 export * from "./availability";
+export * from "./access";

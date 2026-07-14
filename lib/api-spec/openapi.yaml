@@ -1028,6 +1028,8 @@ components:
           type: ["string", "null"]
         userId:
           type: string
+        tier:
+          type: string
         createdAt:
           type: string
 

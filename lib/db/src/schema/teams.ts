@@ -8,6 +8,11 @@ export const teamsTable = pgTable("teams", {
   ageGroup: text("age_group"),
   season: text("season"),
   userId: text("user_id").notNull(),
+  // Plumbing for future paid tiers — not enforced anywhere yet. The site
+  // owner can bump a team to a higher tier from /admin once a manual or
+  // gateway payment lands; feature code can then gate on it via the
+  // useIsPro()/FeatureGate helpers whenever a specific feature is chosen.
+  tier: text("tier").notNull().default("free"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
