@@ -1,7 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { customFetch } from '@workspace/api-client-react';
 
-export interface Training { id: number; teamId: number; date: string; time: string | null; focus: string; intensity: string | null; durationMinutes: number | null; drills: string | null; notes: string | null; createdAt: string }
+export interface Training {
+  id: number; teamId: number; date: string; time: string | null; focus: string;
+  intensity: string | null; durationMinutes: number | null; drills: string | null; notes: string | null;
+  place?: string | null; playersTotal?: number | null; playersUnavailable?: number | null; material?: string | null;
+  mainObjectiveOffense?: string | null; mainObjectiveDefense?: string | null; complementaryObjective?: string | null;
+  mesocycleLabel?: string | null; microcycleLabel?: string | null; planNumber?: string | null;
+  createdAt: string;
+}
 export interface Injury { id: number; teamId: number; playerId: number; playerName?: string; type: string; date: string; expectedReturn: string | null; status: 'out' | 'recovering' | 'recovered'; notes: string | null; createdAt: string }
 export interface Rating { id: number; teamId: number; matchId: number; playerId: number; rating: number; note: string | null }
 
@@ -21,7 +28,12 @@ export function useCreateTraining(teamId: number) {
 export function useUpdateTraining(teamId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { id: number; date?: string; time?: string | null; focus?: string; intensity?: string | null; durationMinutes?: number | null; drills?: string | null; notes?: string | null }) =>
+    mutationFn: (input: {
+      id: number; date?: string; time?: string | null; focus?: string; intensity?: string | null; durationMinutes?: number | null;
+      drills?: string | null; notes?: string | null; place?: string | null; playersTotal?: number | null; playersUnavailable?: number | null;
+      material?: string | null; mainObjectiveOffense?: string | null; mainObjectiveDefense?: string | null; complementaryObjective?: string | null;
+      mesocycleLabel?: string | null; microcycleLabel?: string | null; planNumber?: string | null;
+    }) =>
       customFetch<Training>(`/api/teams/${teamId}/trainings/${input.id}`, { method: 'PATCH', body: JSON.stringify(input) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['trainings', teamId] }),
   });
@@ -137,6 +149,26 @@ export function useBulkInvite(teamId: number) {
         `/api/teams/${teamId}/members/bulk`,
         { method: 'POST', body: JSON.stringify(input) },
       ),
+  });
+}
+
+export interface TrainingBlock {
+  id?: number; title: string; objectiveOffense: string | null; objectiveDefense: string | null;
+  space: string | null; playersFormat: string | null; minutes: number | null; explanation: string | null; image: string | null;
+}
+export function useTrainingBlocks(teamId: number, trainingId: number | null) {
+  return useQuery({
+    queryKey: ['training-blocks', teamId, trainingId],
+    enabled: !!teamId && !!trainingId,
+    queryFn: () => customFetch<TrainingBlock[]>(`/api/teams/${teamId}/trainings/${trainingId}/blocks`),
+  });
+}
+export function useSaveTrainingBlocks(teamId: number, trainingId: number | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (blocks: TrainingBlock[]) =>
+      customFetch<TrainingBlock[]>(`/api/teams/${teamId}/trainings/${trainingId}/blocks`, { method: 'PUT', body: JSON.stringify({ blocks }) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['training-blocks', teamId, trainingId] }),
   });
 }
 

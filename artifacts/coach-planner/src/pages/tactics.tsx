@@ -223,7 +223,11 @@ function TacticBoard({
 
 // ---------------------------------------------------------------- boards tab
 
-function BoardsTab({ teamId, kind }: { teamId: number; kind: TacticKind }) {
+function BoardsTab({
+  teamId, kind, openId, onOpened,
+}: {
+  teamId: number; kind: TacticKind; openId?: number | null; onOpened?: () => void;
+}) {
   const { t } = useLanguage();
   const { data: tactics, isLoading } = useTactics(teamId);
   const { data: matches } = useListMatches(teamId, { query: { enabled: kind === 'match_plan' } } as any);
@@ -287,6 +291,16 @@ function BoardsTab({ teamId, kind }: { teamId: number; kind: TacticKind }) {
   };
 
   const list = (tactics ?? []).filter((x) => x.kind === kind);
+
+  React.useEffect(() => {
+    if (openId == null) return;
+    const tc = list.find((x) => x.id === openId);
+    if (tc) {
+      open(tc);
+      onOpened?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId, list.length]);
 
   const open = (tc?: Tactic) => {
     if (tc) {
@@ -489,12 +503,70 @@ function OpponentsTab({ teamId }: { teamId: number }) {
   );
 }
 
+function AllTab({
+  teamId, onOpen,
+}: {
+  teamId: number; onOpen: (kind: TacticKind, id: number) => void;
+}) {
+  const { t } = useLanguage();
+  const { data: tactics, isLoading } = useTactics(teamId);
+  const { data: matches } = useListMatches(teamId, { query: { enabled: true } } as any);
+
+  const sorted = React.useMemo(
+    () => [...(tactics ?? [])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [tactics],
+  );
+
+  const KIND_STYLES: Record<TacticKind, string> = {
+    general: 'pill-beige',
+    set_piece: 'pill-yellow',
+    match_plan: 'pill-green',
+  };
+
+  if (isLoading) return <p className="text-muted-foreground text-sm">{t('common.loading')}</p>;
+  if (sorted.length === 0) return <p className="text-muted-foreground text-sm">{t('tactics.emptyAll')}</p>;
+
+  return (
+    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {sorted.map((tc) => (
+        <button
+          key={`${tc.kind}-${tc.id}`}
+          className="text-start border border-border rounded-lg p-3 bg-card hover:bg-white/[0.03] transition-colors"
+          onClick={() => onOpen(tc.kind, tc.id)}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-semibold truncate">{tc.name}</span>
+            <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] ${KIND_STYLES[tc.kind]}`}>
+              {t(`tactics.kind.${tc.kind}`)}
+            </span>
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {new Date(tc.createdAt).toLocaleDateString()}
+            {tc.matchId && (matches ?? []).find((m: any) => m.id === tc.matchId)
+              ? ` · ${(matches as any[]).find((m: any) => m.id === tc.matchId)?.opponent}` : ''}
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------- page
+
+const TAB_BY_KIND: Record<TacticKind, string> = { general: 'board', set_piece: 'setpieces', match_plan: 'plans' };
 
 export function Tactics() {
   const { t } = useLanguage();
   const { activeTeamId } = useTeam();
+  const [tab, setTab] = useState('all');
+  const [pending, setPending] = useState<{ kind: TacticKind; id: number } | null>(null);
+
   if (!activeTeamId) return <NoTeamState />;
+
+  const jumpTo = (kind: TacticKind, id: number) => {
+    setPending({ kind, id });
+    setTab(TAB_BY_KIND[kind]);
+  };
 
   return (
     <AppLayout>
@@ -503,16 +575,36 @@ export function Tactics() {
           <ClipboardList className="w-6 h-6 text-primary" />
           <h1 className="text-2xl font-bold font-display">{t('nav.tactics')}</h1>
         </div>
-        <Tabs defaultValue="board">
+        <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="flex-wrap h-auto">
+            <TabsTrigger value="all">{t('tactics.tabAll')}</TabsTrigger>
             <TabsTrigger value="board">{t('tactics.tabBoard')}</TabsTrigger>
             <TabsTrigger value="setpieces">{t('tactics.tabSetPieces')}</TabsTrigger>
             <TabsTrigger value="plans">{t('tactics.tabPlans')}</TabsTrigger>
             <TabsTrigger value="opponents">{t('tactics.tabOpponents')}</TabsTrigger>
           </TabsList>
-          <TabsContent value="board"><BoardsTab teamId={activeTeamId} kind="general" /></TabsContent>
-          <TabsContent value="setpieces"><BoardsTab teamId={activeTeamId} kind="set_piece" /></TabsContent>
-          <TabsContent value="plans"><BoardsTab teamId={activeTeamId} kind="match_plan" /></TabsContent>
+          <TabsContent value="all"><AllTab teamId={activeTeamId} onOpen={jumpTo} /></TabsContent>
+          <TabsContent value="board">
+            <BoardsTab
+              teamId={activeTeamId} kind="general"
+              openId={pending?.kind === 'general' ? pending.id : null}
+              onOpened={() => setPending(null)}
+            />
+          </TabsContent>
+          <TabsContent value="setpieces">
+            <BoardsTab
+              teamId={activeTeamId} kind="set_piece"
+              openId={pending?.kind === 'set_piece' ? pending.id : null}
+              onOpened={() => setPending(null)}
+            />
+          </TabsContent>
+          <TabsContent value="plans">
+            <BoardsTab
+              teamId={activeTeamId} kind="match_plan"
+              openId={pending?.kind === 'match_plan' ? pending.id : null}
+              onOpened={() => setPending(null)}
+            />
+          </TabsContent>
           <TabsContent value="opponents"><OpponentsTab teamId={activeTeamId} /></TabsContent>
         </Tabs>
       </div>

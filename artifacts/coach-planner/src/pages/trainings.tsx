@@ -5,6 +5,8 @@ import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
 import { useTrainings, useCreateTraining, useDeleteTraining } from '@/lib/dev-api';
+import { Link } from 'wouter';
+import { NotebookPen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -213,6 +215,11 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
               </div>
               {tr.drills && <p className="text-xs whitespace-pre-wrap">{tr.drills}</p>}
               {tr.notes && <p className="text-xs text-muted-foreground">{tr.notes}</p>}
+              <Link href={`/training-plan/${tr.id}`}>
+                <span className="inline-flex items-center gap-1 text-xs text-primary hover:underline cursor-pointer pt-1">
+                  <NotebookPen className="w-3.5 h-3.5" /> {t('sessionPlan.detailedPlan')}
+                </span>
+              </Link>
             </div>
           );
           return (

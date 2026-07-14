@@ -1,7 +1,7 @@
 import { dbErrorMessage } from "../lib/dbError";
 import { Router } from "express";
 import { eq, and, desc } from "drizzle-orm";
-import { db, trainingsTable, injuriesTable, ratingsTable, playersTable, teamsTable, matchesTable, matchPlansTable, weekCyclesTable, monthPlansTable, playerAvailabilityTable } from "@workspace/db";
+import { db, trainingsTable, injuriesTable, ratingsTable, playersTable, teamsTable, matchesTable, matchPlansTable, weekCyclesTable, monthPlansTable, playerAvailabilityTable, trainingBlocksTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { verifyTeamAccess } from "../lib/teamAccess";
 
@@ -127,7 +127,12 @@ router.post("/teams/:teamId/matches/:matchId/ratings", requireAuth, guarded(asyn
 
 router.patch("/teams/:teamId/trainings/:trainingId", requireAuth, guarded(async (req, res, teamId) => {
   const trainingId = parseInt(req.params.trainingId as string);
-  const { date, time, focus, intensity, durationMinutes, drills, notes } = req.body ?? {};
+  const {
+    date, time, focus, intensity, durationMinutes, drills, notes,
+    place, playersTotal, playersUnavailable, material,
+    mainObjectiveOffense, mainObjectiveDefense, complementaryObjective,
+    mesocycleLabel, microcycleLabel, planNumber,
+  } = req.body ?? {};
   const cleanIntensity = intensity === null ? null : ["light", "medium", "high"].includes(intensity) ? intensity : undefined;
   const cleanDuration =
     durationMinutes === null
@@ -135,6 +140,8 @@ router.patch("/teams/:teamId/trainings/:trainingId", requireAuth, guarded(async 
       : Number.isFinite(Number(durationMinutes)) && Number(durationMinutes) > 0
         ? Math.min(Math.round(Number(durationMinutes)), 600)
         : undefined;
+  const cleanCount = (v: unknown) =>
+    v === null ? null : Number.isFinite(Number(v)) && Number(v) >= 0 ? Math.round(Number(v)) : undefined;
   const [row] = await db
     .update(trainingsTable)
     .set({
@@ -145,6 +152,16 @@ router.patch("/teams/:teamId/trainings/:trainingId", requireAuth, guarded(async 
       ...(cleanDuration !== undefined && { durationMinutes: cleanDuration }),
       ...(drills !== undefined && { drills: drills || null }),
       ...(notes !== undefined && { notes: notes || null }),
+      ...(place !== undefined && { place: place || null }),
+      ...(cleanCount(playersTotal) !== undefined && { playersTotal: cleanCount(playersTotal) }),
+      ...(cleanCount(playersUnavailable) !== undefined && { playersUnavailable: cleanCount(playersUnavailable) }),
+      ...(material !== undefined && { material: material || null }),
+      ...(mainObjectiveOffense !== undefined && { mainObjectiveOffense: mainObjectiveOffense || null }),
+      ...(mainObjectiveDefense !== undefined && { mainObjectiveDefense: mainObjectiveDefense || null }),
+      ...(complementaryObjective !== undefined && { complementaryObjective: complementaryObjective || null }),
+      ...(mesocycleLabel !== undefined && { mesocycleLabel: mesocycleLabel || null }),
+      ...(microcycleLabel !== undefined && { microcycleLabel: microcycleLabel || null }),
+      ...(planNumber !== undefined && { planNumber: planNumber || null }),
     })
     .where(and(eq(trainingsTable.id, trainingId), eq(trainingsTable.teamId, teamId)))
     .returning();
@@ -153,6 +170,62 @@ router.patch("/teams/:teamId/trainings/:trainingId", requireAuth, guarded(async 
     return;
   }
   res.json(row);
+
+}));
+
+// ---- Session-plan exercise blocks ----
+// Diagram images are bigger than player thumbnails (they're tactical
+// sketches, not headshots) but still capped well under the body limit.
+const MAX_BLOCK_IMAGE_LENGTH = 900_000;
+function sanitizeBlockImage(image: unknown): string | null {
+  if (typeof image !== "string" || !image) return null;
+  if (!image.startsWith("data:image/") || image.length > MAX_BLOCK_IMAGE_LENGTH) return null;
+  return image;
+}
+
+router.get("/teams/:teamId/trainings/:trainingId/blocks", requireAuth, guarded(async (req, res, teamId) => {
+  const trainingId = parseInt(req.params.trainingId as string);
+  const rows = await db
+    .select()
+    .from(trainingBlocksTable)
+    .where(and(eq(trainingBlocksTable.trainingId, trainingId), eq(trainingBlocksTable.teamId, teamId)))
+    .orderBy(trainingBlocksTable.position);
+  res.json(rows);
+}));
+
+// Replace the whole ordered block list in one shot — the session-plan
+// editor is one big form the coach fills and saves together, not a
+// per-block API dance.
+router.put("/teams/:teamId/trainings/:trainingId/blocks", requireAuth, guarded(async (req, res, teamId) => {
+  const trainingId = parseInt(req.params.trainingId as string);
+  const [training] = await db
+    .select({ id: trainingsTable.id })
+    .from(trainingsTable)
+    .where(and(eq(trainingsTable.id, trainingId), eq(trainingsTable.teamId, teamId)));
+  if (!training) {
+    res.status(404).json({ error: "Training not found" });
+    return;
+  }
+  const blocks = Array.isArray(req.body?.blocks) ? req.body.blocks : [];
+  const clean = blocks
+    .filter((b: any) => typeof b?.title === "string" && b.title.trim())
+    .slice(0, 30)
+    .map((b: any, i: number) => ({
+      trainingId,
+      teamId,
+      position: i,
+      title: String(b.title).trim(),
+      objectiveOffense: typeof b.objectiveOffense === "string" && b.objectiveOffense.trim() ? b.objectiveOffense.trim() : null,
+      objectiveDefense: typeof b.objectiveDefense === "string" && b.objectiveDefense.trim() ? b.objectiveDefense.trim() : null,
+      space: typeof b.space === "string" && b.space.trim() ? b.space.trim() : null,
+      playersFormat: typeof b.playersFormat === "string" && b.playersFormat.trim() ? b.playersFormat.trim() : null,
+      minutes: Number.isFinite(Number(b.minutes)) && Number(b.minutes) > 0 ? Math.min(Math.round(Number(b.minutes)), 300) : null,
+      explanation: typeof b.explanation === "string" && b.explanation.trim() ? b.explanation.trim() : null,
+      image: sanitizeBlockImage(b.image),
+    }));
+  await db.delete(trainingBlocksTable).where(and(eq(trainingBlocksTable.trainingId, trainingId), eq(trainingBlocksTable.teamId, teamId)));
+  const rows = clean.length ? await db.insert(trainingBlocksTable).values(clean).returning() : [];
+  res.json(rows);
 }));
 
 // ---- Match plans ----
