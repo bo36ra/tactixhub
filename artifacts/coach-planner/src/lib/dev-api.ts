@@ -214,6 +214,38 @@ export function useUpdateTeamTier() {
   });
 }
 
+export interface RpeEntry {
+  id: number; teamId: number; playerId: number; date: string; sessionType: string;
+  durationMinutes: number; rpe: number; notes: string | null; createdAt: string;
+}
+export function useRpeEntries(teamId: number, params?: { playerId?: number; from?: string; to?: string }) {
+  const qs = new URLSearchParams();
+  if (params?.playerId) qs.set('playerId', String(params.playerId));
+  if (params?.from) qs.set('from', params.from);
+  if (params?.to) qs.set('to', params.to);
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return useQuery({
+    queryKey: ['rpe-entries', teamId, params?.playerId ?? null, params?.from ?? null, params?.to ?? null],
+    enabled: !!teamId,
+    queryFn: () => customFetch<RpeEntry[]>(`/api/teams/${teamId}/rpe-entries${suffix}`),
+  });
+}
+export function useBatchCreateRpeEntries(teamId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { date: string; sessionType: string; entries: { playerId: number; durationMinutes: number; rpe: number; notes?: string }[] }) =>
+      customFetch<RpeEntry[]>(`/api/teams/${teamId}/rpe-entries/batch`, { method: 'POST', body: JSON.stringify(input) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['rpe-entries', teamId] }),
+  });
+}
+export function useDeleteRpeEntry(teamId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => customFetch<void>(`/api/teams/${teamId}/rpe-entries/${id}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['rpe-entries', teamId] }),
+  });
+}
+
 export function useInjuries(teamId: number) {
   return useQuery({ queryKey: ['injuries', teamId], queryFn: () => customFetch<Injury[]>(`/api/teams/${teamId}/injuries`) });
 }

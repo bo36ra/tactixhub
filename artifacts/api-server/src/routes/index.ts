@@ -15,6 +15,7 @@ import membersRouter from "./members";
 import notesRouter from "./notes";
 import notificationsRouter from "./notifications";
 import accessRouter from "./access";
+import rpeRouter from "./rpe";
 
 const router: IRouter = Router();
 
@@ -34,5 +35,6 @@ router.use(membersRouter);
 router.use(notesRouter);
 router.use(notificationsRouter);
 router.use(accessRouter);
+router.use(rpeRouter);
 
 export default router;

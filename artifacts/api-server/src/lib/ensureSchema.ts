@@ -142,6 +142,17 @@ const STATEMENTS = [
   `ALTER TABLE "trainings" ADD COLUMN IF NOT EXISTS "mesocycle_label" text`,
   `ALTER TABLE "trainings" ADD COLUMN IF NOT EXISTS "microcycle_label" text`,
   `ALTER TABLE "trainings" ADD COLUMN IF NOT EXISTS "plan_number" text`,
+  `CREATE TABLE IF NOT EXISTS "rpe_entries" (
+    "id" serial PRIMARY KEY,
+    "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+    "player_id" integer NOT NULL REFERENCES "players"("id") ON DELETE CASCADE,
+    "date" text NOT NULL,
+    "session_type" text NOT NULL DEFAULT 'training',
+    "duration_minutes" integer NOT NULL,
+    "rpe" integer NOT NULL,
+    "notes" text,
+    "created_at" timestamp DEFAULT now() NOT NULL
+  )`,
   `CREATE TABLE IF NOT EXISTS "training_blocks" (
     "id" serial PRIMARY KEY,
     "training_id" integer NOT NULL REFERENCES "trainings"("id") ON DELETE CASCADE,
