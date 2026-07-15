@@ -2,6 +2,7 @@ import React from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
+import { playerName } from '@/lib/player-name';
 import { useListMatches, getListMatchesQueryKey, useListAttendance, getListAttendanceQueryKey, useListPlayers, getListPlayersQueryKey, useCreateMatch, useUpdateMatch, useDeleteMatch, useListGoals, getListGoalsQueryKey, type MatchInputType } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Label } from '@/components/ui/label';
@@ -33,7 +34,7 @@ import { endOfMonth as eom } from 'date-fns';
 // One month view that merges matches and training sessions — the coach's
 // whole schedule in a single grid instead of two separate pages.
 export function CalendarPage() {
-  const { t, isRtl } = useLanguage();
+  const { t, isRtl, lang } = useLanguage();
   const { activeTeamId } = useTeam();
   const tid = activeTeamId ?? 0;
   const enabled = !!activeTeamId;
@@ -52,7 +53,7 @@ export function CalendarPage() {
   // Per-day absence/excuse notes: "player — reason" for every attendance
   // record that carries a note.
   const excusesByDay = React.useMemo(() => {
-    const nameOf = new Map((players ?? []).map((p) => [p.id, p.name]));
+    const nameOf = new Map((players ?? []).map((p) => [p.id, playerName(p, lang)]));
     const map = new Map<string, { playerName: string; status: string; note: string }[]>();
     for (const rec of allAttendance ?? []) {
       if (!rec.note) continue;

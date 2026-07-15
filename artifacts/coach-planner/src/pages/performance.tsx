@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
+import { playerName } from '@/lib/player-name';
 import { useTeam } from '@/lib/team-context';
 import { useListPlayers, useListMatches } from '@workspace/api-client-react';
 import {
@@ -16,7 +17,7 @@ import { toast } from '@/hooks/use-toast';
 import { Activity, Star, Plus, Trash2, Save } from 'lucide-react';
 
 export default function Performance() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { activeTeamId } = useTeam();
   if (!activeTeamId) return <NoTeamState />;
   return (
@@ -40,6 +41,7 @@ export default function Performance() {
 }
 
 function RatingsTab({ teamId, t }: { teamId: number; t: (k: string) => string }) {
+  const { lang } = useLanguage();
   const { data: matches } = useListMatches(teamId);
   const { data: players } = useListPlayers(teamId);
   const [matchId, setMatchId] = useState<number | null>(null);
@@ -66,7 +68,7 @@ function RatingsTab({ teamId, t }: { teamId: number; t: (k: string) => string })
             return (
               <div key={p.id} className="border border-border rounded-lg p-3 bg-card">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold">#{p.jerseyNumber} {p.name}</span>
+                  <span className="font-semibold">#{p.jerseyNumber} {playerName(p, lang)}</span>
                   {r && <span className="pill-beige rounded px-2 py-0.5 text-xs flex items-center gap-1">
                     <Star className="w-3 h-3" />{r.rating}/10</span>}
                 </div>
@@ -94,6 +96,7 @@ function RatingsTab({ teamId, t }: { teamId: number; t: (k: string) => string })
 }
 
 function InjuriesTab({ teamId, t }: { teamId: number; t: (k: string) => string }) {
+  const { lang } = useLanguage();
   const { data: players } = useListPlayers(teamId);
   const { data: injuries, isLoading } = useInjuries(teamId);
   const create = useCreateInjury(teamId);
@@ -124,7 +127,7 @@ function InjuriesTab({ teamId, t }: { teamId: number; t: (k: string) => string }
             <SelectTrigger><SelectValue placeholder={t('perf.pickPlayer')} /></SelectTrigger>
             <SelectContent>
               {(players ?? []).map((p: any) => (
-                <SelectItem key={p.id} value={String(p.id)}>#{p.jerseyNumber} {p.name}</SelectItem>
+                <SelectItem key={p.id} value={String(p.id)}>#{p.jerseyNumber} {playerName(p, lang)}</SelectItem>
               ))}
             </SelectContent>
           </Select>

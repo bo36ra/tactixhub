@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
+import { playerName } from '@/lib/player-name';
 import { useTeam } from '@/lib/team-context';
 import {
   useListAttendance,
@@ -31,7 +32,7 @@ import { PlayerAvatar } from '@/components/player-avatar';
 type TabId = 'games' | 'players' | 'schedule' | 'compare';
 
 export function Reports() {
-  const { t, isRtl } = useLanguage();
+  const { t, isRtl, lang } = useLanguage();
   const { activeTeamId } = useTeam();
   const [tab, setTab] = React.useState<TabId>('games');
 
@@ -136,7 +137,7 @@ export function Reports() {
       return {
         id: p.id,
         jerseyNumber: p.jerseyNumber,
-        name: p.name,
+        name: playerName(p, lang),
         photo: p.photo,
         position: p.position,
         age: p.age,
@@ -319,7 +320,7 @@ export function Reports() {
                         <td className="px-4 py-3 font-semibold">
                           <span className="flex items-center gap-2.5">
                             <PlayerAvatar photo={p.photo} jerseyNumber={p.jerseyNumber} className="w-8 h-8 text-xs" />
-                            {p.name}
+                            {playerName(p, lang)}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{t(`position.${p.position}`)}</td>
@@ -373,7 +374,7 @@ export function Reports() {
                   <SelectTrigger><SelectValue placeholder={t(label)} /></SelectTrigger>
                   <SelectContent>
                     {playerReport.map((p) => (
-                      <SelectItem key={p.id} value={String(p.id)}>#{p.jerseyNumber} {p.name}</SelectItem>
+                      <SelectItem key={p.id} value={String(p.id)}>#{p.jerseyNumber} {playerName(p, lang)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -411,7 +412,7 @@ export function Reports() {
                     {[a, b].map((p) => (
                       <div key={p.id} className="px-4 py-3 bg-muted font-semibold flex items-center gap-2 min-w-0">
                         <PlayerAvatar photo={p.photo} jerseyNumber={p.jerseyNumber} className="w-7 h-7 text-[10px]" />
-                        <span className="truncate">{p.name}</span>
+                        <span className="truncate">{playerName(p, lang)}</span>
                       </div>
                     ))}
                     {metrics.map((m, i) => (
@@ -503,7 +504,7 @@ export function Reports() {
                     <SelectContent>
                       <SelectItem value="all">{t('reports.allTeam')}</SelectItem>
                       {players?.map((p) => (
-                        <SelectItem key={p.id} value={String(p.id)}>#{p.jerseyNumber} {p.name}</SelectItem>
+                        <SelectItem key={p.id} value={String(p.id)}>#{p.jerseyNumber} {playerName(p, lang)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -607,7 +608,7 @@ export function Reports() {
                           <tr key={player.id} className="hover:bg-muted/40">
                             <td className="px-3 py-1.5 font-medium sticky start-0 bg-card z-10 whitespace-nowrap">
                               <span className="text-muted-foreground font-mono me-1.5">{player.jerseyNumber}</span>
-                              {player.name}
+                              {playerName(player, lang)}
                             </td>
                             {monthGrid.activeDays.map(day => {
                               const statuses = monthGrid.byDay.get(day)?.get(player.id) ?? [];

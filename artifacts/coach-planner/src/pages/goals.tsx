@@ -2,6 +2,7 @@ import React from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
+import { playerName } from '@/lib/player-name';
 import { 
   useListGoals, useCreateGoal, useDeleteGoal, useGetTopScorers,
   useListMatches, useListPlayers,
@@ -20,7 +21,7 @@ import { Trash2, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 
 export function Goals() {
-  const { t, isRtl } = useLanguage();
+  const { t, isRtl, lang } = useLanguage();
   const { activeTeamId } = useTeam();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -139,7 +140,7 @@ export function Goals() {
                         <SelectItem value="none">-- {t('common.select')} --</SelectItem>
                         {players?.map(p => (
                           <SelectItem key={p.id} value={p.id.toString()}>
-                            {p.jerseyNumber} - {p.name}
+                            {p.jerseyNumber} - {playerName(p, lang)}
                           </SelectItem>
                         ))}
                       </SelectContent>

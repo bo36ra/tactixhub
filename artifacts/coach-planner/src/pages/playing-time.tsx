@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
+import { playerName } from '@/lib/player-name';
 import { useGetPlayingTimeSummary, useRecordPlayingTime, useListMatches, useListPlayers, getGetPlayingTimeSummaryQueryKey, getListMatchesQueryKey, getListPlayersQueryKey } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +14,7 @@ import { Plus } from 'lucide-react';
 import { format } from 'date-fns';
 
 export function PlayingTime() {
-  const { t, isRtl } = useLanguage();
+  const { t, isRtl, lang } = useLanguage();
   const { activeTeamId } = useTeam();
   const queryClient = useQueryClient();
   const [open, setOpen] = React.useState(false);
@@ -103,7 +104,7 @@ export function PlayingTime() {
                       <div key={p.id} className="flex items-center justify-between p-2 border rounded bg-muted/20">
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground font-mono">{p.jerseyNumber}</span>
-                          <span className="text-sm font-medium">{p.name}</span>
+                          <span className="text-sm font-medium">{playerName(p, lang)}</span>
                         </div>
                         <Input 
                           type="number" 

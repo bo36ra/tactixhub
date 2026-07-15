@@ -2,6 +2,7 @@ import React from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
+import { playerName } from '@/lib/player-name';
 import { useListPlayers, getListPlayersQueryKey } from '@workspace/api-client-react';
 import { useAvailability, useCreateAvailability, useDeleteAvailability } from '@/lib/dev-api';
 import { PlayerAvatar } from '@/components/player-avatar';
@@ -27,7 +28,7 @@ const TYPE_COLORS: Record<string, string> = {
 // date has passed are simply not shown here anymore: from the coach's
 // perspective they're gone on their own, no manual cleanup needed.
 export function AvailabilityPage() {
-  const { t, isRtl } = useLanguage();
+  const { t, isRtl, lang } = useLanguage();
   const { activeTeamId } = useTeam();
   const tid = activeTeamId ?? 0;
   const enabled = !!activeTeamId;
@@ -130,7 +131,7 @@ export function AvailabilityPage() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {(players ?? []).map((p) => (
-                      <SelectItem key={p.id} value={String(p.id)}>#{p.jerseyNumber} {p.name}</SelectItem>
+                      <SelectItem key={p.id} value={String(p.id)}>#{p.jerseyNumber} {playerName(p, lang)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

@@ -2,6 +2,7 @@ import React from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
+import { playerName } from '@/lib/player-name';
 import { useListCards, useCreateCard, useDeleteCard, useGetCardsSummary, useListMatches, useListPlayers, getListCardsQueryKey, getGetCardsSummaryQueryKey, getListMatchesQueryKey, getListPlayersQueryKey } from '@workspace/api-client-react';
 import { CardInputCardType } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,7 @@ import { Trash2, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 
 export function Cards() {
-  const { t, isRtl } = useLanguage();
+  const { t, isRtl, lang } = useLanguage();
   const { activeTeamId } = useTeam();
   const queryClient = useQueryClient();
   const [open, setOpen] = React.useState(false);
@@ -102,7 +103,7 @@ export function Cards() {
                     <SelectContent>
                       {players?.map(p => (
                         <SelectItem key={p.id} value={p.id.toString()}>
-                          {p.jerseyNumber} - {p.name}
+                          {p.jerseyNumber} - {playerName(p, lang)}
                         </SelectItem>
                       ))}
                     </SelectContent>

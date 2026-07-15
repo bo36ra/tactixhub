@@ -2,6 +2,7 @@ import React from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
+import { playerName } from '@/lib/player-name';
 import {
   useListPlayers,
   getListPlayersQueryKey,
@@ -30,7 +31,7 @@ const VERDICT_META: Record<Verdict, { icon: typeof CheckCircle2; pill: string }>
 };
 
 export function Readiness() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { activeTeamId } = useTeam();
   const tid = activeTeamId ?? 0;
   const enabled = !!activeTeamId;
@@ -170,7 +171,7 @@ export function Readiness() {
                     >
                       <PlayerAvatar photo={player.photo} jerseyNumber={player.jerseyNumber} className="w-10 h-10 text-sm" />
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold truncate">{player.name}</p>
+                        <p className="text-sm font-semibold truncate">{playerName(player, lang)}</p>
                         <p className="text-xs text-muted-foreground">{t(`position.${player.position}`)}</p>
                         {reasons.map((reason, i) => (
                           <p key={i} className="text-xs text-muted-foreground/90 mt-0.5">{reason}</p>

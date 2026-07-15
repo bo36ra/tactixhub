@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useRoute, Link } from 'wouter';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
+import { playerName } from '@/lib/player-name';
 import {
   useListPlayers,
   useGetLineup,
@@ -17,7 +18,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, ArrowLeft, Star, Check } from 'lucide-react';
 
 export function Lineup() {
-  const { t, isRtl } = useLanguage();
+  const { t, isRtl, lang } = useLanguage();
   const { activeTeamId } = useTeam();
   const queryClient = useQueryClient();
   const [, params] = useRoute('/matches/:matchId/lineup');
@@ -167,7 +168,7 @@ export function Lineup() {
                     )}
                   </button>
                   <span className="text-[10px] font-medium text-white bg-black/40 px-1.5 py-0.5 rounded max-w-[72px] truncate">
-                    {player ? player.name : t('lineup.empty')}
+                    {player ? playerName(player, lang) : t('lineup.empty')}
                   </span>
                 </div>
               );
@@ -194,7 +195,7 @@ export function Lineup() {
                           .filter((p) => !assignedPlayerIds.has(p.id) || assignments[slot.slotIndex] === p.id)
                           .map((p) => (
                             <SelectItem key={p.id} value={String(p.id)}>
-                              #{p.jerseyNumber} {p.name}
+                              #{p.jerseyNumber} {playerName(p, lang)}
                             </SelectItem>
                           ))}
                       </SelectContent>
@@ -209,7 +210,7 @@ export function Lineup() {
               <div className="flex flex-wrap gap-1.5">
                 {benchPlayers.map((p) => (
                   <span key={p.id} className="text-xs bg-card border rounded-full px-2.5 py-1 text-muted-foreground">
-                    #{p.jerseyNumber} {p.name}
+                    #{p.jerseyNumber} {playerName(p, lang)}
                   </span>
                 ))}
                 {benchPlayers.length === 0 && (

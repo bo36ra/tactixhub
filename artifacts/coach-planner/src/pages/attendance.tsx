@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
+import { playerName } from '@/lib/player-name';
 import { useListPlayers, useCreateAttendance, useGetAttendanceSummary, getGetAttendanceSummaryQueryKey, getListPlayersQueryKey } from '@workspace/api-client-react';
 import { AttendanceInputSessionType } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
@@ -30,7 +31,7 @@ export const STATUS_STYLES: Record<string, string> = {
 };
 
 export function Attendance() {
-  const { t, isRtl } = useLanguage();
+  const { t, isRtl, lang } = useLanguage();
   const { activeTeamId } = useTeam();
   const queryClient = useQueryClient();
 
@@ -141,7 +142,7 @@ export function Attendance() {
                       <div key={player.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 border rounded-lg bg-background">
                         <div className="flex items-center gap-3 min-w-0">
                           <span className="text-muted-foreground font-mono text-sm">{player.jerseyNumber}</span>
-                          <span className="font-medium text-sm truncate">{player.name}</span>
+                          <span className="font-medium text-sm truncate">{playerName(player, lang)}</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5 shrink-0">
                           {statuses.map(status => (
