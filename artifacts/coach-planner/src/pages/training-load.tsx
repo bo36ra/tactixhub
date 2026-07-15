@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { format, subDays } from 'date-fns';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell, ReferenceLine } from 'recharts';
 import { Activity, AlertTriangle, Trash2 } from 'lucide-react';
 
 function LogTab({ teamId }: { teamId: number }) {
@@ -225,6 +225,102 @@ function DashboardTab({ teamId }: { teamId: number }) {
   );
 }
 
+function SquadTab({ teamId }: { teamId: number }) {
+  const { t } = useLanguage();
+  const { data: players } = useListPlayers(teamId);
+  const from = format(subDays(new Date(), 70), 'yyyy-MM-dd');
+  const { data: allEntries } = useRpeEntries(teamId, { from });
+
+  const rows = React.useMemo(() => {
+    if (!players) return [];
+    const byPlayer = new Map<number, RpeEntry[]>();
+    for (const e of allEntries ?? []) {
+      if (!byPlayer.has(e.playerId)) byPlayer.set(e.playerId, []);
+      byPlayer.get(e.playerId)!.push(e);
+    }
+    return players
+      .map((p) => {
+        const snapshot = computeSnapshot(byPlayer.get(p.id) ?? [], new Date());
+        return { player: p, snapshot };
+      })
+      .sort((a, b) => b.snapshot.weeklyLoad - a.snapshot.weeklyLoad);
+  }, [players, allEntries]);
+
+  if (!players || players.length === 0) {
+    return <p className="text-sm text-muted-foreground text-center py-10">{t('rpe.noPlayers')}</p>;
+  }
+
+  const summary = {
+    low: rows.filter((r) => r.snapshot.status === 'low').length,
+    moderate: rows.filter((r) => r.snapshot.status === 'moderate').length,
+    high: rows.filter((r) => r.snapshot.status === 'high').length,
+    very_high: rows.filter((r) => r.snapshot.status === 'very_high').length,
+  };
+  const hasAnyData = rows.some((r) => r.snapshot.weeklyLoad > 0);
+  const chartData = rows.map((r) => ({
+    name: `#${r.player.jerseyNumber}`,
+    load: r.snapshot.weeklyLoad,
+    status: r.snapshot.status,
+  }));
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-4 gap-2">
+        {(['low', 'moderate', 'high', 'very_high'] as const).map((s) => (
+          <div key={s} className="rounded-xl p-2.5 text-center" style={{ backgroundColor: STATUS_COLORS[s] + '1a' }}>
+            <p className="text-xl font-extrabold" style={{ color: STATUS_COLORS[s] }}>{summary[s]}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{t(`rpe.summary${s === 'low' ? 'Low' : s === 'moderate' ? 'Moderate' : s === 'high' ? 'High' : 'VeryHigh'}`)}</p>
+          </div>
+        ))}
+      </div>
+
+      {!hasAnyData ? (
+        <p className="text-sm text-muted-foreground text-center py-10">{t('rpe.noData')}</p>
+      ) : (
+        <>
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold">{t('rpe.tabSquad')}</h3>
+            <p className="text-xs text-muted-foreground">{t('rpe.squadSortedByLoad')}</p>
+            <div className="space-y-1.5">
+              {rows.map(({ player, snapshot }) => (
+                <div key={player.id} className="flex items-center gap-3 bg-card border rounded-lg px-3 py-2.5" style={{ borderInlineStartColor: STATUS_COLORS[snapshot.status], borderInlineStartWidth: 4 }}>
+                  <span className="text-sm font-semibold flex-1 min-w-0 truncate">#{player.jerseyNumber} {player.name}</span>
+                  {snapshot.alerts.length > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0" style={{ backgroundColor: STATUS_COLORS[snapshot.status] + '22', color: STATUS_COLORS[snapshot.status] }}>
+                      {t('rpe.alertsCount').replace('{n}', String(snapshot.alerts.length))}
+                    </span>
+                  )}
+                  <span className="text-sm font-mono font-bold shrink-0" dir="ltr" style={{ color: STATUS_COLORS[snapshot.status] }}>{snapshot.weeklyLoad} {t('rpe.au')}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold">{t('rpe.comparisonChart')}</h3>
+            <div className="h-52">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 4, right: 8, left: -22, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#332F27" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#9C9483' }} />
+                  <YAxis tick={{ fontSize: 10, fill: '#9C9483' }} />
+                  <Tooltip contentStyle={{ background: '#221F1A', border: '1px solid #332F27', fontSize: 12 }} />
+                  <ReferenceLine y={THRESHOLDS.weeklyLoad} stroke="#D96B5B" strokeDasharray="4 4" />
+                  <Bar dataKey="load" radius={[4, 4, 0, 0]}>
+                    {chartData.map((d, i) => (
+                      <Cell key={i} fill={STATUS_COLORS[d.status as keyof typeof STATUS_COLORS]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function TrainingLoadPage() {
   const { t } = useLanguage();
   const { activeTeamId } = useTeam();
@@ -240,9 +336,11 @@ export function TrainingLoadPage() {
         <Tabs defaultValue="log">
           <TabsList>
             <TabsTrigger value="log">{t('rpe.tabLog')}</TabsTrigger>
+            <TabsTrigger value="squad">{t('rpe.tabSquad')}</TabsTrigger>
             <TabsTrigger value="dashboard">{t('rpe.tabDashboard')}</TabsTrigger>
           </TabsList>
           <TabsContent value="log"><LogTab teamId={activeTeamId} /></TabsContent>
+          <TabsContent value="squad"><SquadTab teamId={activeTeamId} /></TabsContent>
           <TabsContent value="dashboard"><DashboardTab teamId={activeTeamId} /></TabsContent>
         </Tabs>
       </div>
