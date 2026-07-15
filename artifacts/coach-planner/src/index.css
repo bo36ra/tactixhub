@@ -123,7 +123,7 @@
 
   /* Fonts */
   --app-font-sans:    'Space Grotesk', sans-serif;
-  --app-font-display: 'General Sans', 'Space Grotesk', sans-serif;
+  --app-font-display: 'Space Grotesk', sans-serif;
   --app-font-serif:   'Instrument Serif', Georgia, serif;
   --app-font-mono:    'JetBrains Mono', 'Courier New', monospace;
 
@@ -218,4 +218,28 @@ html[dir='rtl'] .font-display {
   background-color: rgba(255, 216, 77, 0.12);
   color: #FFD84D;
   border: 1px solid rgba(255, 216, 77, 0.25);
+}
+
+/* Native <input type="date"> renders its own internal chrome (calendar
+   icon + value text) with extra intrinsic height on WebKit/iOS Safari,
+   so even though it shares the same h-9 class as our Select/Input
+   components, it visibly renders taller — the built-in date/time value
+   and picker-indicator parts don't fully respect the box's own height.
+   Pin their internal boxes down so the field matches everything next
+   to it (e.g. the "Session type" dropdown beside it). */
+input[type='date'],
+input[type='time'],
+input[type='datetime-local'] {
+  line-height: 1.25rem;
+}
+input[type='date']::-webkit-date-and-time-value,
+input[type='time']::-webkit-date-and-time-value {
+  text-align: start;
+  margin: 0;
+  height: 1.25rem;
+}
+input[type='date']::-webkit-calendar-picker-indicator,
+input[type='time']::-webkit-calendar-picker-indicator {
+  padding: 0;
+  margin-inline-start: 0.5rem;
 }
