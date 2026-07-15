@@ -12,6 +12,8 @@ export interface Player {
   id: number;
   teamId: number;
   name: string;
+  /** @nullable */
+  nameAlt?: string | null;
   jerseyNumber: number;
   position: PlayerPosition;
   /** @nullable */

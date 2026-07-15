@@ -122,6 +122,7 @@ export async function buildPlayerTimeline(playerId: number) {
     player: {
       id: player.id,
       name: player.name,
+      nameAlt: player.nameAlt,
       jerseyNumber: player.jerseyNumber,
       position: player.position,
       age: player.age,

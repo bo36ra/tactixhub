@@ -11,6 +11,8 @@ import type { PlayerInputStatus } from './playerInputStatus';
 export interface PlayerInput {
   /** @minLength 1 */
   name: string;
+  /** @nullable */
+  nameAlt?: string | null;
   jerseyNumber: number;
   position: PlayerInputPosition;
   age?: number;

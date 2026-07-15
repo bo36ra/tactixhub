@@ -58,6 +58,8 @@ export interface Player {
   id: number;
   teamId: number;
   name: string;
+  /** @nullable */
+  nameAlt?: string | null;
   jerseyNumber: number;
   position: PlayerPosition;
   /** @nullable */
@@ -96,6 +98,8 @@ export const PlayerInputStatus = {
 export interface PlayerInput {
   /** @minLength 1 */
   name: string;
+  /** @nullable */
+  nameAlt?: string | null;
   jerseyNumber: number;
   position: PlayerInputPosition;
   age?: number;
@@ -128,6 +132,8 @@ export const PlayerUpdateStatus = {
 
 export interface PlayerUpdate {
   name?: string;
+  /** @nullable */
+  nameAlt?: string | null;
   jerseyNumber?: number;
   position?: PlayerUpdatePosition;
   age?: number;
@@ -186,6 +192,8 @@ export interface PlayerTimelineEntry {
 export type PlayerTimelinePlayer = {
   id: number;
   name: string;
+  /** @nullable */
+  nameAlt?: string | null;
   jerseyNumber: number;
   position: string;
   age?: number;

@@ -120,6 +120,7 @@ export const ListPlayersResponseItem = zod.object({
   "id": zod.number(),
   "teamId": zod.number(),
   "name": zod.string(),
+  "nameAlt": zod.string().nullish(),
   "jerseyNumber": zod.number(),
   "position": zod.enum(['goalkeeper', 'defender', 'midfielder', 'forward']),
   "age": zod.number().nullish(),
@@ -145,6 +146,7 @@ export const CreatePlayerParams = zod.object({
 
 export const CreatePlayerBody = zod.object({
   "name": zod.string().min(1),
+  "nameAlt": zod.string().nullish(),
   "jerseyNumber": zod.number(),
   "position": zod.enum(['goalkeeper', 'defender', 'midfielder', 'forward']),
   "age": zod.number().optional(),
@@ -159,6 +161,7 @@ export const CreatePlayerResponse = zod.object({
   "id": zod.number(),
   "teamId": zod.number(),
   "name": zod.string(),
+  "nameAlt": zod.string().nullish(),
   "jerseyNumber": zod.number(),
   "position": zod.enum(['goalkeeper', 'defender', 'midfielder', 'forward']),
   "age": zod.number().nullish(),
@@ -181,6 +184,7 @@ export const UpdatePlayerParams = zod.object({
 
 export const UpdatePlayerBody = zod.object({
   "name": zod.string().optional(),
+  "nameAlt": zod.string().nullish(),
   "jerseyNumber": zod.number().optional(),
   "position": zod.enum(['goalkeeper', 'defender', 'midfielder', 'forward']).optional(),
   "age": zod.number().optional(),
@@ -195,6 +199,7 @@ export const UpdatePlayerResponse = zod.object({
   "id": zod.number(),
   "teamId": zod.number(),
   "name": zod.string(),
+  "nameAlt": zod.string().nullish(),
   "jerseyNumber": zod.number(),
   "position": zod.enum(['goalkeeper', 'defender', 'midfielder', 'forward']),
   "age": zod.number().nullish(),
@@ -332,6 +337,7 @@ export const GetPlayerTimelineResponse = zod.object({
   "player": zod.object({
   "id": zod.number(),
   "name": zod.string(),
+  "nameAlt": zod.string().nullish(),
   "jerseyNumber": zod.number(),
   "position": zod.string(),
   "age": zod.number().optional(),

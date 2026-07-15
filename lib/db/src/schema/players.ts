@@ -7,6 +7,12 @@ export const playersTable = pgTable("players", {
   id: serial("id").primaryKey(),
   teamId: integer("team_id").notNull().references(() => teamsTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  // Optional second-language name. The primary `name` holds whatever the
+  // coach types first (Arabic or Latin); this holds the other script so
+  // an international squad reads correctly in both UI languages. We store
+  // both verbatim rather than auto-transliterating, since transliterating
+  // proper names automatically is unreliable and often wrong.
+  nameAlt: text("name_alt"),
   jerseyNumber: integer("jersey_number").notNull(),
   position: text("position").notNull(), // goalkeeper, defender, midfielder, forward
   age: integer("age"),

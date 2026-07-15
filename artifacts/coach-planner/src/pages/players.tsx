@@ -7,6 +7,7 @@ import { useListPlayers, useCreatePlayer, useDeletePlayer, getListPlayersQueryKe
 import { PlayerInputPosition, PlayerInputStatus } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { playerName } from '@/lib/player-name';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -19,7 +20,7 @@ import { PlayerAvatar } from '@/components/player-avatar';
 import { Trash2, Plus, Search } from 'lucide-react';
 
 export function Players() {
-  const { t, isRtl } = useLanguage();
+  const { t, isRtl, lang } = useLanguage();
   const { activeTeamId } = useTeam();
   const queryClient = useQueryClient();
   const [open, setOpen] = React.useState(false);
@@ -38,6 +39,7 @@ export function Players() {
 
   const [formData, setFormData] = React.useState({
     name: '',
+    nameAlt: '',
     jerseyNumber: '',
     position: 'forward' as PlayerInputPosition,
     birthYear: '',
@@ -56,7 +58,8 @@ export function Players() {
 
   const filteredPlayers = React.useMemo(() => {
     return (players ?? []).filter(player => {
-      const matchesSearch = player.name.toLowerCase().includes(search.trim().toLowerCase());
+      const q = search.trim().toLowerCase();
+      const matchesSearch = player.name.toLowerCase().includes(q) || (player.nameAlt ?? '').toLowerCase().includes(q);
       const matchesPosition = positionFilter === 'all' || player.position === positionFilter;
       return matchesSearch && matchesPosition;
     });
@@ -72,6 +75,7 @@ export function Players() {
       teamId: activeTeamId,
       data: {
         name: formData.name,
+        nameAlt: formData.nameAlt.trim() || undefined,
         jerseyNumber: Number(formData.jerseyNumber),
         position: formData.position,
         ...(formData.birthYear && { birthYear: Number(formData.birthYear) }),
@@ -85,7 +89,7 @@ export function Players() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(activeTeamId) });
         setOpen(false);
-        setFormData({ name: '', jerseyNumber: '', position: 'forward', birthYear: '', nationality: '', status: 'active', photo: '', phone: '' });
+        setFormData({ name: '', nameAlt: '', jerseyNumber: '', position: 'forward', birthYear: '', nationality: '', status: 'active', photo: '', phone: '' });
       }
     });
   };
@@ -150,6 +154,10 @@ export function Players() {
                 <div className="space-y-2">
                   <Label>{t('common.name')} <Req /></Label>
                   <Input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('common.nameAlt')}</Label>
+                  <Input value={formData.nameAlt} onChange={e => setFormData({...formData, nameAlt: e.target.value})} placeholder={t('common.nameAltPlaceholder')} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -258,7 +266,7 @@ export function Players() {
                   <Link href={`/players/${player.id}`} className="flex items-center gap-3 flex-1 min-w-0">
                     <PlayerAvatar photo={player.photo} jerseyNumber={player.jerseyNumber} className="w-10 h-10 text-sm" />
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-foreground truncate">{player.name}</p>
+                      <p className="font-semibold text-foreground truncate">{playerName(player, lang)}</p>
                       <p className="text-xs text-muted-foreground">
                         {t(`position.${player.position}`)}{playerAge(player) ? ` · ${playerAge(player)}` : ''}{player.nationality ? ` · ${player.nationality}` : ''}
                       </p>
@@ -317,7 +325,7 @@ export function Players() {
                         <td className="px-6 py-4 font-semibold text-foreground">
                           <Link href={`/players/${player.id}`} className="flex items-center gap-2.5 hover:text-primary hover:underline">
                             <PlayerAvatar photo={player.photo} jerseyNumber={player.jerseyNumber} className="w-8 h-8 text-xs" />
-                            {player.name}
+                            {playerName(player, lang)}
                           </Link>
                         </td>
                         <td className="px-6 py-4">{t(`position.${player.position}`)}</td>

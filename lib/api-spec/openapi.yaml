@@ -1066,6 +1066,8 @@ components:
           type: integer
         name:
           type: string
+        nameAlt:
+          type: ["string", "null"]
         jerseyNumber:
           type: integer
         position:
@@ -1094,6 +1096,8 @@ components:
         name:
           type: string
           minLength: 1
+        nameAlt:
+          type: ["string", "null"]
         jerseyNumber:
           type: integer
         position:
@@ -1118,6 +1122,8 @@ components:
       properties:
         name:
           type: string
+        nameAlt:
+          type: ["string", "null"]
         jerseyNumber:
           type: integer
         position:
@@ -1203,6 +1209,8 @@ components:
               type: integer
             name:
               type: string
+            nameAlt:
+              type: ["string", "null"]
             jerseyNumber:
               type: integer
             position:

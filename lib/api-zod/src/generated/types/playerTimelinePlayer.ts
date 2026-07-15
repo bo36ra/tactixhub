@@ -9,6 +9,8 @@
 export type PlayerTimelinePlayer = {
   id: number;
   name: string;
+  /** @nullable */
+  nameAlt?: string | null;
   jerseyNumber: number;
   position: string;
   age?: number;

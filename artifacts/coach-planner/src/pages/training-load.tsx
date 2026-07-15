@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
+import { playerName } from '@/lib/player-name';
 import { useTeam } from '@/lib/team-context';
 import { useListPlayers } from '@workspace/api-client-react';
 import { useRpeEntries, useBatchCreateRpeEntries, useDeleteRpeEntry, useWellnessEntries, useBatchUpsertWellness, useTrainings, type RpeEntry } from '@/lib/dev-api';
@@ -31,7 +32,7 @@ function ScaleSlider({ label, value, onChange }: { label: string; value: number;
 }
 
 function WellnessTab({ teamId }: { teamId: number }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { toast } = useToast();
   const { data: players } = useListPlayers(teamId);
   const batchSave = useBatchUpsertWellness(teamId);
@@ -79,7 +80,7 @@ function WellnessTab({ teamId }: { teamId: number }) {
           const row = rows[p.id] ?? { sleepQuality: 3, fatigue: 3, soreness: 3, mood: 3 };
           return (
             <div key={p.id} className="bg-card border rounded-xl p-3 space-y-2.5">
-              <span className="text-sm font-semibold truncate block">#{p.jerseyNumber} {p.name}</span>
+              <span className="text-sm font-semibold truncate block">#{p.jerseyNumber} {playerName(p, lang)}</span>
               <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
                 <ScaleSlider label={t('rpe.sleepQuality')} value={row.sleepQuality} onChange={(v) => setRow(p.id, { sleepQuality: v })} />
                 <ScaleSlider label={t('rpe.fatigue')} value={row.fatigue} onChange={(v) => setRow(p.id, { fatigue: v })} />
@@ -99,7 +100,7 @@ function WellnessTab({ teamId }: { teamId: number }) {
 }
 
 function LogTab({ teamId }: { teamId: number }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { toast } = useToast();
   const { data: players } = useListPlayers(teamId);
   const batchSave = useBatchCreateRpeEntries(teamId);
@@ -163,7 +164,7 @@ function LogTab({ teamId }: { teamId: number }) {
           return (
             <div key={p.id} className="bg-card border rounded-xl p-3 space-y-2.5">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold truncate">#{p.jerseyNumber} {p.name}</span>
+                <span className="text-sm font-semibold truncate">#{p.jerseyNumber} {playerName(p, lang)}</span>
                 {load !== null && <span className="text-xs font-mono text-primary shrink-0" dir="ltr">{load} {t('rpe.au')}</span>}
               </div>
               <div className="flex items-center gap-2">
@@ -210,7 +211,7 @@ function StatCard({ label, value, unit, color }: { label: string; value: string;
 }
 
 function DashboardTab({ teamId }: { teamId: number }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { data: players } = useListPlayers(teamId);
   const [playerId, setPlayerId] = React.useState<number | null>(null);
   React.useEffect(() => {
@@ -247,7 +248,7 @@ function DashboardTab({ teamId }: { teamId: number }) {
         <SelectTrigger><SelectValue placeholder={t('rpe.selectPlayer')} /></SelectTrigger>
         <SelectContent>
           {players.map((p) => (
-            <SelectItem key={p.id} value={String(p.id)}>#{p.jerseyNumber} {p.name}</SelectItem>
+            <SelectItem key={p.id} value={String(p.id)}>#{p.jerseyNumber} {playerName(p, lang)}</SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -370,7 +371,7 @@ function DashboardTab({ teamId }: { teamId: number }) {
 }
 
 function SquadTab({ teamId }: { teamId: number }) {
-  const { t, isRtl } = useLanguage();
+  const { t, isRtl, lang } = useLanguage();
   const { data: players } = useListPlayers(teamId);
   const from = format(subDays(new Date(), 70), 'yyyy-MM-dd');
   const { data: allEntries } = useRpeEntries(teamId, { from });
@@ -455,7 +456,7 @@ function SquadTab({ teamId }: { teamId: number }) {
               <div className="space-y-1.5">
                 {rows.map(({ player, snapshot }) => (
                   <div key={player.id} className="flex items-center gap-3 bg-card border rounded-lg px-3 py-2.5" style={{ borderInlineStartColor: STATUS_COLORS[snapshot.status], borderInlineStartWidth: 4 }}>
-                    <span className="text-sm font-semibold flex-1 min-w-0 truncate">#{player.jerseyNumber} {player.name}</span>
+                    <span className="text-sm font-semibold flex-1 min-w-0 truncate">#{player.jerseyNumber} {playerName(player, lang)}</span>
                     {snapshot.alerts.length > 0 && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0" style={{ backgroundColor: STATUS_COLORS[snapshot.status] + '22', color: STATUS_COLORS[snapshot.status] }}>
                         {t('rpe.alertsCount').replace('{n}', String(snapshot.alerts.length))}
@@ -509,7 +510,7 @@ function SquadTab({ teamId }: { teamId: number }) {
           <tbody>
             {rows.map(({ player, snapshot }) => (
               <tr key={player.id}>
-                <td className="border border-gray-300 p-1.5">#{player.jerseyNumber} {player.name}</td>
+                <td className="border border-gray-300 p-1.5">#{player.jerseyNumber} {playerName(player, lang)}</td>
                 <td className="border border-gray-300 p-1.5 text-center">{snapshot.weeklyLoad}</td>
                 <td className="border border-gray-300 p-1.5 text-center">{snapshot.twoWeekLoad}</td>
                 <td className="border border-gray-300 p-1.5 text-center">{snapshot.monotony.toFixed(2)}</td>
@@ -526,7 +527,7 @@ function SquadTab({ teamId }: { teamId: number }) {
 }
 
 export function TrainingLoadPage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { activeTeamId } = useTeam();
   if (!activeTeamId) return <NoTeamState />;
 

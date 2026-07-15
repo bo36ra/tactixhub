@@ -6,6 +6,7 @@ import { useGetPlayerTimeline, getGetPlayerTimelineQueryKey, useUpdatePlayer, us
 import { useQueryClient } from '@tanstack/react-query';
 import { useTeam } from '@/lib/team-context';
 import { compressImageFile } from '@/lib/image';
+import { playerName } from '@/lib/player-name';
 import { PlayerAvatar } from '@/components/player-avatar';
 import { Button } from '@/components/ui/button';
 import { usePlayerRatings, useAvailability, useCreateAvailability, useDeleteAvailability } from '@/lib/dev-api';
@@ -21,7 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function PlayerProfile() {
-  const { t, isRtl } = useLanguage();
+  const { t, isRtl, lang } = useLanguage();
   const [, params] = useRoute('/players/:playerId');
   const playerId = params?.playerId ? Number(params.playerId) : undefined;
 
@@ -45,13 +46,14 @@ export function PlayerProfile() {
   const { toast } = useToast();
   const [editOpen, setEditOpen] = React.useState(false);
   const [editForm, setEditForm] = React.useState({
-    name: '', jerseyNumber: '', position: 'forward', birthYear: '', nationality: '', phone: '', status: 'active',
+    name: '', nameAlt: '', jerseyNumber: '', position: 'forward', birthYear: '', nationality: '', phone: '', status: 'active',
   });
 
   const openEdit = () => {
     if (!player) return;
     setEditForm({
       name: player.name,
+      nameAlt: player.nameAlt ?? '',
       jerseyNumber: String(player.jerseyNumber),
       position: player.position,
       birthYear: player.birthYear != null ? String(player.birthYear) : player.age != null ? String(new Date().getFullYear() - player.age) : '',
@@ -71,6 +73,7 @@ export function PlayerProfile() {
         playerId,
         data: {
           name: editForm.name.trim(),
+          nameAlt: editForm.nameAlt.trim() || null,
           jerseyNumber: Number(editForm.jerseyNumber),
           position: editForm.position as any,
           ...(editForm.birthYear && { birthYear: Number(editForm.birthYear) }),
@@ -153,7 +156,7 @@ export function PlayerProfile() {
                 </div>
               )}
               <div>
-                <p style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>{player.name}</p>
+                <p style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>{playerName(player, lang)}</p>
                 <p style={{ margin: '2px 0', fontSize: 14 }}>#{player.jerseyNumber} · {t(`position.${player.position}`)}</p>
                 {playerAge(player) != null && <p style={{ margin: 0, fontSize: 13 }}>{t('common.age')}: {playerAge(player)}{player.birthYear ? ` (${player.birthYear})` : ''}</p>}
                 {player.nationality && <p style={{ margin: 0, fontSize: 13 }}>{player.nationality}</p>}
@@ -207,7 +210,7 @@ export function PlayerProfile() {
               />
             </div>
             <div>
-              <h2 className="text-2xl font-bold">{player.name}</h2>
+              <h2 className="text-2xl font-bold">{playerName(player, lang)}</h2>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-sm text-muted-foreground">
                   {t(`position.${player.position}`)}{playerAge(player) ? ` · ${playerAge(player)}` : ''}{player.nationality ? ` · ${player.nationality}` : ''}
@@ -317,6 +320,10 @@ export function PlayerProfile() {
               <div className="space-y-2">
                 <Label>{t('common.name')} <span className="text-destructive">*</span></Label>
                 <Input required value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('common.nameAlt')}</Label>
+                <Input value={editForm.nameAlt} onChange={(e) => setEditForm({ ...editForm, nameAlt: e.target.value })} placeholder={t('common.nameAltPlaceholder')} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">

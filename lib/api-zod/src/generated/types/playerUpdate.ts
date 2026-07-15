@@ -10,6 +10,8 @@ import type { PlayerUpdateStatus } from './playerUpdateStatus';
 
 export interface PlayerUpdate {
   name?: string;
+  /** @nullable */
+  nameAlt?: string | null;
   jerseyNumber?: number;
   position?: PlayerUpdatePosition;
   age?: number;
