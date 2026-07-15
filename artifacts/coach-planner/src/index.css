@@ -156,14 +156,8 @@
     letter-spacing: -0.02em;
   }
 
-  /* The display font (General Sans/Space Grotesk) has no Arabic glyphs,
-     so without this, RTL headings silently fall back to whatever heavy
-     system Arabic font the browser picks — visibly larger/bolder than
-     the rest of the UI. Tajawal at normal tracking matches the rest of
-     the Arabic type in the app. */
   html[dir='rtl'] h1, html[dir='rtl'] h2, html[dir='rtl'] h3,
-  html[dir='rtl'] h4, html[dir='rtl'] h5, html[dir='rtl'] h6,
-  html[dir='rtl'] .font-display {
+  html[dir='rtl'] h4, html[dir='rtl'] h5, html[dir='rtl'] h6 {
     font-family: var(--font-arabic);
     letter-spacing: normal;
   }
@@ -173,6 +167,15 @@
 .font-display {
   font-family: var(--app-font-display);
   letter-spacing: -0.02em;
+}
+/* .font-display above is unlayered (outside @layer base), so unlayered
+   CSS rules always beat layered ones regardless of specificity — an
+   RTL override placed inside @layer base would silently lose to this
+   rule no matter how specific its selector was. It has to be unlayered
+   too, and more specific, to actually win. */
+html[dir='rtl'] .font-display {
+  font-family: var(--font-arabic);
+  letter-spacing: normal;
 }
 .font-serif-italic {
   font-family: var(--app-font-serif);
