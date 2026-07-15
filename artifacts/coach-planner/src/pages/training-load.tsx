@@ -3,9 +3,10 @@ import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
 import { useListPlayers } from '@workspace/api-client-react';
-import { useRpeEntries, useBatchCreateRpeEntries, useDeleteRpeEntry, type RpeEntry } from '@/lib/dev-api';
+import { useRpeEntries, useBatchCreateRpeEntries, useDeleteRpeEntry, useWellnessEntries, useBatchUpsertWellness, type RpeEntry } from '@/lib/dev-api';
 import {
-  computeSnapshot, weeklyLoadSeries, THRESHOLDS, STATUS_COLORS, sessionLoad,
+  computeSnapshot, weeklyLoadSeries, monotonyStrainSeries, THRESHOLDS, STATUS_COLORS, sessionLoad,
+  wellnessScore, readinessScore, ACWR_SWEET_SPOT, ACWR_DANGER,
 } from '@/lib/rpe-calc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,8 +15,88 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { format, subDays } from 'date-fns';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell, ReferenceLine } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell, ReferenceLine, LineChart, Line, Legend } from 'recharts';
 import { Activity, AlertTriangle, Trash2 } from 'lucide-react';
+
+function ScaleSlider({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] text-muted-foreground">{label}</span>
+        <span className="text-xs font-bold text-primary">{value}</span>
+      </div>
+      <input type="range" min={1} max={5} value={value} onChange={(e) => onChange(Number(e.target.value))} className="w-full accent-primary" />
+    </div>
+  );
+}
+
+function WellnessTab({ teamId }: { teamId: number }) {
+  const { t } = useLanguage();
+  const { toast } = useToast();
+  const { data: players } = useListPlayers(teamId);
+  const batchSave = useBatchUpsertWellness(teamId);
+
+  const [date, setDate] = React.useState(format(new Date(), 'yyyy-MM-dd'));
+  const [rows, setRows] = React.useState<Record<number, { sleepQuality: number; fatigue: number; soreness: number; mood: number }>>({});
+
+  const DEFAULT_ROW = { sleepQuality: 3, fatigue: 3, soreness: 3, mood: 3 };
+  const setRow = (playerId: number, patch: Partial<{ sleepQuality: number; fatigue: number; soreness: number; mood: number }>) => {
+    setRows((prev) => ({
+      ...prev,
+      [playerId]: { ...DEFAULT_ROW, ...prev[playerId], ...patch },
+    }));
+  };
+
+  const handleSave = () => {
+    const entries = Object.entries(rows).map(([playerId, r]) => ({ playerId: Number(playerId), ...r }));
+    if (entries.length === 0) return;
+    batchSave.mutate(
+      { date, entries },
+      {
+        onSuccess: (saved) => {
+          toast({ title: t('rpe.savedCount').replace('{n}', String(saved.length)) });
+          setRows({});
+        },
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' as any }),
+      },
+    );
+  };
+
+  if (!players || players.length === 0) {
+    return <p className="text-sm text-muted-foreground text-center py-10">{t('rpe.noPlayers')}</p>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        <Label className="text-xs">{t('rpe.date')}</Label>
+        <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      </div>
+      <p className="text-xs text-muted-foreground">{t('rpe.scale1to5')}</p>
+
+      <div className="space-y-2">
+        {players.map((p) => {
+          const row = rows[p.id] ?? { sleepQuality: 3, fatigue: 3, soreness: 3, mood: 3 };
+          return (
+            <div key={p.id} className="bg-card border rounded-xl p-3 space-y-2.5">
+              <span className="text-sm font-semibold truncate block">#{p.jerseyNumber} {p.name}</span>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                <ScaleSlider label={t('rpe.sleepQuality')} value={row.sleepQuality} onChange={(v) => setRow(p.id, { sleepQuality: v })} />
+                <ScaleSlider label={t('rpe.fatigue')} value={row.fatigue} onChange={(v) => setRow(p.id, { fatigue: v })} />
+                <ScaleSlider label={t('rpe.soreness')} value={row.soreness} onChange={(v) => setRow(p.id, { soreness: v })} />
+                <ScaleSlider label={t('rpe.mood')} value={row.mood} onChange={(v) => setRow(p.id, { mood: v })} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <Button className="w-full" disabled={batchSave.isPending} onClick={handleSave}>
+        {t('rpe.saveAll')}
+      </Button>
+    </div>
+  );
+}
 
 function LogTab({ teamId }: { teamId: number }) {
   const { t } = useLanguage();
@@ -138,6 +219,7 @@ function DashboardTab({ teamId }: { teamId: number }) {
 
   const from = format(subDays(new Date(), 70), 'yyyy-MM-dd');
   const { data: entries } = useRpeEntries(teamId, { playerId: playerId ?? undefined, from });
+  const { data: wellnessEntries } = useWellnessEntries(teamId, { playerId: playerId ?? undefined, from });
   const deleteEntry = useDeleteRpeEntry(teamId);
 
   if (!players || players.length === 0) {
@@ -147,7 +229,9 @@ function DashboardTab({ teamId }: { teamId: number }) {
   const list = entries ?? [];
   const snapshot = computeSnapshot(list, new Date());
   const series = weeklyLoadSeries(list, new Date(), 8);
+  const trendSeries = monotonyStrainSeries(list, new Date(), 8);
   const recent = [...list].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
+  const latestWellness = [...(wellnessEntries ?? [])].sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
 
   return (
     <div className="space-y-4">
@@ -171,7 +255,19 @@ function DashboardTab({ teamId }: { teamId: number }) {
         <StatCard label={t('rpe.twoWeekLoad')} value={String(snapshot.twoWeekLoad)} unit={t('rpe.au')} color={snapshot.twoWeekLoad > THRESHOLDS.twoWeekLoad ? STATUS_COLORS.high : undefined} />
         <StatCard label={t('rpe.monotony')} value={snapshot.monotony.toFixed(2)} color={snapshot.monotony > THRESHOLDS.monotony ? STATUS_COLORS.moderate : undefined} />
         <StatCard label={t('rpe.strain')} value={String(Math.round(snapshot.strain))} unit={t('rpe.au')} color={snapshot.strain > THRESHOLDS.strain ? STATUS_COLORS.high : undefined} />
+        <StatCard
+          label={t('rpe.acwr')}
+          value={snapshot.acwr === null ? '—' : snapshot.acwr.toFixed(2)}
+          color={snapshot.acwr !== null && snapshot.acwr > ACWR_DANGER ? STATUS_COLORS.high : snapshot.acwr !== null && (snapshot.acwr < ACWR_SWEET_SPOT[0] || snapshot.acwr > ACWR_SWEET_SPOT[1]) ? STATUS_COLORS.moderate : STATUS_COLORS.low}
+        />
+        {latestWellness && (
+          <>
+            <StatCard label={t('rpe.wellnessScore')} value={String(wellnessScore(latestWellness))} unit="/100" />
+            <StatCard label={t('rpe.readinessScore')} value={String(readinessScore(latestWellness))} unit="/100" />
+          </>
+        )}
       </div>
+      <p className="text-[11px] text-muted-foreground -mt-2">{t('rpe.acwrSweetSpot')}</p>
 
       <div className="space-y-2">
         {snapshot.alerts.length === 0 ? (
@@ -201,6 +297,24 @@ function DashboardTab({ teamId }: { teamId: number }) {
                 ))}
               </Bar>
             </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <h3 className="text-sm font-bold">{t('rpe.monotonyStrainTrend')}</h3>
+        <div className="h-40">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={trendSeries} margin={{ top: 4, right: 8, left: -22, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#332F27" vertical={false} />
+              <XAxis dataKey="weekStart" tick={{ fontSize: 10, fill: '#9C9483' }} tickFormatter={(v) => format(new Date(v), 'MM/dd')} />
+              <YAxis yAxisId="left" tick={{ fontSize: 10, fill: '#9C9483' }} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: '#9C9483' }} />
+              <Tooltip contentStyle={{ background: '#221F1A', border: '1px solid #332F27', fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Line yAxisId="left" type="monotone" dataKey="monotony" stroke="#E8B64C" name={t('rpe.monotony')} dot={false} strokeWidth={2} />
+              <Line yAxisId="right" type="monotone" dataKey="strain" stroke="#5BA8D9" name={t('rpe.strain')} dot={false} strokeWidth={2} />
+            </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
@@ -334,12 +448,14 @@ export function TrainingLoadPage() {
           <h1 className="text-2xl font-bold font-display">{t('rpe.title')}</h1>
         </div>
         <Tabs defaultValue="log">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="log">{t('rpe.tabLog')}</TabsTrigger>
+            <TabsTrigger value="wellness">{t('rpe.tabWellness')}</TabsTrigger>
             <TabsTrigger value="squad">{t('rpe.tabSquad')}</TabsTrigger>
             <TabsTrigger value="dashboard">{t('rpe.tabDashboard')}</TabsTrigger>
           </TabsList>
           <TabsContent value="log"><LogTab teamId={activeTeamId} /></TabsContent>
+          <TabsContent value="wellness"><WellnessTab teamId={activeTeamId} /></TabsContent>
           <TabsContent value="squad"><SquadTab teamId={activeTeamId} /></TabsContent>
           <TabsContent value="dashboard"><DashboardTab teamId={activeTeamId} /></TabsContent>
         </Tabs>

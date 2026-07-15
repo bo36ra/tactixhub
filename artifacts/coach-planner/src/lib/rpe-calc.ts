@@ -80,6 +80,7 @@ export interface LoadSnapshot {
   twoWeekLoad: number;
   monotony: number;
   strain: number;
+  acwr: number | null;
   alerts: LoadAlert[];
   status: 'low' | 'moderate' | 'high' | 'very_high';
 }
@@ -108,6 +109,7 @@ export function computeSnapshot(entries: RpeEntry[], refDate: Date): LoadSnapsho
   const twoWeekLoad = rollingLoad(dailyLoads, refDate, 14);
   const monotonyValue = monotony(thisWeek);
   const strainValue = strain(weeklyLoad, monotonyValue);
+  const acwrValue = acwr(dailyLoads, refDate);
 
   const alerts: LoadAlert[] = [];
   if (weeklyLoad > THRESHOLDS.weeklyLoad) alerts.push({ key: 'weeklyLoad', severity: 'high' });
@@ -115,6 +117,7 @@ export function computeSnapshot(entries: RpeEntry[], refDate: Date): LoadSnapsho
   if (weeklyLoad - prevWeeklyLoad > THRESHOLDS.weekOverWeekSpike) alerts.push({ key: 'spike', severity: 'high' });
   if (monotonyValue > THRESHOLDS.monotony) alerts.push({ key: 'monotony', severity: 'moderate' });
   if (strainValue > THRESHOLDS.strain) alerts.push({ key: 'strain', severity: 'high' });
+  if (acwrValue !== null && acwrValue > ACWR_DANGER) alerts.push({ key: 'acwr', severity: 'high' });
 
   const highCount = alerts.filter((a) => a.severity === 'high').length;
   const total = alerts.length;
@@ -123,7 +126,7 @@ export function computeSnapshot(entries: RpeEntry[], refDate: Date): LoadSnapsho
   else if (total >= 2 || highCount >= 1) status = 'high';
   else if (total >= 1) status = 'moderate';
 
-  return { dailyLoad, weeklyLoad, prevWeeklyLoad, twoWeekLoad, monotony: monotonyValue, strain: strainValue, alerts, status };
+  return { dailyLoad, weeklyLoad, prevWeeklyLoad, twoWeekLoad, monotony: monotonyValue, strain: strainValue, acwr: acwrValue, alerts, status };
 }
 
 // Weekly load series for the last N weeks (for the bar chart), oldest first.
@@ -145,3 +148,52 @@ export const STATUS_COLORS: Record<LoadSnapshot['status'], string> = {
   high: '#E08A3E',
   very_high: '#D96B5B',
 };
+
+// ---- Acute:Chronic Workload Ratio ----
+// Acute = last 7 days' total load. Chronic = last 28 days' total load,
+// averaged to a weekly figure (divided by 4) so both sides are in the
+// same "load per week" unit. Sweet spot 0.8-1.3, danger commonly cited
+// above ~1.5. ACWR is a useful trend signal but is increasingly
+// criticized in the sports-science literature for statistical
+// artifacts (acute and chronic share data, "mathematical coupling") —
+// treat it as one input among several, not a standalone verdict.
+export function acwr(dailyLoads: Map<string, number>, refDate: Date): number | null {
+  const acute = rollingLoad(dailyLoads, refDate, 7);
+  const chronic = rollingLoad(dailyLoads, refDate, 28) / 4;
+  if (chronic === 0) return null;
+  return acute / chronic;
+}
+export const ACWR_SWEET_SPOT: [number, number] = [0.8, 1.3];
+export const ACWR_DANGER = 1.5;
+
+// ---- Wellness / Readiness (Hooper-index style) ----
+// Each of sleep/fatigue/soreness/mood is rated 1 (worst) - 5 (best).
+export interface WellnessEntryLike {
+  sleepQuality: number; fatigue: number; soreness: number; mood: number;
+}
+// Wellness Score: all four dimensions, 0-100 (100 = feeling great).
+export function wellnessScore(e: WellnessEntryLike): number {
+  const avg = (e.sleepQuality + e.fatigue + e.soreness + e.mood) / 4;
+  return Math.round(((avg - 1) / 4) * 100);
+}
+// Readiness Score: sleep + fatigue + soreness only (per the brief —
+// mood is tracked but isn't treated as a physical-readiness input),
+// 0-100 (100 = fully ready).
+export function readinessScore(e: Omit<WellnessEntryLike, 'mood'>): number {
+  const avg = (e.sleepQuality + e.fatigue + e.soreness) / 3;
+  return Math.round(((avg - 1) / 4) * 100);
+}
+
+// ---- Monotony/Strain trend (last N weeks) ----
+export function monotonyStrainSeries(entries: RpeEntry[], refDate: Date, weeks: number) {
+  const dailyLoads = dailyLoadsMap(entries);
+  const out: { weekStart: string; monotony: number; strain: number }[] = [];
+  for (let w = weeks - 1; w >= 0; w--) {
+    const weekRef = subDays(refDate, w * 7);
+    const monday = startOfWeek(weekRef, { weekStartsOn: 1 });
+    const weekLoads = weekDailyLoads(dailyLoads, weekRef);
+    const m = monotony(weekLoads);
+    out.push({ weekStart: format(monday, 'yyyy-MM-dd'), monotony: m, strain: strain(sum(weekLoads), m) });
+  }
+  return out;
+}

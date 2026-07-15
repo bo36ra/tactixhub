@@ -246,6 +246,31 @@ export function useDeleteRpeEntry(teamId: number) {
   });
 }
 
+export interface WellnessEntry {
+  id: number; teamId: number; playerId: number; date: string;
+  sleepQuality: number; fatigue: number; soreness: number; mood: number; notes: string | null; createdAt: string;
+}
+export function useWellnessEntries(teamId: number, params?: { playerId?: number; from?: string; to?: string }) {
+  const qs = new URLSearchParams();
+  if (params?.playerId) qs.set('playerId', String(params.playerId));
+  if (params?.from) qs.set('from', params.from);
+  if (params?.to) qs.set('to', params.to);
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return useQuery({
+    queryKey: ['wellness-entries', teamId, params?.playerId ?? null, params?.from ?? null, params?.to ?? null],
+    enabled: !!teamId,
+    queryFn: () => customFetch<WellnessEntry[]>(`/api/teams/${teamId}/wellness-entries${suffix}`),
+  });
+}
+export function useBatchUpsertWellness(teamId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { date: string; entries: { playerId: number; sleepQuality: number; fatigue: number; soreness: number; mood: number; notes?: string }[] }) =>
+      customFetch<WellnessEntry[]>(`/api/teams/${teamId}/wellness-entries/batch`, { method: 'POST', body: JSON.stringify(input) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['wellness-entries', teamId] }),
+  });
+}
+
 export function useInjuries(teamId: number) {
   return useQuery({ queryKey: ['injuries', teamId], queryFn: () => customFetch<Injury[]>(`/api/teams/${teamId}/injuries`) });
 }
