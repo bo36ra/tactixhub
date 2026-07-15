@@ -4,6 +4,7 @@ import { useLanguage } from '../lib/i18n';
 import { useTeam } from '../lib/team-context';
 import { useListTeams } from '@workspace/api-client-react';
 import { useAccessStatus } from '../lib/dev-api';
+import { useIsPro } from '../lib/feature-gate';
 import { 
   LayoutDashboard, 
   ClipboardList,
@@ -49,6 +50,7 @@ export function Sidebar() {
   const { signOut } = useClerk();
 
   const { data: access } = useAccessStatus();
+  const isPro = useIsPro();
 
   const navSections = [
     {
@@ -62,7 +64,7 @@ export function Sidebar() {
       links: [
         { href: '/players', label: t('nav.players'), icon: Users },
         { href: '/attendance', label: t('nav.attendance'), icon: CalendarCheck },
-        { href: '/training-load', label: t('nav.rpe'), icon: Activity },
+        { href: '/training-load', label: t('nav.rpe'), icon: Activity, pro: true },
       ],
     },
     {
@@ -183,10 +185,16 @@ export function Sidebar() {
               {section.links.map((link) => {
                 const active = location === link.href;
                 const Icon = link.icon;
+                const showProBadge = (link as { pro?: boolean }).pro && !isPro;
                 return (
                   <Link key={link.href} href={link.href} className={navLinkClass(active)}>
                     <Icon className="h-4 w-4 shrink-0" />
-                    {link.label}
+                    <span className="flex-1">{link.label}</span>
+                    {showProBadge && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/15 text-primary shrink-0">
+                        {t('feature.proBadge')}
+                      </span>
+                    )}
                   </Link>
                 );
               })}

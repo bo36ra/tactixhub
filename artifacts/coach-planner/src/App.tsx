@@ -47,6 +47,7 @@ const queryClient = new QueryClient({
 
 import { LanguageProvider } from '@/lib/i18n';
 import { TeamProvider } from '@/lib/team-context';
+import { ProPage } from '@/lib/feature-gate';
 import { ApiKeepAlive } from '@/components/api-keep-alive';
 
 import { lazy, Suspense } from 'react';
@@ -194,6 +195,22 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   return <Component />;
 }
 
+// Same as ProtectedRoute but also requires the active team to be on the
+// Pro tier (the site owner always passes — see useIsPro). Non-Pro users
+// see the locked-state card instead of the page. Every Pro grant is
+// currently a manual comp/trial the owner flips from /admin, so this is
+// how a trial or a trusted-coach freebie is delivered too.
+function ProRoute({ component: Component }: { component: React.ComponentType }) {
+  const { isLoaded, isSignedIn } = useAuth();
+  if (!isLoaded) return <PageLoadingFallback />;
+  if (!isSignedIn) return <Redirect to="/" />;
+  return (
+    <ProPage>
+      <Component />
+    </ProPage>
+  );
+}
+
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
 
@@ -232,9 +249,9 @@ function ClerkProviderWithRoutes() {
                 <Route path="/readiness"><ProtectedRoute component={Readiness} /></Route>
                 <Route path="/calendar"><ProtectedRoute component={CalendarPage} /></Route>
                 <Route path="/availability"><ProtectedRoute component={AvailabilityPage} /></Route>
-                <Route path="/training-plan/:trainingId"><ProtectedRoute component={TrainingPlanPage} /></Route>
+                <Route path="/training-plan/:trainingId"><ProRoute component={TrainingPlanPage} /></Route>
                 <Route path="/admin"><ProtectedRoute component={AdminPage} /></Route>
-                <Route path="/training-load"><ProtectedRoute component={TrainingLoadPage} /></Route>
+                <Route path="/training-load"><ProRoute component={TrainingLoadPage} /></Route>
                 <Route path="/notes"><ProtectedRoute component={Notes} /></Route>
                 <Route path="/reports"><ProtectedRoute component={Reports} /></Route>
                 <Route path="/tactics"><ProtectedRoute component={Tactics} /></Route>
