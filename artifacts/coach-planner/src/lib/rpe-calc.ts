@@ -184,7 +184,30 @@ export function readinessScore(e: Omit<WellnessEntryLike, 'mood'>): number {
   return Math.round(((avg - 1) / 4) * 100);
 }
 
-// ---- Monotony/Strain trend (last N weeks) ----
+// ---- Workload Forecast ----
+// Projects next week's load from what's actually scheduled: the coach's
+// upcoming trainings/matches (their planned durations) times this
+// player's own recent average RPE. This is more grounded than a pure
+// statistical trend extrapolation because it reacts to the real
+// schedule (e.g. a congested run of matches shows up immediately).
+export interface ForecastResult {
+  forecastLoad: number;
+  avgRpe: number;
+  scheduledMinutes: number;
+  exceedsThreshold: boolean;
+}
+export function forecastNextWeek(recentEntries: RpeEntry[], upcomingDurations: number[]): ForecastResult | null {
+  if (recentEntries.length === 0 || upcomingDurations.length === 0) return null;
+  const recentRpes = recentEntries
+    .slice()
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 10)
+    .map((e) => e.rpe);
+  const avgRpe = mean(recentRpes);
+  const scheduledMinutes = sum(upcomingDurations);
+  const forecastLoad = Math.round(avgRpe * scheduledMinutes);
+  return { forecastLoad, avgRpe, scheduledMinutes, exceedsThreshold: forecastLoad > THRESHOLDS.weeklyLoad };
+}
 export function monotonyStrainSeries(entries: RpeEntry[], refDate: Date, weeks: number) {
   const dailyLoads = dailyLoadsMap(entries);
   const out: { weekStart: string; monotony: number; strain: number }[] = [];

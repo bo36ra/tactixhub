@@ -3,10 +3,10 @@ import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
 import { useListPlayers } from '@workspace/api-client-react';
-import { useRpeEntries, useBatchCreateRpeEntries, useDeleteRpeEntry, useWellnessEntries, useBatchUpsertWellness, type RpeEntry } from '@/lib/dev-api';
+import { useRpeEntries, useBatchCreateRpeEntries, useDeleteRpeEntry, useWellnessEntries, useBatchUpsertWellness, useTrainings, type RpeEntry } from '@/lib/dev-api';
 import {
   computeSnapshot, weeklyLoadSeries, monotonyStrainSeries, THRESHOLDS, STATUS_COLORS, sessionLoad,
-  wellnessScore, readinessScore, ACWR_SWEET_SPOT, ACWR_DANGER,
+  wellnessScore, readinessScore, ACWR_SWEET_SPOT, ACWR_DANGER, forecastNextWeek,
 } from '@/lib/rpe-calc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { format, subDays } from 'date-fns';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell, ReferenceLine, LineChart, Line, Legend } from 'recharts';
-import { Activity, AlertTriangle, Trash2 } from 'lucide-react';
+import { Activity, AlertTriangle, Trash2, Download, Printer } from 'lucide-react';
 
 function ScaleSlider({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
@@ -220,6 +220,7 @@ function DashboardTab({ teamId }: { teamId: number }) {
   const from = format(subDays(new Date(), 70), 'yyyy-MM-dd');
   const { data: entries } = useRpeEntries(teamId, { playerId: playerId ?? undefined, from });
   const { data: wellnessEntries } = useWellnessEntries(teamId, { playerId: playerId ?? undefined, from });
+  const { data: allTrainings } = useTrainings(teamId);
   const deleteEntry = useDeleteRpeEntry(teamId);
 
   if (!players || players.length === 0) {
@@ -232,6 +233,13 @@ function DashboardTab({ teamId }: { teamId: number }) {
   const trendSeries = monotonyStrainSeries(list, new Date(), 8);
   const recent = [...list].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
   const latestWellness = [...(wellnessEntries ?? [])].sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
+
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const nextWeekStr = format(subDays(new Date(), -7), 'yyyy-MM-dd');
+  const upcomingDurations = (allTrainings ?? [])
+    .filter((tr) => tr.date > todayStr && tr.date <= nextWeekStr && tr.focus !== 'rest_day' && tr.durationMinutes)
+    .map((tr) => tr.durationMinutes as number);
+  const forecast = forecastNextWeek(list, upcomingDurations);
 
   return (
     <div className="space-y-4">
@@ -320,6 +328,28 @@ function DashboardTab({ teamId }: { teamId: number }) {
       </div>
 
       <div className="space-y-2">
+        <h3 className="text-sm font-bold">{t('rpe.forecast')}</h3>
+        {forecast === null ? (
+          <p className="text-xs text-muted-foreground">{t('rpe.forecastNoData')}</p>
+        ) : (
+          <div className="rounded-xl p-3 space-y-1" style={{ backgroundColor: (forecast.exceedsThreshold ? STATUS_COLORS.high : STATUS_COLORS.low) + '1a' }}>
+            <p className="text-xl font-extrabold" style={{ color: forecast.exceedsThreshold ? STATUS_COLORS.high : STATUS_COLORS.low }} dir="ltr">
+              {forecast.forecastLoad} {t('rpe.au')}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {t('rpe.forecastBasis').replace('{min}', String(forecast.scheduledMinutes)).replace('{rpe}', forecast.avgRpe.toFixed(1))}
+            </p>
+            {forecast.exceedsThreshold && (
+              <div className="flex items-center gap-1.5 pt-1">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" style={{ color: STATUS_COLORS.high }} />
+                <span className="text-xs" style={{ color: STATUS_COLORS.high }}>{t('rpe.forecastWarning')}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-2">
         <h3 className="text-sm font-bold">{t('rpe.recentLog')}</h3>
         {recent.length === 0 && <p className="text-xs text-muted-foreground">{t('rpe.noEntries')}</p>}
         {recent.map((e: RpeEntry) => (
@@ -340,7 +370,7 @@ function DashboardTab({ teamId }: { teamId: number }) {
 }
 
 function SquadTab({ teamId }: { teamId: number }) {
-  const { t } = useLanguage();
+  const { t, isRtl } = useLanguage();
   const { data: players } = useListPlayers(teamId);
   const from = format(subDays(new Date(), 70), 'yyyy-MM-dd');
   const { data: allEntries } = useRpeEntries(teamId, { from });
@@ -359,6 +389,23 @@ function SquadTab({ teamId }: { teamId: number }) {
       })
       .sort((a, b) => b.snapshot.weeklyLoad - a.snapshot.weeklyLoad);
   }, [players, allEntries]);
+
+  const handleExportCsv = () => {
+    const header = ['Player', 'Jersey', 'Weekly Load (AU)', 'Two-Week Load (AU)', 'Monotony', 'Strain', 'ACWR', 'Status', 'Alerts'];
+    const lines = rows.map(({ player, snapshot }) => [
+      player.name, player.jerseyNumber, snapshot.weeklyLoad, snapshot.twoWeekLoad,
+      snapshot.monotony.toFixed(2), Math.round(snapshot.strain), snapshot.acwr === null ? '' : snapshot.acwr.toFixed(2),
+      snapshot.status, snapshot.alerts.length,
+    ]);
+    const csv = [header, ...lines].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `training-load-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   if (!players || players.length === 0) {
     return <p className="text-sm text-muted-foreground text-center py-10">{t('rpe.noPlayers')}</p>;
@@ -379,58 +426,101 @@ function SquadTab({ teamId }: { teamId: number }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-4 gap-2">
-        {(['low', 'moderate', 'high', 'very_high'] as const).map((s) => (
-          <div key={s} className="rounded-xl p-2.5 text-center" style={{ backgroundColor: STATUS_COLORS[s] + '1a' }}>
-            <p className="text-xl font-extrabold" style={{ color: STATUS_COLORS[s] }}>{summary[s]}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">{t(`rpe.summary${s === 'low' ? 'Low' : s === 'moderate' ? 'Moderate' : s === 'high' ? 'High' : 'VeryHigh'}`)}</p>
-          </div>
-        ))}
+      <div className="flex items-center gap-2 print:hidden">
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={handleExportCsv}>
+          <Download className="w-4 h-4" /> {t('rpe.exportCsv')}
+        </Button>
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => window.print()}>
+          <Printer className="w-4 h-4" /> {t('rpe.printReport')}
+        </Button>
       </div>
 
-      {!hasAnyData ? (
-        <p className="text-sm text-muted-foreground text-center py-10">{t('rpe.noData')}</p>
-      ) : (
-        <>
-          <div className="space-y-2">
-            <h3 className="text-sm font-bold">{t('rpe.tabSquad')}</h3>
-            <p className="text-xs text-muted-foreground">{t('rpe.squadSortedByLoad')}</p>
-            <div className="space-y-1.5">
-              {rows.map(({ player, snapshot }) => (
-                <div key={player.id} className="flex items-center gap-3 bg-card border rounded-lg px-3 py-2.5" style={{ borderInlineStartColor: STATUS_COLORS[snapshot.status], borderInlineStartWidth: 4 }}>
-                  <span className="text-sm font-semibold flex-1 min-w-0 truncate">#{player.jerseyNumber} {player.name}</span>
-                  {snapshot.alerts.length > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0" style={{ backgroundColor: STATUS_COLORS[snapshot.status] + '22', color: STATUS_COLORS[snapshot.status] }}>
-                      {t('rpe.alertsCount').replace('{n}', String(snapshot.alerts.length))}
-                    </span>
-                  )}
-                  <span className="text-sm font-mono font-bold shrink-0" dir="ltr" style={{ color: STATUS_COLORS[snapshot.status] }}>{snapshot.weeklyLoad} {t('rpe.au')}</span>
-                </div>
-              ))}
+      <div className="print:hidden space-y-4">
+        <div className="grid grid-cols-4 gap-2">
+          {(['low', 'moderate', 'high', 'very_high'] as const).map((s) => (
+            <div key={s} className="rounded-xl p-2.5 text-center" style={{ backgroundColor: STATUS_COLORS[s] + '1a' }}>
+              <p className="text-xl font-extrabold" style={{ color: STATUS_COLORS[s] }}>{summary[s]}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{t(`rpe.summary${s === 'low' ? 'Low' : s === 'moderate' ? 'Moderate' : s === 'high' ? 'High' : 'VeryHigh'}`)}</p>
             </div>
-          </div>
+          ))}
+        </div>
 
-          <div className="space-y-2">
-            <h3 className="text-sm font-bold">{t('rpe.comparisonChart')}</h3>
-            <div className="h-52">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 4, right: 8, left: -22, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#332F27" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#9C9483' }} />
-                  <YAxis tick={{ fontSize: 10, fill: '#9C9483' }} />
-                  <Tooltip contentStyle={{ background: '#221F1A', border: '1px solid #332F27', fontSize: 12 }} />
-                  <ReferenceLine y={THRESHOLDS.weeklyLoad} stroke="#D96B5B" strokeDasharray="4 4" />
-                  <Bar dataKey="load" radius={[4, 4, 0, 0]}>
-                    {chartData.map((d, i) => (
-                      <Cell key={i} fill={STATUS_COLORS[d.status as keyof typeof STATUS_COLORS]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+        {!hasAnyData ? (
+          <p className="text-sm text-muted-foreground text-center py-10">{t('rpe.noData')}</p>
+        ) : (
+          <>
+            <div className="space-y-2">
+              <h3 className="text-sm font-bold">{t('rpe.tabSquad')}</h3>
+              <p className="text-xs text-muted-foreground">{t('rpe.squadSortedByLoad')}</p>
+              <div className="space-y-1.5">
+                {rows.map(({ player, snapshot }) => (
+                  <div key={player.id} className="flex items-center gap-3 bg-card border rounded-lg px-3 py-2.5" style={{ borderInlineStartColor: STATUS_COLORS[snapshot.status], borderInlineStartWidth: 4 }}>
+                    <span className="text-sm font-semibold flex-1 min-w-0 truncate">#{player.jerseyNumber} {player.name}</span>
+                    {snapshot.alerts.length > 0 && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0" style={{ backgroundColor: STATUS_COLORS[snapshot.status] + '22', color: STATUS_COLORS[snapshot.status] }}>
+                        {t('rpe.alertsCount').replace('{n}', String(snapshot.alerts.length))}
+                      </span>
+                    )}
+                    <span className="text-sm font-mono font-bold shrink-0" dir="ltr" style={{ color: STATUS_COLORS[snapshot.status] }}>{snapshot.weeklyLoad} {t('rpe.au')}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        </>
-      )}
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-bold">{t('rpe.comparisonChart')}</h3>
+              <div className="h-52">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 4, right: 8, left: -22, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#332F27" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#9C9483' }} />
+                    <YAxis tick={{ fontSize: 10, fill: '#9C9483' }} />
+                    <Tooltip contentStyle={{ background: '#221F1A', border: '1px solid #332F27', fontSize: 12 }} />
+                    <ReferenceLine y={THRESHOLDS.weeklyLoad} stroke="#D96B5B" strokeDasharray="4 4" />
+                    <Bar dataKey="load" radius={[4, 4, 0, 0]}>
+                      {chartData.map((d, i) => (
+                        <Cell key={i} fill={STATUS_COLORS[d.status as keyof typeof STATUS_COLORS]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Printable report */}
+      <div className="hidden print:block text-black" dir={isRtl ? 'rtl' : 'ltr'}>
+        <h1 className="text-xl font-bold mb-1">{t('rpe.reportTitle')}</h1>
+        <p className="text-xs text-gray-600 mb-4">{t('rpe.reportGenerated')}: {format(new Date(), 'yyyy-MM-dd')}</p>
+        <table className="w-full text-xs border-collapse">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="border border-gray-300 p-1.5 text-start">{t('common.player')}</th>
+              <th className="border border-gray-300 p-1.5">{t('rpe.weeklyLoad')}</th>
+              <th className="border border-gray-300 p-1.5">{t('rpe.twoWeekLoad')}</th>
+              <th className="border border-gray-300 p-1.5">{t('rpe.monotony')}</th>
+              <th className="border border-gray-300 p-1.5">{t('rpe.strain')}</th>
+              <th className="border border-gray-300 p-1.5">{t('rpe.acwr')}</th>
+              <th className="border border-gray-300 p-1.5">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ player, snapshot }) => (
+              <tr key={player.id}>
+                <td className="border border-gray-300 p-1.5">#{player.jerseyNumber} {player.name}</td>
+                <td className="border border-gray-300 p-1.5 text-center">{snapshot.weeklyLoad}</td>
+                <td className="border border-gray-300 p-1.5 text-center">{snapshot.twoWeekLoad}</td>
+                <td className="border border-gray-300 p-1.5 text-center">{snapshot.monotony.toFixed(2)}</td>
+                <td className="border border-gray-300 p-1.5 text-center">{Math.round(snapshot.strain)}</td>
+                <td className="border border-gray-300 p-1.5 text-center">{snapshot.acwr === null ? '—' : snapshot.acwr.toFixed(2)}</td>
+                <td className="border border-gray-300 p-1.5 text-center">{t(`rpe.status.${snapshot.status}`)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
