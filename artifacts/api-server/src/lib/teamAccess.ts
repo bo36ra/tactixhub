@@ -1,5 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { db, teamsTable, teamMembersTable, type TeamRole } from "@workspace/db";
+import { getClerkUserInfo } from "./clerkUsers";
+import { isSuperAdmin } from "./superAdmin";
 
 // The app moved from "one team = one user" to shared staff access via
 // team_members. Every route guard now asks "is this user a member of this
@@ -30,6 +32,21 @@ export async function getTeamRole(userId: string, teamId: number): Promise<TeamR
 // Any active member (any role) can read and write team data.
 export async function verifyTeamAccess(userId: string, teamId: number): Promise<boolean> {
   return (await getTeamRole(userId, teamId)) !== null;
+}
+
+// Pro-gated feature access: team membership AND (the team is on the
+// Pro tier OR the caller is the site's super admin, who always sees
+// every feature to support/demo the platform). This is the real
+// enforcement — the frontend's ProRoute/ProPage is only a UX nicety
+// that hides the button; without this, a free-tier user could still
+// hit a Pro API directly.
+export async function verifyProTeam(userId: string, teamId: number): Promise<boolean> {
+  const hasAccess = await verifyTeamAccess(userId, teamId);
+  if (!hasAccess) return false;
+  const { email } = await getClerkUserInfo(userId);
+  if (isSuperAdmin(email)) return true;
+  const [team] = await db.select({ tier: teamsTable.tier }).from(teamsTable).where(eq(teamsTable.id, teamId));
+  return team?.tier === "pro";
 }
 
 // Owner-only actions: deleting the team, managing members.
