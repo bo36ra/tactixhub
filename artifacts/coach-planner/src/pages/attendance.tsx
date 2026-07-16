@@ -15,10 +15,10 @@ import { useToast } from '@/hooks/use-toast';
 
 // Statuses differ by session type: trainings track lateness with/without
 // an excuse; match days track the call-up (starter / sub / not called).
-export const TRAINING_STATUSES = ['present', 'late_excused', 'late_unexcused', 'absent'] as const;
-export const MATCH_STATUSES = ['starter', 'substitute', 'not_called'] as const;
+export const TRAINING_STATUSES = ['present', 'late_excused', 'late_unexcused', 'absent', 'excused_absence', 'injured', 'called_up', 'national_duty'] as const;
+export const MATCH_STATUSES = ['starter', 'substitute', 'not_called', 'excused_absence', 'injured', 'called_up', 'national_duty'] as const;
 // Statuses where the coach usually wants to record the reason
-export const NOTE_STATUSES = ['late_excused', 'late_unexcused', 'absent', 'not_called'];
+export const NOTE_STATUSES = ['late_excused', 'late_unexcused', 'absent', 'not_called', 'excused_absence', 'injured', 'called_up', 'national_duty'];
 
 export const STATUS_STYLES: Record<string, string> = {
   present: 'bg-green-500/15 text-green-500 border-green-500/30',
@@ -28,6 +28,10 @@ export const STATUS_STYLES: Record<string, string> = {
   starter: 'bg-primary/15 text-primary border-primary/30',
   substitute: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
   not_called: 'bg-white/[0.06] text-muted-foreground border-white/10',
+  excused_absence: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  injured: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
+  called_up: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+  national_duty: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
 };
 
 export function Attendance() {

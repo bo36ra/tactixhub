@@ -19,6 +19,10 @@ const VALID_STATUSES = [
   "starter",
   "substitute",
   "not_called",
+  "called_up",
+  "national_duty",
+  "injured",
+  "excused_absence",
 ];
 const PRESENT_STATUSES = ["present", "late_excused", "late_unexcused", "starter", "substitute"];
 
