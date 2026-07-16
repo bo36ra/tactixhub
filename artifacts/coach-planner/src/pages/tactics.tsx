@@ -17,7 +17,7 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Trash2, Undo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil } from 'lucide-react';
+import { Trash2, Undo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus } from 'lucide-react';
 
 // ---------------------------------------------------------------- board
 
@@ -40,6 +40,7 @@ const DEFAULT_MARKERS: BoardMarker[] = [
 const emptyBoard = (): BoardData => ({
   markers: DEFAULT_MARKERS.map((m) => ({ ...m })),
   arrows: [],
+  lines: [],
   drawings: [],
   frames: [],
   notes: '',
@@ -50,7 +51,7 @@ function TacticBoard({
 }: {
   board: BoardData;
   setBoard: (b: BoardData) => void;
-  mode: 'move' | 'arrow' | 'pen' | 'erase';
+  mode: 'move' | 'arrow' | 'line' | 'pen' | 'erase';
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragId = useRef<string | null>(null);
@@ -77,12 +78,16 @@ function TacticBoard({
         const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / len2));
         return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
       };
-      let bestKind: 'arrow' | 'drawing' | null = null;
+      let bestKind: 'arrow' | 'line' | 'drawing' | null = null;
       let bestIdx = -1;
       let bestDist = 5; // tap tolerance in pitch percent units
       board.arrows.forEach((a, i) => {
         const d = distToSeg(p.x, p.y, a.x1, a.y1, a.x2, a.y2);
         if (d < bestDist) { bestDist = d; bestKind = 'arrow'; bestIdx = i; }
+      });
+      (board.lines ?? []).forEach((l, i) => {
+        const d = distToSeg(p.x, p.y, l.x1, l.y1, l.x2, l.y2);
+        if (d < bestDist) { bestDist = d; bestKind = 'line'; bestIdx = i; }
       });
       (board.drawings ?? []).forEach((dr, i) => {
         for (let j = 0; j < dr.points.length - 1; j++) {
@@ -92,13 +97,15 @@ function TacticBoard({
       });
       if (bestKind === 'arrow') {
         setBoard({ ...board, arrows: board.arrows.filter((_, i) => i !== bestIdx) });
+      } else if (bestKind === 'line') {
+        setBoard({ ...board, lines: (board.lines ?? []).filter((_, i) => i !== bestIdx) });
       } else if (bestKind === 'drawing') {
         setBoard({ ...board, drawings: (board.drawings ?? []).filter((_, i) => i !== bestIdx) });
       }
     } else if (mode === 'pen') {
       penPath.current = [p];
       setPenPreview([p]);
-    } else if (mode === 'arrow') {
+    } else if (mode === 'arrow' || mode === 'line') {
       arrowStart.current = p;
       setPreview({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
     } else {
@@ -122,7 +129,7 @@ function TacticBoard({
         penPath.current = [...penPath.current, p];
         setPenPreview(penPath.current);
       }
-    } else if (mode === 'arrow' && arrowStart.current) {
+    } else if ((mode === 'arrow' || mode === 'line') && arrowStart.current) {
       const p = toPct(e);
       setPreview({ x1: arrowStart.current.x, y1: arrowStart.current.y, x2: p.x, y2: p.y });
     } else if (dragId.current) {
@@ -142,11 +149,15 @@ function TacticBoard({
       penPath.current = null;
       setPenPreview([]);
     }
-    if (mode === 'arrow' && arrowStart.current) {
+    if ((mode === 'arrow' || mode === 'line') && arrowStart.current) {
       const p = toPct(e);
       const a = arrowStart.current;
       if (Math.hypot(p.x - a.x, p.y - a.y) > 4) {
-        setBoard({ ...board, arrows: [...board.arrows, { x1: a.x, y1: a.y, x2: p.x, y2: p.y }] });
+        if (mode === 'arrow') {
+          setBoard({ ...board, arrows: [...board.arrows, { x1: a.x, y1: a.y, x2: p.x, y2: p.y }] });
+        } else {
+          setBoard({ ...board, lines: [...(board.lines ?? []), { x1: a.x, y1: a.y, x2: p.x, y2: p.y }] });
+        }
       }
       arrowStart.current = null;
       setPreview(null);
@@ -187,6 +198,12 @@ function TacticBoard({
           points={penPreview.map((p) => `${p.x},${p.y * 1.4}`).join(' ')} />
       )}
 
+      {/* zone-divider lines (thirds, channels, or freehand splits) */}
+      {(board.lines ?? []).map((l, i) => (
+        <line key={`ln${i}`} x1={l.x1} y1={l.y1 * 1.4} x2={l.x2} y2={l.y2 * 1.4}
+          stroke="rgba(255,255,255,0.65)" strokeWidth="0.6" strokeDasharray="3 2" />
+      ))}
+
       {/* arrows */}
       <defs>
         <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="4.5" refY="3" orient="auto">
@@ -197,7 +214,11 @@ function TacticBoard({
         <line key={i} x1={a.x1} y1={a.y1 * 1.4} x2={a.x2} y2={a.y2 * 1.4}
           stroke="#FFD84D" strokeWidth="1.1" strokeDasharray="2 2" markerEnd="url(#arrowhead)" />
       ))}
-      {preview && (
+      {preview && mode === 'line' && (
+        <line x1={preview.x1} y1={preview.y1 * 1.4} x2={preview.x2} y2={preview.y2 * 1.4}
+          stroke="rgba(255,255,255,0.65)" strokeWidth="0.6" strokeDasharray="3 2" opacity="0.8" />
+      )}
+      {preview && mode === 'arrow' && (
         <line x1={preview.x1} y1={preview.y1 * 1.4} x2={preview.x2} y2={preview.y2 * 1.4}
           stroke="#FFD84D" strokeWidth="1.1" strokeDasharray="2 2" opacity="0.6" markerEnd="url(#arrowhead)" />
       )}
@@ -237,7 +258,7 @@ function BoardsTab({
   const [editing, setEditing] = useState<{ id?: number; name: string; matchId: number | null } | null>(null);
   const [board, setBoard] = useState<BoardData>(emptyBoard());
   // (setBoard supports functional updates natively; playback relies on it)
-  const [mode, setMode] = useState<'move' | 'arrow' | 'pen' | 'erase'>('move');
+  const [mode, setMode] = useState<'move' | 'arrow' | 'line' | 'pen' | 'erase'>('move');
   const [playing, setPlaying] = useState(false);
   const animRef = useRef<number | null>(null);
 
@@ -351,14 +372,18 @@ function BoardsTab({
           <Button size="sm" variant={mode === 'arrow' ? 'default' : 'secondary'} onClick={() => setMode('arrow')}>
             {t('tactics.modeArrow')}
           </Button>
+          <Button size="sm" variant={mode === 'line' ? 'default' : 'secondary'} onClick={() => setMode('line')}>
+            <Minus className="w-4 h-4 me-1" />{t('tactics.modeLine')}
+          </Button>
           <Button size="sm" variant={mode === 'pen' ? 'default' : 'secondary'} onClick={() => setMode('pen')}>
             <Pencil className="w-4 h-4 me-1" />{t('tactics.modePen')}
           </Button>
           <Button size="sm" variant="secondary"
-            onClick={() =>
-              mode === 'pen'
-                ? setBoard({ ...board, drawings: (board.drawings ?? []).slice(0, -1) })
-                : setBoard({ ...board, arrows: board.arrows.slice(0, -1) })}>
+            onClick={() => {
+              if (mode === 'pen') setBoard({ ...board, drawings: (board.drawings ?? []).slice(0, -1) });
+              else if (mode === 'line') setBoard({ ...board, lines: (board.lines ?? []).slice(0, -1) });
+              else setBoard({ ...board, arrows: board.arrows.slice(0, -1) });
+            }}>
             <Undo2 className="w-4 h-4" />
           </Button>
           <Button size="sm" variant={mode === 'erase' ? 'default' : 'secondary'} onClick={() => setMode('erase')}>
@@ -366,6 +391,38 @@ function BoardsTab({
           </Button>
           <Button size="sm" variant="secondary" onClick={() => setBoard(emptyBoard())}>
             {t('tactics.clearAll')}
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">{t('tactics.zoneTemplates')}:</span>
+          <Button
+            size="sm" variant="outline"
+            onClick={() => setBoard({
+              ...board,
+              lines: [
+                ...(board.lines ?? []),
+                { x1: 3, y1: 33.33, x2: 97, y2: 33.33 },
+                { x1: 3, y1: 66.67, x2: 97, y2: 66.67 },
+              ],
+            })}
+          >
+            {t('tactics.zoneThirds')}
+          </Button>
+          <Button
+            size="sm" variant="outline"
+            onClick={() => setBoard({
+              ...board,
+              lines: [
+                ...(board.lines ?? []),
+                { x1: 21.8, y1: 0, x2: 21.8, y2: 100 },
+                { x1: 40.6, y1: 0, x2: 40.6, y2: 100 },
+                { x1: 59.4, y1: 0, x2: 59.4, y2: 100 },
+                { x1: 78.2, y1: 0, x2: 78.2, y2: 100 },
+              ],
+            })}
+          >
+            {t('tactics.zoneChannels')}
           </Button>
         </div>
 

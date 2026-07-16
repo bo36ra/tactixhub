@@ -10,12 +10,17 @@ export interface BoardMarker {
   side: 'us' | 'them' | 'ball';
 }
 export interface BoardArrow { x1: number; y1: number; x2: number; y2: number }
+// Same shape as an arrow, but rendered as a plain zone-divider line (no
+// arrowhead) — for a coach splitting the pitch into thirds, channels,
+// or any custom zone rather than showing a player/ball movement.
+export interface BoardLine { x1: number; y1: number; x2: number; y2: number }
 export interface BoardDrawing { points: { x: number; y: number }[] }
 // A frame is a snapshot of marker positions; playback interpolates between frames.
 export interface BoardFrame { markers: BoardMarker[] }
 export interface BoardData {
   markers: BoardMarker[];
   arrows: BoardArrow[];
+  lines?: BoardLine[];
   drawings?: BoardDrawing[];
   frames?: BoardFrame[];
   notes?: string;
@@ -47,12 +52,13 @@ export function parseBoard(data: string): BoardData {
     return {
       markers: d.markers ?? [],
       arrows: d.arrows ?? [],
+      lines: d.lines ?? [],
       drawings: d.drawings ?? [],
       frames: d.frames ?? [],
       notes: d.notes ?? '',
     };
   } catch {
-    return { markers: [], arrows: [], drawings: [], frames: [], notes: '' };
+    return { markers: [], arrows: [], lines: [], drawings: [], frames: [], notes: '' };
   }
 }
 
