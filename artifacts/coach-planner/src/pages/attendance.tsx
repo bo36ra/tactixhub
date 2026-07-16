@@ -143,12 +143,12 @@ export function Attendance() {
                   {players?.map(player => {
                     const current = records[player.id] ?? defaultStatus;
                     return (
-                      <div key={player.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 border rounded-lg bg-background">
+                      <div key={player.id} className="flex flex-col gap-2 p-3 border rounded-lg bg-background">
                         <div className="flex items-center gap-3 min-w-0">
                           <span className="text-muted-foreground font-mono text-sm">{player.jerseyNumber}</span>
                           <span className="font-medium text-sm truncate">{playerName(player, lang)}</span>
                         </div>
-                        <div className="flex flex-wrap gap-1.5 shrink-0">
+                        <div className="flex flex-wrap gap-1.5">
                           {statuses.map(status => (
                             <button
                               key={status}
