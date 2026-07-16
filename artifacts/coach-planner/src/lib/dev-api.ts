@@ -271,6 +271,45 @@ export function useBatchUpsertWellness(teamId: number) {
   });
 }
 
+export interface LibraryExercise {
+  id: number; teamId: number; title: string; category: string;
+  objectiveOffense: string | null; objectiveDefense: string | null; space: string | null;
+  playersFormat: string | null; minutes: number | null; explanation: string | null;
+  image: string | null; createdAt: string;
+}
+export function useExerciseLibrary(teamId: number) {
+  return useQuery({
+    queryKey: ['exercise-library', teamId],
+    enabled: !!teamId,
+    queryFn: () => customFetch<LibraryExercise[]>(`/api/teams/${teamId}/exercise-library`),
+  });
+}
+export function useCreateLibraryExercise(teamId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      title: string; category: string; objectiveOffense?: string | null; objectiveDefense?: string | null;
+      space?: string | null; playersFormat?: string | null; minutes?: number | null; explanation?: string | null; image?: string | null;
+    }) => customFetch<LibraryExercise>(`/api/teams/${teamId}/exercise-library`, { method: 'POST', body: JSON.stringify(input) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['exercise-library', teamId] }),
+  });
+}
+export function useUpdateLibraryExercise(teamId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: number } & Partial<Omit<LibraryExercise, 'id' | 'teamId' | 'createdAt'>>) =>
+      customFetch<LibraryExercise>(`/api/teams/${teamId}/exercise-library/${input.id}`, { method: 'PATCH', body: JSON.stringify(input) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['exercise-library', teamId] }),
+  });
+}
+export function useDeleteLibraryExercise(teamId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => customFetch<void>(`/api/teams/${teamId}/exercise-library/${id}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['exercise-library', teamId] }),
+  });
+}
+
 export function useInjuries(teamId: number) {
   return useQuery({ queryKey: ['injuries', teamId], queryFn: () => customFetch<Injury[]>(`/api/teams/${teamId}/injuries`) });
 }

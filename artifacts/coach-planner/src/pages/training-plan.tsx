@@ -5,7 +5,7 @@ import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
 import {
   useTrainings, useUpdateTraining, useTrainingBlocks, useSaveTrainingBlocks,
-  type TrainingBlock,
+  useExerciseLibrary, useCreateLibraryExercise, type TrainingBlock, type LibraryExercise,
 } from '@/lib/dev-api';
 import { focusLabel } from '@/pages/trainings';
 import { compressImageFile } from '@/lib/image';
@@ -13,9 +13,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import {
-  ArrowRight, ArrowLeft, Plus, Trash2, ChevronUp, ChevronDown, ImagePlus, Printer, Save,
+  ArrowRight, ArrowLeft, Plus, Trash2, ChevronUp, ChevronDown, ImagePlus, Printer, Save, BookOpen,
 } from 'lucide-react';
 
 // A full printable session-plan sheet for one training: header metadata
@@ -36,6 +37,10 @@ export function TrainingPlanPage() {
   const updateTraining = useUpdateTraining(tid);
   const { data: savedBlocks } = useTrainingBlocks(tid, trainingId);
   const saveBlocks = useSaveTrainingBlocks(tid, trainingId);
+  const { data: library } = useExerciseLibrary(tid);
+  const saveToLibrary = useCreateLibraryExercise(tid);
+  const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [pickerSearch, setPickerSearch] = React.useState('');
 
   const [header, setHeader] = React.useState({
     place: '', playersTotal: '', playersUnavailable: '', material: '',
@@ -81,6 +86,28 @@ export function TrainingPlanPage() {
       { title: '', objectiveOffense: null, objectiveDefense: null, space: null, playersFormat: null, minutes: null, explanation: null, image: null },
     ]);
     markDirty();
+  };
+  const addBlockFromLibrary = (ex: LibraryExercise) => {
+    setBlocks((prev) => [
+      ...prev,
+      {
+        title: ex.title, objectiveOffense: ex.objectiveOffense, objectiveDefense: ex.objectiveDefense,
+        space: ex.space, playersFormat: ex.playersFormat, minutes: ex.minutes, explanation: ex.explanation, image: ex.image,
+      },
+    ]);
+    markDirty();
+    setPickerOpen(false);
+  };
+  const saveBlockToLibrary = (b: TrainingBlock) => {
+    if (!b.title.trim()) return;
+    saveToLibrary.mutate(
+      {
+        title: b.title.trim(), category: 'other',
+        objectiveOffense: b.objectiveOffense, objectiveDefense: b.objectiveDefense,
+        space: b.space, playersFormat: b.playersFormat, minutes: b.minutes, explanation: b.explanation, image: b.image,
+      },
+      { onSuccess: () => toast({ title: t('library.savedToGallery') }), onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' as any }) },
+    );
   };
   const removeBlock = (i: number) => {
     setBlocks((prev) => prev.filter((_, idx) => idx !== i));
@@ -231,11 +258,16 @@ export function TrainingPlanPage() {
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <h3 className="text-sm font-bold">{t('sessionPlan.exercises')} {blocks.length > 0 && `(${blocks.length})`}</h3>
-            <Button size="sm" variant="outline" className="gap-1.5" onClick={addBlock}>
-              <Plus className="w-4 h-4" /> {t('sessionPlan.addBlock')}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setPickerOpen(true)}>
+                <BookOpen className="w-4 h-4" /> {t('library.addFromGallery')}
+              </Button>
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={addBlock}>
+                <Plus className="w-4 h-4" /> {t('sessionPlan.addBlock')}
+              </Button>
+            </div>
           </div>
 
           {blocks.length === 0 && (
@@ -260,6 +292,14 @@ export function TrainingPlanPage() {
                 <span className="text-xs font-mono text-muted-foreground shrink-0 pt-6" dir="ltr">
                   {t('sessionPlan.cumulative')}: {cumulative[i]}′
                 </span>
+                <button
+                  type="button" title={t('library.saveToGallery')}
+                  className="text-muted-foreground hover:text-primary shrink-0 pt-6 disabled:opacity-30"
+                  disabled={!b.title.trim() || saveToLibrary.isPending}
+                  onClick={() => saveBlockToLibrary(b)}
+                >
+                  <BookOpen className="w-4 h-4" />
+                </button>
                 <button type="button" className="text-muted-foreground hover:text-destructive shrink-0 pt-6" onClick={() => removeBlock(i)}>
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -413,6 +453,46 @@ export function TrainingPlanPage() {
           </p>
         )}
       </div>
+
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t('library.pickTitle')}</DialogTitle>
+          </DialogHeader>
+          <Input
+            placeholder={t('library.searchPh')}
+            value={pickerSearch}
+            onChange={(e) => setPickerSearch(e.target.value)}
+          />
+          <div className="space-y-2 pt-1">
+            {(library ?? [])
+              .filter((ex) => !pickerSearch.trim() || ex.title.toLowerCase().includes(pickerSearch.trim().toLowerCase()))
+              .map((ex: LibraryExercise) => (
+                <button
+                  key={ex.id}
+                  type="button"
+                  className="w-full flex items-center gap-3 rounded-lg border border-border/60 p-2 text-start hover:bg-white/[0.04]"
+                  onClick={() => addBlockFromLibrary(ex)}
+                >
+                  {ex.image ? (
+                    <img src={ex.image} alt="" className="w-14 h-14 rounded-md object-cover shrink-0" />
+                  ) : (
+                    <div className="w-14 h-14 rounded-md bg-white/[0.04] flex items-center justify-center shrink-0">
+                      <BookOpen className="w-5 h-5 text-muted-foreground/40" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold truncate">{ex.title}</p>
+                    <p className="text-xs text-muted-foreground">{t(`library.category.${ex.category}`)}{ex.minutes ? ` · ${ex.minutes}′` : ''}</p>
+                  </div>
+                </button>
+              ))}
+            {(library ?? []).length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-6">{t('library.empty')}</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

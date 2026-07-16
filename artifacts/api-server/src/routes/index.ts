@@ -17,6 +17,7 @@ import notificationsRouter from "./notifications";
 import accessRouter from "./access";
 import rpeRouter from "./rpe";
 import wellnessRouter from "./wellness";
+import exerciseLibraryRouter from "./exercise-library";
 
 const router: IRouter = Router();
 
@@ -38,5 +39,6 @@ router.use(notificationsRouter);
 router.use(accessRouter);
 router.use(rpeRouter);
 router.use(wellnessRouter);
+router.use(exerciseLibraryRouter);
 
 export default router;
