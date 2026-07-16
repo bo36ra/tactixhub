@@ -18,13 +18,15 @@ const VALID_STATUSES = [
   "absent",
   "starter",
   "substitute",
+  "bench",
   "not_called",
   "called_up",
   "national_duty",
   "injured",
   "excused_absence",
+  "other",
 ];
-const PRESENT_STATUSES = ["present", "late_excused", "late_unexcused", "starter", "substitute"];
+const PRESENT_STATUSES = ["present", "late_excused", "late_unexcused", "starter", "substitute", "bench"];
 
 // Team data is shared across the whole staff — any active member
 // (owner/coach/assistant/analyst) may read and write it.

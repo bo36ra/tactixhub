@@ -639,7 +639,7 @@ export function Reports() {
                   </div>
                   <div className="px-4 py-3 border-t flex flex-wrap items-center gap-x-4 gap-y-1.5">
                     <span className="text-[11px] font-medium text-muted-foreground">{t('reports.legend')}:</span>
-                    {['present', 'late_excused', 'late_unexcused', 'absent', 'starter', 'substitute', 'not_called', 'excused_absence', 'injured', 'called_up', 'national_duty'].map(status => (
+                    {['present', 'late_excused', 'late_unexcused', 'absent', 'starter', 'substitute', 'bench', 'not_called', 'excused_absence', 'injured', 'called_up', 'national_duty', 'other'].map(status => (
                       <span key={status} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                         <span className={`inline-flex items-center justify-center w-5 h-5 rounded-md border text-[9px] font-bold ${STATUS_STYLES[status]}`}>
                           {t(`att.status.short.${status}`)}
