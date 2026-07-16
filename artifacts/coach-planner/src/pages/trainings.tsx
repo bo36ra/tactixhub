@@ -57,7 +57,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
   // the last 6 ISO weeks. Turns the intensity/duration fields into an
   // at-a-glance overload check before injuries happen.
   const weeklyLoad = React.useMemo(() => {
-    const factors: Record<string, number> = { light: 1, medium: 2, high: 3 };
+    const factors: Record<string, number> = { very_light: 1, light: 2, medium: 3, high: 4, very_high: 5 };
     const weeks: { key: string; label: string; load: number; sessions: number }[] = [];
     const thisWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
     for (let i = 5; i >= 0; i--) {
@@ -164,7 +164,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
               <Select value={form.intensity} onValueChange={(v) => setForm({ ...form, intensity: v })}>
                 <SelectTrigger><SelectValue placeholder={t('train.intensity')} /></SelectTrigger>
                 <SelectContent>
-                  {(['light', 'medium', 'high'] as const).map((k) => (
+                  {(['very_light', 'light', 'medium', 'high', 'very_high'] as const).map((k) => (
                     <SelectItem key={k} value={k}>{t(`train.intensity.${k}`)}</SelectItem>
                   ))}
                 </SelectContent>
@@ -220,7 +220,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
                 <span className="pill-beige rounded px-2 py-0.5 text-xs">{focusLabel(t, tr.focus)}</span>
                 {tr.intensity && (
                   <span className={`rounded px-2 py-0.5 text-xs ${
-                    tr.intensity === 'high' ? 'pill-red' : tr.intensity === 'medium' ? 'pill-yellow' : 'pill-green'
+                    tr.intensity === 'very_high' ? 'pill-red' : tr.intensity === 'high' ? 'pill-orange' : tr.intensity === 'medium' ? 'pill-yellow' : tr.intensity === 'light' ? 'pill-green' : 'pill-blue'
                   }`}>
                     {t(`train.intensity.${tr.intensity}`)}
                   </span>

@@ -34,7 +34,7 @@ router.get("/teams/:teamId/trainings", requireAuth, guarded(async (_req, res, te
 }));
 router.post("/teams/:teamId/trainings", requireAuth, guarded(async (req, res, teamId) => {
   const { date, time, focus, drills, notes, intensity, durationMinutes } = req.body;
-  const cleanIntensity = ["light", "medium", "high"].includes(intensity) ? intensity : null;
+  const cleanIntensity = ["very_light", "light", "medium", "high", "very_high"].includes(intensity) ? intensity : null;
   const cleanDuration =
     Number.isFinite(Number(durationMinutes)) && Number(durationMinutes) > 0
       ? Math.min(Math.round(Number(durationMinutes)), 600)
@@ -133,7 +133,7 @@ router.patch("/teams/:teamId/trainings/:trainingId", requireAuth, guarded(async 
     mainObjectiveOffense, mainObjectiveDefense, complementaryObjective,
     mesocycleLabel, microcycleLabel, planNumber,
   } = req.body ?? {};
-  const cleanIntensity = intensity === null ? null : ["light", "medium", "high"].includes(intensity) ? intensity : undefined;
+  const cleanIntensity = intensity === null ? null : ["very_light", "light", "medium", "high", "very_high"].includes(intensity) ? intensity : undefined;
   const cleanDuration =
     durationMinutes === null
       ? null
@@ -284,7 +284,7 @@ router.put("/teams/:teamId/cycle", requireAuth, guarded(async (req, res, teamId)
       teamId,
       dayOfWeek: d.dayOfWeek,
       focus: String(d.focus),
-      intensity: ["light", "medium", "high"].includes(d.intensity) ? d.intensity : null,
+      intensity: ["very_light", "light", "medium", "high", "very_high"].includes(d.intensity) ? d.intensity : null,
       durationMinutes:
         Number.isFinite(Number(d.durationMinutes)) && Number(d.durationMinutes) > 0
           ? Math.min(Math.round(Number(d.durationMinutes)), 600)

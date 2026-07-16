@@ -420,7 +420,7 @@ export function CalendarPage() {
                         >
                           <SelectTrigger className="w-24 h-9 text-xs"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {(['light', 'medium', 'high'] as const).map((k) => (
+                            {(['very_light', 'light', 'medium', 'high', 'very_high'] as const).map((k) => (
                               <SelectItem key={k} value={k}>{t(`train.intensity.${k}`)}</SelectItem>
                             ))}
                           </SelectContent>
@@ -776,14 +776,14 @@ export function CalendarPage() {
                 <div className="space-y-1.5">
                 <Label className="text-xs">{t('train.intensity')}</Label>
                 <div className="flex rounded-lg border border-border/60 overflow-hidden shrink-0">
-                  {(['light', 'medium', 'high'] as const).map((k) => (
+                  {(['very_light', 'light', 'medium', 'high', 'very_high'] as const).map((k) => (
                     <button
                       key={k}
                       type="button"
                       onClick={() => setDayIntensity(k)}
                       className={`px-2.5 py-1.5 text-xs font-medium transition-colors ${
                         dayIntensity === k
-                          ? k === 'high' ? 'bg-red-500/20 text-red-400' : k === 'medium' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-green-500/20 text-green-500'
+                          ? k === 'very_high' ? 'bg-red-500/20 text-red-400' : k === 'high' ? 'bg-orange-500/20 text-orange-400' : k === 'medium' ? 'bg-yellow-500/20 text-yellow-500' : k === 'light' ? 'bg-green-500/20 text-green-500' : 'bg-blue-500/20 text-blue-400'
                           : 'text-muted-foreground hover:bg-white/[0.04]'
                       }`}
                     >
@@ -864,7 +864,7 @@ export function CalendarPage() {
                     <div className="flex flex-wrap gap-1.5">
                       {tr.intensity && (
                         <span className={`rounded px-2 py-0.5 text-xs ${
-                          tr.intensity === 'high' ? 'bg-red-500/15 text-red-400' : tr.intensity === 'medium' ? 'bg-yellow-500/15 text-yellow-500' : 'bg-green-500/15 text-green-500'
+                          tr.intensity === 'very_high' ? 'bg-red-500/15 text-red-400' : tr.intensity === 'high' ? 'bg-orange-500/15 text-orange-400' : tr.intensity === 'medium' ? 'bg-yellow-500/15 text-yellow-500' : tr.intensity === 'light' ? 'bg-green-500/15 text-green-500' : 'bg-blue-500/15 text-blue-400'
                         }`}>
                           {t(`train.intensity.${tr.intensity}`)}
                         </span>
