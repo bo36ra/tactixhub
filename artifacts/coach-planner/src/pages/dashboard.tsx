@@ -1,5 +1,6 @@
 import React from 'react';
 import { AppLayout } from '@/components/layout';
+import { StickyHeader, PageTitle } from '@/components/page-header';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { useGetDashboard, useCreateTeam, getListTeamsQueryKey, getGetDashboardQueryKey } from '@workspace/api-client-react';
@@ -87,6 +88,9 @@ export function Dashboard() {
   return (
     <AppLayout>
       <div className="space-y-8">
+        <StickyHeader>
+          <PageTitle>{t('nav.dashboard')}</PageTitle>
+        </StickyHeader>
         {/* Stats Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-card border p-6 rounded-xl shadow-sm space-y-2">

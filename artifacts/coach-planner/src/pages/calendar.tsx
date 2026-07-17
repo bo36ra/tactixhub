@@ -1,5 +1,6 @@
 import React from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
+import { StickyHeader, PageTitle } from '@/components/page-header';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
@@ -170,8 +171,9 @@ export function CalendarPage() {
   return (
     <AppLayout>
       <div className="space-y-6">
+        <StickyHeader>
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">{t('cal.title')}</h2>
+          <PageTitle>{t('cal.title')}</PageTitle>
           <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setCycleOpen(true)}>
             <Repeat className="w-3.5 h-3.5" /> {t('cal.cycle')}
@@ -197,6 +199,7 @@ export function CalendarPage() {
           </div>
           </div>
         </div>
+        </StickyHeader>
 
         {/* Mesocycle: month goal */}
         <div className="bg-card border rounded-xl p-3 sm:p-4 space-y-2">

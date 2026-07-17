@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'wouter';
 import { AppLayout, NoTeamState } from '@/components/layout';
+import { StickyHeader, PageTitle } from '@/components/page-header';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { useListMatches, useCreateMatch, useDeleteMatch, getListMatchesQueryKey } from '@workspace/api-client-react';
@@ -81,8 +82,9 @@ export function Matches() {
   return (
     <AppLayout>
       <div className="space-y-6">
+        <StickyHeader>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h2 className="text-2xl font-bold">{t('nav.matches')}</h2>
+          <PageTitle>{t('nav.matches')}</PageTitle>
           
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -132,6 +134,7 @@ export function Matches() {
             </DialogContent>
           </Dialog>
         </div>
+        </StickyHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {matches?.map(match => {
