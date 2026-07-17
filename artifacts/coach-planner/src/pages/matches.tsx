@@ -136,7 +136,7 @@ export function Matches() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {matches?.map(match => {
             const result = match.ourGoals > match.theirGoals ? 'win' : match.ourGoals < match.theirGoals ? 'loss' : 'draw';
-            const resultBg = result === 'win' ? 'bg-green-50/50' : result === 'loss' ? 'bg-red-50/50' : 'bg-yellow-50/50';
+            const resultBg = result === 'win' ? 'bg-green-500/[0.06]' : result === 'loss' ? 'bg-red-500/[0.06]' : 'bg-yellow-500/[0.06]';
             const pillClass = result === 'win' ? 'pill-green' : result === 'loss' ? 'pill-red' : 'pill-yellow';
             
             return (
