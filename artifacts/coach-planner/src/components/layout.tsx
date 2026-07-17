@@ -43,7 +43,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useClerk } from '@clerk/react';
 import { NotificationBell } from '@/components/notification-bell';
 
-export function Sidebar() {
+function SidebarContent() {
   const { t, lang, setLang, isRtl } = useLanguage();
   const [location] = useLocation();
   const { activeTeamId, setActiveTeamId } = useTeam();
@@ -218,10 +218,16 @@ export function Sidebar() {
     </div>
   );
 
+  return content;
+}
+
+export function Sidebar() {
+  const { t, lang, setLang, isRtl } = useLanguage();
+
   return (
     <>
       <div className="hidden md:block h-screen fixed inset-y-0 z-50 print:hidden">
-        {content}
+        <SidebarContent />
       </div>
       <div className="md:hidden print:hidden fixed top-0 inset-x-0 h-14 bg-sidebar border-b border-white/[0.06] flex items-center px-4 justify-between z-40">
         <div className="flex items-center gap-2">
@@ -240,7 +246,7 @@ export function Sidebar() {
               </Button>
             </SheetTrigger>
             <SheetContent side={isRtl ? "right" : "left"} className="p-0 border-r-white/10 w-64">
-              {content}
+              <SidebarContent />
             </SheetContent>
           </Sheet>
         </div>
@@ -249,15 +255,70 @@ export function Sidebar() {
   );
 }
 
+// Mobile bottom tab bar — the fixed top bar + hamburger drawer still
+// exists for full navigation, but a coach's five most-used destinations
+// live here as one-tap shortcuts, since that's the single strongest
+// visual signal that distinguishes "an app" from "a website" on a
+// phone. The last tab reuses the same full nav list as the hamburger
+// (its own independent Sheet instance) so nothing is ever more than
+// two taps away.
+function BottomTabBar() {
+  const { t } = useLanguage();
+  const [location] = useLocation();
+
+  const tabs: { href: string; label: string; icon: typeof LayoutDashboard }[] = [
+    { href: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
+    { href: '/calendar', label: t('nav.calendar'), icon: CalendarDays },
+    { href: '/players', label: t('nav.players'), icon: Users },
+    { href: '/matches', label: t('nav.matches'), icon: Swords },
+  ];
+
+  return (
+    <div className="md:hidden print:hidden fixed bottom-0 inset-x-0 h-16 bg-sidebar border-t border-white/[0.06] flex items-stretch z-40" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      {tabs.map((tab) => {
+        const active = location === tab.href;
+        const Icon = tab.icon;
+        return (
+          <Link key={tab.href} href={tab.href} className="flex-1 flex flex-col items-center justify-center gap-0.5">
+            <Icon className={`h-5 w-5 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+            <span className={`text-[10px] font-medium ${active ? 'text-primary' : 'text-muted-foreground'}`}>{tab.label}</span>
+          </Link>
+        );
+      })}
+      <SidebarMoreTab />
+    </div>
+  );
+}
+
+// Standalone "More" tab: its own Sheet instance reusing Sidebar's full
+// nav content, so it works independently of the top bar's hamburger.
+function SidebarMoreTab() {
+  const { t, isRtl } = useLanguage();
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <button className="flex-1 flex flex-col items-center justify-center gap-0.5 text-muted-foreground">
+          <Menu className="h-5 w-5" />
+          <span className="text-[10px] font-medium">{t('nav.more')}</span>
+        </button>
+      </SheetTrigger>
+      <SheetContent side={isRtl ? "right" : "left"} className="p-0 border-r-white/10 w-64">
+        <SidebarContent />
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />
-      <div className="md:ms-64 pt-16 md:pt-0 min-h-screen flex flex-col rtl:md:mr-64 rtl:md:ms-0">
+      <div className="md:ms-64 pt-16 md:pt-0 pb-16 md:pb-0 min-h-screen flex flex-col rtl:md:mr-64 rtl:md:ms-0">
         <main className="flex-1 p-4 md:p-8">
           {children}
         </main>
       </div>
+      <BottomTabBar />
     </div>
   );
 }
