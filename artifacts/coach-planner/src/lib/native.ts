@@ -76,3 +76,18 @@ export async function nativeShare(options: { title?: string; text?: string; url?
     }
   }
 }
+
+// Configures the native Keyboard plugin to resize the webview's body
+// when the keyboard appears, so a focused input near the bottom of the
+// screen doesn't end up hidden behind it — the keyboard pushes the
+// layout up instead of just overlaying it. No-ops on web (there is no
+// on-screen keyboard to manage).
+export async function initKeyboardResize() {
+  if (!isNative()) return;
+  try {
+    const { Keyboard, KeyboardResize } = await import('@capacitor/keyboard');
+    await Keyboard.setResizeMode({ mode: KeyboardResize.Body });
+  } catch {
+    // ignore
+  }
+}

@@ -6,6 +6,7 @@ import { useListTeams } from '@workspace/api-client-react';
 import { useAccessStatus } from '../lib/dev-api';
 import { useIsPro } from '../lib/feature-gate';
 import { hapticSelection } from '../lib/native';
+import { OfflineBanner } from './offline-banner';
 import { 
   LayoutDashboard, 
   ClipboardList,
@@ -314,6 +315,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />
+      <OfflineBanner />
       <div className="md:ms-64 pt-16 md:pt-0 pb-16 md:pb-0 min-h-screen flex flex-col rtl:md:mr-64 rtl:md:ms-0">
         <main className="flex-1 p-4 md:p-8 animate-page-enter">
           {children}

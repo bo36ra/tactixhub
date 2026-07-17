@@ -4,6 +4,7 @@ import { AppLayout, NoTeamState } from '@/components/layout';
 import { StickyHeader, PageTitle } from '@/components/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PullToRefresh } from '@/components/pull-to-refresh';
+import { SwipeToDelete } from '@/components/swipe-to-delete';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { useListPlayers, useCreatePlayer, useDeletePlayer, getListPlayersQueryKey } from '@workspace/api-client-react';
@@ -283,39 +284,27 @@ export function Players() {
             {filteredPlayers.map(player => {
               const pillClass = player.status === 'active' ? 'pill-green' : player.status === 'injured' ? 'pill-red' : 'pill-yellow';
               return (
-                <div key={player.id} className="bg-card border rounded-xl p-4 flex items-center gap-3">
-                  <Link href={`/players/${player.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-                    <PlayerAvatar photo={player.photo} jerseyNumber={player.jerseyNumber} className="w-10 h-10 text-sm" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-foreground truncate">{playerName(player, lang)}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {t(`position.${player.position}`)}{playerAge(player) ? ` · ${playerAge(player)}` : ''}{player.nationality ? ` · ${player.nationality}` : ''}
-                      </p>
-                    </div>
-                  </Link>
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium shrink-0 ${pillClass}`}>
-                    {t(`status.${player.status}`)}
-                  </span>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-destructive/60 hover:text-destructive active:text-destructive shrink-0">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{t('common.confirm')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('player.deleteConfirm')}</AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(player.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                          {t('common.delete')}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
+                <SwipeToDelete
+                  key={player.id}
+                  onDelete={() => {
+                    if (window.confirm(t('player.deleteConfirm'))) handleDelete(player.id);
+                  }}
+                >
+                  <div className="bg-card border rounded-xl p-4 flex items-center gap-3">
+                    <Link href={`/players/${player.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+                      <PlayerAvatar photo={player.photo} jerseyNumber={player.jerseyNumber} className="w-10 h-10 text-sm" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-foreground truncate">{playerName(player, lang)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t(`position.${player.position}`)}{playerAge(player) ? ` · ${playerAge(player)}` : ''}{player.nationality ? ` · ${player.nationality}` : ''}
+                        </p>
+                      </div>
+                    </Link>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium shrink-0 ${pillClass}`}>
+                      {t(`status.${player.status}`)}
+                    </span>
+                  </div>
+                </SwipeToDelete>
               );
             })}
           </div>
