@@ -2,6 +2,8 @@ import React from 'react';
 import { Link } from 'wouter';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { StickyHeader, PageTitle } from '@/components/page-header';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PullToRefresh } from '@/components/pull-to-refresh';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { useListMatches, useCreateMatch, useDeleteMatch, getListMatchesQueryKey } from '@workspace/api-client-react';
@@ -36,7 +38,7 @@ export function Matches() {
     theirGoals: '0'
   });
 
-  const { data: matches } = useListMatches(activeTeamId!, {
+  const { data: matches, isLoading, refetch } = useListMatches(activeTeamId!, {
     query: { enabled: !!activeTeamId, queryKey: getListMatchesQueryKey(activeTeamId!) }
   });
 
@@ -81,6 +83,7 @@ export function Matches() {
 
   return (
     <AppLayout>
+      <PullToRefresh onRefresh={() => refetch()}>
       <div className="space-y-6">
         <StickyHeader>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -137,6 +140,16 @@ export function Matches() {
         </StickyHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {isLoading && [1, 2, 3].map(i => (
+            <div key={i} className="bg-card border rounded-xl overflow-hidden p-6 space-y-4">
+              <Skeleton className="h-5 w-2/3 mx-auto" />
+              <div className="flex items-center justify-center gap-6">
+                <Skeleton className="h-10 w-10" />
+                <Skeleton className="h-10 w-10" />
+              </div>
+              <Skeleton className="h-6 w-20 mx-auto rounded-full" />
+            </div>
+          ))}
           {matches?.map(match => {
             const result = match.ourGoals > match.theirGoals ? 'win' : match.ourGoals < match.theirGoals ? 'loss' : 'draw';
             const resultBg = result === 'win' ? 'bg-green-500/[0.06]' : result === 'loss' ? 'bg-red-500/[0.06]' : 'bg-yellow-500/[0.06]';
@@ -200,7 +213,7 @@ export function Matches() {
               </div>
             );
           })}
-          {matches?.length === 0 && (
+          {!isLoading && matches?.length === 0 && (
             <div className="col-span-full py-20 text-center text-muted-foreground border-2 border-dashed rounded-xl">
               {t('common.noData')}
             </div>
@@ -217,6 +230,7 @@ export function Matches() {
           />
         )}
       </div>
+      </PullToRefresh>
     </AppLayout>
   );
 }

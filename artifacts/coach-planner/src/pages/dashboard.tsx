@@ -1,6 +1,8 @@
 import React from 'react';
 import { AppLayout } from '@/components/layout';
 import { StickyHeader, PageTitle } from '@/components/page-header';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PullToRefresh } from '@/components/pull-to-refresh';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { useGetDashboard, useCreateTeam, getListTeamsQueryKey, getGetDashboardQueryKey } from '@workspace/api-client-react';
@@ -58,7 +60,7 @@ function CreateTeamModal() {
 export function Dashboard() {
   const { t, isRtl } = useLanguage();
   const { activeTeamId } = useTeam();
-  const { data: stats, isLoading } = useGetDashboard(activeTeamId!, {
+  const { data: stats, isLoading, refetch } = useGetDashboard(activeTeamId!, {
     query: { enabled: !!activeTeamId, queryKey: getGetDashboardQueryKey(activeTeamId!) }
   });
 
@@ -76,9 +78,14 @@ export function Dashboard() {
   if (isLoading || !stats) {
     return (
       <AppLayout>
-        <div className="animate-pulse space-y-8">
+        <div className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-gray-200 rounded-xl" />)}
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32 rounded-xl" />)}
+          </div>
+          <Skeleton className="h-40 rounded-xl" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Skeleton className="h-56 rounded-xl" />
+            <Skeleton className="h-56 rounded-xl" />
           </div>
         </div>
       </AppLayout>
@@ -87,6 +94,7 @@ export function Dashboard() {
 
   return (
     <AppLayout>
+      <PullToRefresh onRefresh={() => refetch()}>
       <div className="space-y-8">
         <StickyHeader>
           <PageTitle>{t('nav.dashboard')}</PageTitle>
@@ -215,6 +223,7 @@ export function Dashboard() {
           </div>
         </div>
       </div>
+      </PullToRefresh>
     </AppLayout>
   );
 }

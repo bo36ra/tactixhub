@@ -2,6 +2,8 @@ import React from 'react';
 import { Link } from 'wouter';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { StickyHeader, PageTitle } from '@/components/page-header';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PullToRefresh } from '@/components/pull-to-refresh';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { useListPlayers, useCreatePlayer, useDeletePlayer, getListPlayersQueryKey } from '@workspace/api-client-react';
@@ -50,7 +52,7 @@ export function Players() {
     phone: ''
   });
 
-  const { data: players, isLoading } = useListPlayers(activeTeamId!, {
+  const { data: players, isLoading, refetch } = useListPlayers(activeTeamId!, {
     query: { enabled: !!activeTeamId, queryKey: getListPlayersQueryKey(activeTeamId!) }
   });
 
@@ -107,6 +109,7 @@ export function Players() {
 
   return (
     <AppLayout>
+      <PullToRefresh onRefresh={() => refetch()}>
       <div className="space-y-6">
         <StickyHeader>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -247,13 +250,28 @@ export function Players() {
           </div>
         </div>
 
+        {/* Loading skeleton */}
+        {isLoading && (
+          <div className="grid gap-2.5">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="bg-card border rounded-xl p-4 flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-3 w-1/5" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Empty state */}
-        {players?.length === 0 && (
+        {!isLoading && players?.length === 0 && (
           <div className="bg-card border rounded-xl px-6 py-12 text-center text-muted-foreground">
             {t('common.noData')}
           </div>
         )}
-        {players && players.length > 0 && filteredPlayers.length === 0 && (
+        {!isLoading && players && players.length > 0 && filteredPlayers.length === 0 && (
           <div className="bg-card border rounded-xl px-6 py-12 text-center text-muted-foreground">
             {t('common.noResults')}
           </div>
@@ -369,6 +387,7 @@ export function Players() {
           </div>
         )}
       </div>
+      </PullToRefresh>
     </AppLayout>
   );
 }

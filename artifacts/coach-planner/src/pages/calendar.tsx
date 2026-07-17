@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { StickyHeader, PageTitle } from '@/components/page-header';
+import { PullToRefresh } from '@/components/pull-to-refresh';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
@@ -170,6 +171,7 @@ export function CalendarPage() {
 
   return (
     <AppLayout>
+      <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
       <div className="space-y-6">
         <StickyHeader>
         <div className="flex items-center justify-between">
@@ -967,6 +969,7 @@ export function CalendarPage() {
           onOpenChange={(o) => !o && setMatchDeleteId(null)}
         />
       </div>
+      </PullToRefresh>
     </AppLayout>
   );
 }
