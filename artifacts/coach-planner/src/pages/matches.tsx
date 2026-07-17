@@ -151,7 +151,7 @@ export function Matches() {
                   </div>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive -mt-1 -mr-2">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/60 hover:text-destructive active:text-destructive -mt-1 -mr-2">
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </AlertDialogTrigger>

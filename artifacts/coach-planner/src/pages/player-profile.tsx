@@ -221,7 +221,7 @@ export function PlayerProfile() {
                   </span>
                 )}
                 {player.photo && (
-                  <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive" onClick={() => savePhoto(null)}>
+                  <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-destructive/60 hover:text-destructive active:text-destructive" onClick={() => savePhoto(null)}>
                     {t('player.photoRemove')}
                   </Button>
                 )}
@@ -261,7 +261,7 @@ export function PlayerProfile() {
                   {a.note && <span className="text-xs text-foreground/80 truncate">{a.note}</span>}
                   <button
                     type="button"
-                    className="ms-auto text-muted-foreground hover:text-destructive shrink-0"
+                    className="ms-auto text-destructive/60 hover:text-destructive active:text-destructive shrink-0"
                     onClick={() => setAvDeleteId(a.id)}
                   >
                     <Trash2 className="w-3.5 h-3.5" />

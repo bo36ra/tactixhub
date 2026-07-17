@@ -360,7 +360,7 @@ function DashboardTab({ teamId }: { teamId: number }) {
               <p className="text-xs text-muted-foreground" dir="ltr">{e.durationMinutes}min x RPE{e.rpe} = {sessionLoad(e)} {t('rpe.au')}</p>
               {e.notes && <p className="text-xs text-muted-foreground mt-0.5">{e.notes}</p>}
             </div>
-            <button type="button" className="text-muted-foreground hover:text-destructive shrink-0" onClick={() => deleteEntry.mutate(e.id)}>
+            <button type="button" className="text-destructive/60 hover:text-destructive active:text-destructive shrink-0" onClick={() => deleteEntry.mutate(e.id)}>
               <Trash2 className="w-4 h-4" />
             </button>
           </div>

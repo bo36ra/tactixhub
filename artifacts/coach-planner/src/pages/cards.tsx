@@ -206,7 +206,7 @@ export function Cards() {
                         </td>
                         <td className="px-4 py-3 font-semibold">{card.playerName}</td>
                         <td className="px-4 py-3 text-right">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(card.id)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/60 hover:text-destructive active:text-destructive" onClick={() => handleDelete(card.id)}>
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </td>

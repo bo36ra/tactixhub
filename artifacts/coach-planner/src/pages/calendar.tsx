@@ -533,7 +533,7 @@ export function CalendarPage() {
                       </button>
                       <button
                         type="button"
-                        className="text-muted-foreground hover:text-destructive shrink-0"
+                        className="text-destructive/60 hover:text-destructive active:text-destructive shrink-0"
                         onClick={() => setMatchDeleteId(m.id)}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -576,7 +576,7 @@ export function CalendarPage() {
                       </button>
                       <button
                         type="button"
-                        className="text-muted-foreground hover:text-destructive shrink-0"
+                        className="text-destructive/60 hover:text-destructive active:text-destructive shrink-0"
                         onClick={() => deleteTraining.mutate(tr.id)}
                       >
                         <Trash2 className="w-3.5 h-3.5" />

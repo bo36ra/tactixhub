@@ -277,7 +277,7 @@ export function Players() {
                   </span>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive shrink-0">
+                      <Button variant="ghost" size="icon" className="text-destructive/60 hover:text-destructive active:text-destructive shrink-0">
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </AlertDialogTrigger>
@@ -339,7 +339,7 @@ export function Players() {
                         <td className="px-6 py-4 text-right">
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
+                              <Button variant="ghost" size="icon" className="text-destructive/60 hover:text-destructive active:text-destructive">
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             </AlertDialogTrigger>

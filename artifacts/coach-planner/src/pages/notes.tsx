@@ -188,7 +188,7 @@ export function Notes() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            className="h-7 w-7 text-destructive/60 hover:text-destructive active:text-destructive"
                             onClick={() => handleDelete(note.id)}
                           >
                             <Trash2 className="w-3.5 h-3.5" />

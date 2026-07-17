@@ -159,7 +159,7 @@ export function Attendance() {
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button type="button" variant="outline" size="icon" className="shrink-0 text-muted-foreground hover:text-destructive" disabled={deleteAttendanceDay.isPending}>
+                      <Button type="button" variant="outline" size="icon" className="shrink-0 text-destructive/60 hover:text-destructive active:text-destructive" disabled={deleteAttendanceDay.isPending}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </AlertDialogTrigger>

@@ -210,7 +210,7 @@ export function Teams() {
                           className={`h-8 w-8 ${
                             isActive
                               ? 'text-background/60 hover:text-background hover:bg-background/10'
-                              : 'text-muted-foreground hover:text-destructive'
+                              : 'text-destructive/60 hover:text-destructive active:text-destructive'
                           }`}
                         >
                           <Trash2 className="w-4 h-4" />

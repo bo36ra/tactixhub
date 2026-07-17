@@ -300,7 +300,7 @@ export function TrainingPlanPage() {
                 >
                   <BookOpen className="w-4 h-4" />
                 </button>
-                <button type="button" className="text-muted-foreground hover:text-destructive shrink-0 pt-6" onClick={() => removeBlock(i)}>
+                <button type="button" className="text-destructive/60 hover:text-destructive active:text-destructive shrink-0 pt-6" onClick={() => removeBlock(i)}>
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>

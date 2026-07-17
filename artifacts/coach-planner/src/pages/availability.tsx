@@ -75,7 +75,7 @@ export function AvailabilityPage() {
         </div>
         <button
           type="button"
-          className="text-muted-foreground hover:text-destructive shrink-0"
+          className="text-destructive/60 hover:text-destructive active:text-destructive shrink-0"
           onClick={() => setDeleteId(a.id)}
         >
           <Trash2 className="w-4 h-4" />
