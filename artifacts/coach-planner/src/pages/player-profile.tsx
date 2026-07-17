@@ -12,10 +12,11 @@ import { Button } from '@/components/ui/button';
 import { usePlayerRatings, useAvailability, useCreateAvailability, useDeleteAvailability } from '@/lib/dev-api';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { format } from 'date-fns';
-import { ArrowRight, ArrowLeft, Swords, CalendarCheck, CircleDot, Square, Camera, Printer, Plane, Trash2, Plus, Pencil } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Swords, CalendarCheck, CircleDot, Square, Camera, Printer, Plane, Trash2, Plus, Pencil, Share2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { playerAge } from '@/lib/age';
+import { nativeShare } from '@/lib/native';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -235,6 +236,20 @@ export function PlayerProfile() {
                 </Button>
                 <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => window.print()}>
                   <Printer className="w-3 h-3" /> {t('profile.printCard')}
+                </Button>
+                <Button
+                  variant="outline" size="sm" className="h-6 px-2 text-xs gap-1"
+                  onClick={() => {
+                    const age = playerAge(player);
+                    const lines = [
+                      `${playerName(player, lang)} — #${player.jerseyNumber}`,
+                      t(`position.${player.position}`),
+                      age ? `${t('common.age')}: ${age}` : null,
+                    ].filter(Boolean);
+                    nativeShare({ title: playerName(player, lang), text: lines.join('\n') });
+                  }}
+                >
+                  <Share2 className="w-3 h-3" /> {t('common.share')}
                 </Button>
               </div>
             </div>

@@ -1,9 +1,12 @@
 import { createRoot } from 'react-dom/client';
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { setBaseUrl } from '@workspace/api-client-react';
+import { initStatusBar } from './lib/native';
 import App from './App';
 
 import './index.css';
+
+initStatusBar();
 
 declare global {
   interface Window {

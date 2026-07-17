@@ -5,6 +5,7 @@ import { useTeam } from '../lib/team-context';
 import { useListTeams } from '@workspace/api-client-react';
 import { useAccessStatus } from '../lib/dev-api';
 import { useIsPro } from '../lib/feature-gate';
+import { hapticSelection } from '../lib/native';
 import { 
   LayoutDashboard, 
   ClipboardList,
@@ -279,7 +280,7 @@ function BottomTabBar() {
         const active = location === tab.href;
         const Icon = tab.icon;
         return (
-          <Link key={tab.href} href={tab.href} className="flex-1 flex flex-col items-center justify-center gap-0.5">
+          <Link key={tab.href} href={tab.href} className="flex-1 flex flex-col items-center justify-center gap-0.5" onClick={() => hapticSelection()}>
             <Icon className={`h-5 w-5 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
             <span className={`text-[10px] font-medium ${active ? 'text-primary' : 'text-muted-foreground'}`}>{tab.label}</span>
           </Link>

@@ -4,6 +4,7 @@ import { AppLayout, NoTeamState } from '@/components/layout';
 import { StickyHeader, PageTitle } from '@/components/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PullToRefresh } from '@/components/pull-to-refresh';
+import { nativeShare } from '@/lib/native';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { useListMatches, useCreateMatch, useDeleteMatch, getListMatchesQueryKey } from '@workspace/api-client-react';
@@ -15,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQueryClient } from '@tanstack/react-query';
-import { Trash2, Plus, Calendar, LayoutGrid, ClipboardList } from 'lucide-react';
+import { Trash2, Plus, Calendar, LayoutGrid, ClipboardList, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { MatchPlanDialog } from '@/components/match-plan-dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -207,6 +208,17 @@ export function Matches() {
                     <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setPlanMatchId(match.id)}>
                       <ClipboardList className="w-3.5 h-3.5" />
                       {t('plan.open')}
+                    </Button>
+                    <Button
+                      variant="outline" size="icon" className="w-8 h-8 shrink-0"
+                      onClick={() =>
+                        nativeShare({
+                          title: match.opponent,
+                          text: `${match.opponent} — ${match.ourGoals}-${match.theirGoals} (${t(`match.${result}`)})\n${match.date}`,
+                        })
+                      }
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
                 </div>

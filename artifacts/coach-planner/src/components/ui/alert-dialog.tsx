@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { hapticImpact } from '@/lib/native';
 
 const AlertDialog = AlertDialogPrimitive.Root;
 
@@ -102,10 +103,18 @@ AlertDialogDescription.displayName =
 const AlertDialogAction = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Action>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action>
->(({ className, ...props }, ref) => (
+>(({ className, onClick, ...props }, ref) => (
   <AlertDialogPrimitive.Action
     ref={ref}
     className={cn(buttonVariants(), className)}
+    onClick={(e) => {
+      // A haptic on the confirm tap of every AlertDialog in the app —
+      // this component is used exclusively for destructive confirmations
+      // here (delete match, delete attendance day, etc.), so one change
+      // covers all of them instead of touching each call site.
+      hapticImpact('medium');
+      onClick?.(e);
+    }}
     {...props}
   />
 ));

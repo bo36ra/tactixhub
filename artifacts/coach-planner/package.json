@@ -82,6 +82,9 @@
     "@clerk/themes": "^2.4.57",
     "@capacitor/core": "^8.0.0",
     "@capacitor/ios": "^8.0.0",
-    "@capacitor/splash-screen": "^8.0.0"
+    "@capacitor/splash-screen": "^8.0.0",
+    "@capacitor/haptics": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0",
+    "@capacitor/share": "^8.0.0"
   }
 }

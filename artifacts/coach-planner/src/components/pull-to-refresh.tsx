@@ -1,5 +1,6 @@
 import React from 'react';
 import { RefreshCw } from 'lucide-react';
+import { hapticImpact } from '@/lib/native';
 
 const TRIGGER_DISTANCE = 64;
 const MAX_PULL = 100;
@@ -44,6 +45,7 @@ export function PullToRefresh({ onRefresh, children }: { onRefresh: () => Promis
       engaged.current = false;
       startY.current = null;
       if (pullRef.current >= TRIGGER_DISTANCE) {
+        hapticImpact('light');
         refreshingRef.current = true;
         setRefreshing(true);
         setPullDistance(TRIGGER_DISTANCE);
