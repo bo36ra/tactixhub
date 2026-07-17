@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ClerkProvider, useClerk, useAuth } from '@clerk/react';
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wouter';
 import { QueryClient, QueryClientProvider, useQueryClient, MutationCache } from "@tanstack/react-query";
@@ -48,6 +48,7 @@ const queryClient = new QueryClient({
 import { LanguageProvider } from '@/lib/i18n';
 import { TeamProvider } from '@/lib/team-context';
 import { ProPage } from '@/lib/feature-gate';
+import { OnboardingCarousel } from '@/components/onboarding';
 import { ApiKeepAlive } from '@/components/api-keep-alive';
 
 import { lazy, Suspense } from 'react';
@@ -212,6 +213,38 @@ function ProRoute({ component: Component }: { component: React.ComponentType }) 
   );
 }
 
+const ONBOARDING_KEY = 'tactixhub_onboarding_seen';
+
+// Shown once per device, before anything else in the app (including the
+// sign-in screen) — a short welcome tour explaining what TactixHub does,
+// matching the "app first-launch onboarding" pattern most native apps
+// use. Gated purely on localStorage, so it never reappears once
+// dismissed on that device, regardless of which account signs in later.
+function OnboardingGate({ children }: { children: React.ReactNode }) {
+  const [seen, setSeen] = useState(() => {
+    try {
+      return localStorage.getItem(ONBOARDING_KEY) === '1';
+    } catch {
+      return true;
+    }
+  });
+  if (!seen) {
+    return (
+      <OnboardingCarousel
+        onDone={() => {
+          try {
+            localStorage.setItem(ONBOARDING_KEY, '1');
+          } catch {
+            // storage unavailable (private mode, etc.) — just proceed without persisting
+          }
+          setSeen(true);
+        }}
+      />
+    );
+  }
+  return <>{children}</>;
+}
+
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
 
@@ -230,6 +263,7 @@ function ClerkProviderWithRoutes() {
         <ApiKeepAlive />
         <ClerkQueryClientCacheInvalidator />
         <LanguageProvider>
+          <OnboardingGate>
           <TeamProvider>
             <Suspense fallback={<PageLoadingFallback />}>
               <Switch>
@@ -266,6 +300,7 @@ function ClerkProviderWithRoutes() {
               </Switch>
             </Suspense>
           </TeamProvider>
+          </OnboardingGate>
         </LanguageProvider>
       </QueryClientProvider>
     </ClerkProvider>
