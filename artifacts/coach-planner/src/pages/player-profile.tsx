@@ -212,7 +212,7 @@ export function PlayerProfile() {
             </div>
             <div>
               <h2 className="text-2xl font-bold">{playerName(player, lang)}</h2>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex flex-wrap items-center gap-2 mt-1">
                 <span className="text-sm text-muted-foreground">
                   {t(`position.${player.position}`)}{playerAge(player) ? ` · ${playerAge(player)}` : ''}{player.nationality ? ` · ${player.nationality}` : ''}
                 </span>
@@ -221,15 +221,17 @@ export function PlayerProfile() {
                     {t(`status.${player.status}`)}
                   </span>
                 )}
-                {player.photo && (
-                  <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-destructive/60 hover:text-destructive active:text-destructive" onClick={() => savePhoto(null)}>
-                    {t('player.photoRemove')}
-                  </Button>
-                )}
                 {player.phone && (
                   <a href={`tel:${player.phone}`} className="text-xs text-primary hover:underline" dir="ltr">
                     {player.phone}
                   </a>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                {player.photo && (
+                  <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-destructive/60 hover:text-destructive active:text-destructive" onClick={() => savePhoto(null)}>
+                    {t('player.photoRemove')}
+                  </Button>
                 )}
                 <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={openEdit}>
                   <Pencil className="w-3 h-3" /> {t('common.edit')}
