@@ -141,6 +141,11 @@
   * {
     @apply border-border;
   }
+  html, body {
+    height: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--app-font-sans);
