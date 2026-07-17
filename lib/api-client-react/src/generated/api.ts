@@ -29,6 +29,7 @@ import type {
   CardInput,
   CardSummary,
   DashboardStats,
+  DeleteAttendanceDayParams,
   GetAttendanceScheduleParams,
   Goal,
   GoalInput,
@@ -1485,6 +1486,85 @@ export const useCreateAttendance = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateAttendanceMutationOptions(options));
+    }
+
+export const getDeleteAttendanceDayUrl = (teamId: number,
+    params: DeleteAttendanceDayParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/teams/${teamId}/attendance?${stringifiedParams}` : `/api/teams/${teamId}/attendance`
+}
+
+/**
+ * @summary Delete all attendance records for a given date and session type
+ */
+export const deleteAttendanceDay = async (teamId: number,
+    params: DeleteAttendanceDayParams, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteAttendanceDayUrl(teamId,params),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteAttendanceDayMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAttendanceDay>>, TError,{teamId: number;params: DeleteAttendanceDayParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAttendanceDay>>, TError,{teamId: number;params: DeleteAttendanceDayParams}, TContext> => {
+
+const mutationKey = ['deleteAttendanceDay'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAttendanceDay>>, {teamId: number;params: DeleteAttendanceDayParams}> = (props) => {
+          const {teamId,params} = props ?? {};
+
+          return  deleteAttendanceDay(teamId,params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAttendanceDayMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAttendanceDay>>>
+
+    export type DeleteAttendanceDayMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete all attendance records for a given date and session type
+ */
+export const useDeleteAttendanceDay = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAttendanceDay>>, TError,{teamId: number;params: DeleteAttendanceDayParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAttendanceDay>>,
+        TError,
+        {teamId: number;params: DeleteAttendanceDayParams},
+        TContext
+      > => {
+      return useMutation(getDeleteAttendanceDayMutationOptions(options));
     }
 
 export const getGetAttendanceSummaryUrl = (teamId: number,) => {

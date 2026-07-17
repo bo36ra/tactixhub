@@ -452,6 +452,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Attendance"
+    delete:
+      operationId: deleteAttendanceDay
+      tags: [attendance]
+      summary: Delete all attendance records for a given date and session type
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: sessionType
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
 
   /teams/{teamId}/attendance/summary:
     get:

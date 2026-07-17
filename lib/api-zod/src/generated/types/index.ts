@@ -25,6 +25,7 @@ export * from './cardPeriod';
 export * from './cardSummary';
 export * from './cardSummaryStatus';
 export * from './dashboardStats';
+export * from './deleteAttendanceDayParams';
 export * from './getAttendanceScheduleParams';
 export * from './goal';
 export * from './goalInput';

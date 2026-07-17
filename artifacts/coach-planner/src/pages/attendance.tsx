@@ -3,8 +3,10 @@ import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
-import { useListPlayers, useCreateAttendance, useGetAttendanceSummary, getGetAttendanceSummaryQueryKey, getListPlayersQueryKey } from '@workspace/api-client-react';
+import { useListPlayers, useCreateAttendance, useDeleteAttendanceDay, useGetAttendanceSummary, getGetAttendanceSummaryQueryKey, getListPlayersQueryKey } from '@workspace/api-client-react';
 import { AttendanceInputSessionType } from '@workspace/api-client-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -58,6 +60,24 @@ export function Attendance() {
   });
 
   const createAttendance = useCreateAttendance();
+  const deleteAttendanceDay = useDeleteAttendanceDay();
+
+  const handleDeleteDay = () => {
+    deleteAttendanceDay.mutate(
+      { teamId: activeTeamId!, params: { date, sessionType } },
+      {
+        onSuccess: () => {
+          toast({ title: t('attendance.dayDeleted') });
+          queryClient.invalidateQueries({ queryKey: getGetAttendanceSummaryQueryKey(activeTeamId!) });
+          const initial: Record<number, string> = {};
+          players?.forEach(p => initial[p.id] = defaultStatus);
+          setRecords(initial);
+          setNotes({});
+        },
+        onError: showApiError,
+      },
+    );
+  };
 
   // Default statuses: trainings assume everyone showed up; match days
   // assume everyone is on the bench (fewest taps for a typical squad).
@@ -133,10 +153,29 @@ export function Attendance() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-end">
+                <div className="flex items-end gap-2">
                   <Button type="submit" disabled={createAttendance.isPending} className="w-full">
                     {t('common.save')}
                   </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button type="button" variant="outline" size="icon" className="shrink-0 text-muted-foreground hover:text-destructive" disabled={deleteAttendanceDay.isPending}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>{t('common.confirm')}</AlertDialogTitle>
+                        <AlertDialogDescription>{t('attendance.deleteDayConfirm')}</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteDay} className="bg-destructive hover:bg-destructive/90">
+                          {t('common.delete')}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
 

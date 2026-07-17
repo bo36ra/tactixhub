@@ -32,6 +32,35 @@ const PRESENT_STATUSES = ["present", "late_excused", "late_unexcused", "starter"
 // (owner/coach/assistant/analyst) may read and write it.
 const verifyTeamOwnership = verifyTeamAccess;
 
+router.delete("/teams/:teamId/attendance", requireAuth, async (req, res) => {
+  const userId = (req as any).userId as string;
+  const teamId = parseInt(req.params.teamId as string);
+  if (!(await verifyTeamOwnership(userId, teamId))) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  const { date, sessionType } = req.query as { date?: string; sessionType?: string };
+  if (!date || !sessionType) {
+    res.status(400).json({ error: "date and sessionType query params are required" });
+    return;
+  }
+  try {
+    await db
+      .delete(attendanceTable)
+      .where(
+        and(
+          eq(attendanceTable.teamId, teamId),
+          eq(attendanceTable.date, date),
+          eq(attendanceTable.sessionType, sessionType),
+        ),
+      );
+    res.status(204).send();
+  } catch (err) {
+    req.log.error({ err }, "Failed to delete attendance day");
+    res.status(500).json({ error: dbErrorMessage(err) });
+  }
+});
+
 // List attendance
 router.get("/teams/:teamId/attendance", requireAuth, async (req, res) => {
   const userId = (req as any).userId as string;

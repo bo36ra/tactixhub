@@ -703,6 +703,11 @@ export type SaveLineup200 = {
   saved?: number;
 };
 
+export type DeleteAttendanceDayParams = {
+date: string;
+sessionType: string;
+};
+
 export type GetAttendanceScheduleParams = {
 /**
  * Only include days within the last N days. Omit for full history.

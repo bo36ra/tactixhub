@@ -462,6 +462,21 @@ export const CreateAttendanceResponse = zod.object({
 
 
 /**
+ * @summary Delete all attendance records for a given date and session type
+ */
+export const DeleteAttendanceDayParams = zod.object({
+  "teamId": zod.coerce.number()
+})
+
+export const DeleteAttendanceDayQueryParams = zod.object({
+  "date": zod.coerce.string(),
+  "sessionType": zod.coerce.string()
+})
+
+export const DeleteAttendanceDayResponse = zod.void()
+
+
+/**
  * @summary Get attendance summary per player
  */
 export const GetAttendanceSummaryParams = zod.object({

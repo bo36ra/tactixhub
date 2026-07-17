@@ -69,7 +69,10 @@ export function Matches() {
     deleteMatch.mutate({ teamId: activeTeamId!, matchId }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(activeTeamId!) });
-      }
+        toast({ title: t('common.delete') });
+      },
+      onError: (err: unknown) =>
+        toast({ title: t('common.saveFailed'), description: err instanceof Error ? err.message : undefined, variant: 'destructive' as any }),
     });
   };
 
