@@ -115,15 +115,16 @@ export function Dashboard() {
               </div>
             ) : (
               <div className="grid gap-2">
-                {stats.today.trainings.map((tr) => (
-                  <div key={tr.id} className="bg-card border rounded-xl p-3.5 flex items-center gap-3">
+                {stats.today.trainings.length > 0 && (
+                  <div className="bg-card border rounded-xl p-3.5 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                       <Dumbbell className="w-5 h-5 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm">{t('dashboard.trainingToday')}</p>
                       <p className="text-xs text-muted-foreground truncate">
-                        {focusLabel(t, tr.focus)}{tr.time ? ` · ${tr.time}` : ''}
+                        {stats.today.trainings.map((tr) => focusLabel(t, tr.focus)).join(' + ')}
+                        {stats.today.trainings[0].time ? ` · ${stats.today.trainings[0].time}` : ''}
                       </p>
                     </div>
                     <Link href="/attendance">
@@ -133,7 +134,7 @@ export function Dashboard() {
                       </Button>
                     </Link>
                   </div>
-                ))}
+                )}
                 {stats.today.matches.map((m) => (
                   <div key={m.id} className="bg-card border rounded-xl p-3.5 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
