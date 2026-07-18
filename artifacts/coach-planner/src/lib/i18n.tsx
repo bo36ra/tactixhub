@@ -190,6 +190,11 @@ const en: Translations = {
   "common.share": "Share",
   "common.deleted": "Deleted",
   "common.undo": "Undo",
+  "search.title": "Search",
+  "search.placeholder": "Search players, matches, notes…",
+  "search.hint": "Type at least 2 characters to search",
+  "search.noResults": "No results found",
+
   "offline.banner": "No internet connection — changes won't save until it's back",
   "common.nationality": "Nationality",
   "common.nationalityPlaceholder": "e.g. Kuwaiti",
@@ -842,6 +847,11 @@ const ar: Translations = {
   "common.share": "مشاركة",
   "common.deleted": "تم الحذف",
   "common.undo": "تراجع",
+  "search.title": "بحث",
+  "search.placeholder": "ابحث عن لاعب، مباراة، ملاحظة…",
+  "search.hint": "اكتب حرفين على الأقل للبحث",
+  "search.noResults": "لا توجد نتائج",
+
   "offline.banner": "لا يوجد اتصال بالإنترنت — التعديلات ما راح تُحفظ لين يرجع الاتصال",
   "common.nationality": "الجنسية",
   "common.nationalityPlaceholder": "مثال: كويتي",

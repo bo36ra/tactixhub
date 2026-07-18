@@ -32,7 +32,8 @@ import {
   ClipboardCheck,
   CalendarDays,
   Plane,
-  ShieldCheck
+  ShieldCheck,
+  Search
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -44,6 +45,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useClerk } from '@clerk/react';
 import { NotificationBell } from '@/components/notification-bell';
+import { SearchOverlay } from '@/components/search-overlay';
 
 function SidebarContent() {
   const { t, lang, setLang, isRtl } = useLanguage();
@@ -51,6 +53,7 @@ function SidebarContent() {
   const { activeTeamId, setActiveTeamId } = useTeam();
   const { data: teams } = useListTeams();
   const { signOut } = useClerk();
+  const [searchOpen, setSearchOpen] = React.useState(false);
 
   const { data: access } = useAccessStatus();
   const isPro = useIsPro();
@@ -178,6 +181,17 @@ function SidebarContent() {
         )}
       </div>
 
+      <div className="px-3">
+        <button
+          type="button"
+          onClick={() => setSearchOpen(true)}
+          className="w-full flex items-center gap-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] px-3 py-2 text-start transition-colors"
+        >
+          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="text-sm text-muted-foreground">{t('search.placeholder')}</span>
+        </button>
+      </div>
+
       {/* Nav */}
       <div className="flex-1 px-3 py-3 overflow-y-auto">
         {navSections.map((section, idx) => (
@@ -220,11 +234,17 @@ function SidebarContent() {
     </div>
   );
 
-  return content;
+  return (
+    <>
+      {content}
+      <SearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
+    </>
+  );
 }
 
 export function Sidebar() {
   const { t, lang, setLang, isRtl } = useLanguage();
+  const [searchOpen, setSearchOpen] = React.useState(false);
 
   return (
     <>
@@ -237,6 +257,9 @@ export function Sidebar() {
           <h1 className="font-display font-bold text-sm text-foreground tracking-tight">{t('app.title')}</h1>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setSearchOpen(true)}>
+            <Search className="h-4 w-4" />
+          </Button>
           <NotificationBell />
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}>
             <Globe className="h-4 w-4" />
@@ -253,6 +276,7 @@ export function Sidebar() {
           </Sheet>
         </div>
       </div>
+      <SearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
     </>
   );
 }

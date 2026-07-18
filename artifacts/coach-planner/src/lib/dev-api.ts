@@ -310,6 +310,19 @@ export function useDeleteLibraryExercise(teamId: number) {
   });
 }
 
+export interface SearchResults {
+  players: { id: number; name: string; nameAlt: string | null; jerseyNumber: number; photo: string | null }[];
+  matches: { id: number; opponent: string; date: string; ourGoals: number; theirGoals: number }[];
+  notes: { id: number; title: string | null; content: string }[];
+}
+export function useSearch(teamId: number, query: string) {
+  return useQuery({
+    queryKey: ['search', teamId, query],
+    enabled: !!teamId && query.trim().length >= 2,
+    queryFn: () => customFetch<SearchResults>(`/api/teams/${teamId}/search?q=${encodeURIComponent(query.trim())}`),
+  });
+}
+
 export function useInjuries(teamId: number) {
   return useQuery({ queryKey: ['injuries', teamId], queryFn: () => customFetch<Injury[]>(`/api/teams/${teamId}/injuries`) });
 }

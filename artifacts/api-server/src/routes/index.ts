@@ -18,6 +18,7 @@ import accessRouter from "./access";
 import rpeRouter from "./rpe";
 import wellnessRouter from "./wellness";
 import exerciseLibraryRouter from "./exercise-library";
+import searchRouter from "./search";
 
 const router: IRouter = Router();
 
@@ -40,5 +41,6 @@ router.use(accessRouter);
 router.use(rpeRouter);
 router.use(wellnessRouter);
 router.use(exerciseLibraryRouter);
+router.use(searchRouter);
 
 export default router;
