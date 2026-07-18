@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { FeatureHint } from '@/components/feature-hint';
+import { TermHelp } from '@/components/term-help';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
 import { useTeam } from '@/lib/team-context';
@@ -200,10 +201,10 @@ function LogTab({ teamId }: { teamId: number }) {
   );
 }
 
-function StatCard({ label, value, unit, color }: { label: string; value: string; unit?: string; color?: string }) {
+function StatCard({ label, value, unit, color, help }: { label: string; value: string; unit?: string; color?: string; help?: React.ReactNode }) {
   return (
     <div className="bg-card border rounded-xl p-3">
-      <p className="text-[11px] text-muted-foreground mb-1">{label}</p>
+      <p className="text-[11px] text-muted-foreground mb-1 flex items-center">{label}{help}</p>
       <p className="text-xl font-extrabold" style={color ? { color } : undefined} dir="ltr">
         {value}{unit ? ` ${unit}` : ''}
       </p>
@@ -263,17 +264,29 @@ function DashboardTab({ teamId }: { teamId: number }) {
         <StatCard label={t('rpe.dailyLoad')} value={String(snapshot.dailyLoad)} unit={t('rpe.au')} />
         <StatCard label={t('rpe.weeklyLoad')} value={String(snapshot.weeklyLoad)} unit={t('rpe.au')} color={snapshot.weeklyLoad > THRESHOLDS.weeklyLoad ? STATUS_COLORS.high : undefined} />
         <StatCard label={t('rpe.twoWeekLoad')} value={String(snapshot.twoWeekLoad)} unit={t('rpe.au')} color={snapshot.twoWeekLoad > THRESHOLDS.twoWeekLoad ? STATUS_COLORS.high : undefined} />
-        <StatCard label={t('rpe.monotony')} value={snapshot.monotony.toFixed(2)} color={snapshot.monotony > THRESHOLDS.monotony ? STATUS_COLORS.moderate : undefined} />
-        <StatCard label={t('rpe.strain')} value={String(Math.round(snapshot.strain))} unit={t('rpe.au')} color={snapshot.strain > THRESHOLDS.strain ? STATUS_COLORS.high : undefined} />
+        <StatCard
+          label={t('rpe.monotony')}
+          value={snapshot.monotony.toFixed(2)}
+          color={snapshot.monotony > THRESHOLDS.monotony ? STATUS_COLORS.moderate : undefined}
+          help={<TermHelp>{t('rpe.helpMonotony')}</TermHelp>}
+        />
+        <StatCard
+          label={t('rpe.strain')}
+          value={String(Math.round(snapshot.strain))}
+          unit={t('rpe.au')}
+          color={snapshot.strain > THRESHOLDS.strain ? STATUS_COLORS.high : undefined}
+          help={<TermHelp>{t('rpe.helpStrain')}</TermHelp>}
+        />
         <StatCard
           label={t('rpe.acwr')}
           value={snapshot.acwr === null ? '—' : snapshot.acwr.toFixed(2)}
           color={snapshot.acwr !== null && snapshot.acwr > ACWR_DANGER ? STATUS_COLORS.high : snapshot.acwr !== null && (snapshot.acwr < ACWR_SWEET_SPOT[0] || snapshot.acwr > ACWR_SWEET_SPOT[1]) ? STATUS_COLORS.moderate : STATUS_COLORS.low}
+          help={<TermHelp>{t('rpe.helpAcwr')}</TermHelp>}
         />
         {latestWellness && (
           <>
-            <StatCard label={t('rpe.wellnessScore')} value={String(wellnessScore(latestWellness))} unit="/100" />
-            <StatCard label={t('rpe.readinessScore')} value={String(readinessScore(latestWellness))} unit="/100" />
+            <StatCard label={t('rpe.wellnessScore')} value={String(wellnessScore(latestWellness))} unit="/100" help={<TermHelp>{t('rpe.helpWellness')}</TermHelp>} />
+            <StatCard label={t('rpe.readinessScore')} value={String(readinessScore(latestWellness))} unit="/100" help={<TermHelp>{t('rpe.helpReadiness')}</TermHelp>} />
           </>
         )}
       </div>
