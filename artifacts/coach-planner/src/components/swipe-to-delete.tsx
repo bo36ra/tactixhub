@@ -1,4 +1,5 @@
 import React from 'react';
+import { Capacitor } from '@capacitor/core';
 import { Trash2 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
 import { hapticImpact } from '@/lib/native';
@@ -6,18 +7,38 @@ import { hapticImpact } from '@/lib/native';
 const REVEAL = 76;
 
 // Swipe a row to reveal a delete action behind it — the same gesture as
-// Mail/Messages. RTL-aware: LTR reveals by swiping left (action sits on
-// the right), Arabic reveals by swiping right (action sits on the left),
-// matching which direction actually feels like "swiping the row away"
-// in each reading direction. Vertical scrolling is left alone — the
-// gesture only engages once a touch is clearly more horizontal than
-// vertical, so it doesn't fight with scrolling the list.
+// Mail/Messages. Native app only: on the website (any device, including
+// a phone's browser) this renders the row with a plain, always-visible
+// delete button instead — a swipe-to-reveal gesture is exactly the kind
+// of "this is an app" affordance that shouldn't show up outside the
+// actual installed app. RTL-aware when it does apply: LTR reveals by
+// swiping left (action sits on the right), Arabic reveals by swiping
+// right (action sits on the left), matching which direction actually
+// feels like "swiping the row away" in each reading direction. Vertical
+// scrolling is left alone — the gesture only engages once a touch is
+// clearly more horizontal than vertical.
 export function SwipeToDelete({ onDelete, children }: { onDelete: () => void; children: React.ReactNode }) {
   const { isRtl } = useLanguage();
   const [offset, setOffset] = React.useState(0);
   const startX = React.useRef<number | null>(null);
   const startY = React.useRef<number | null>(null);
   const axis = React.useRef<'x' | 'y' | null>(null);
+  const isNative = Capacitor.isNativePlatform();
+
+  if (!isNative) {
+    return (
+      <div className="flex items-center gap-2">
+        <div className="flex-1 min-w-0">{children}</div>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="shrink-0 text-destructive/60 hover:text-destructive active:text-destructive p-2"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    );
+  }
 
   const onTouchStart = (e: React.TouchEvent) => {
     startX.current = e.touches[0].clientX;

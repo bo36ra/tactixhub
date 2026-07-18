@@ -1,4 +1,5 @@
 import React from 'react';
+import { Capacitor } from '@capacitor/core';
 import { Link, useLocation } from 'wouter';
 import { useLanguage } from '../lib/i18n';
 import { useTeam } from '../lib/team-context';
@@ -292,6 +293,13 @@ function BottomTabBar() {
   const { t } = useLanguage();
   const [location] = useLocation();
 
+  // This exact same build serves both the live website and the native
+  // iOS wrapper — a bottom tab bar is a strong "this is an app" signal
+  // that shouldn't show up for someone just visiting the site in a
+  // browser. Capacitor.isNativePlatform() is only true inside the
+  // actual installed app, never in mobile Safari/Chrome.
+  if (!Capacitor.isNativePlatform()) return null;
+
   const tabs: { href: string; label: string; icon: typeof LayoutDashboard }[] = [
     { href: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
     { href: '/calendar', label: t('nav.calendar'), icon: CalendarDays },
@@ -336,11 +344,12 @@ function SidebarMoreTab() {
 }
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
+  const isNative = Capacitor.isNativePlatform();
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />
       <OfflineBanner />
-      <div className="md:ms-64 pt-16 md:pt-0 pb-16 md:pb-0 min-h-screen flex flex-col rtl:md:mr-64 rtl:md:ms-0">
+      <div className={`md:ms-64 pt-16 md:pt-0 ${isNative ? 'pb-16 md:pb-0' : ''} min-h-screen flex flex-col rtl:md:mr-64 rtl:md:ms-0`}>
         <main className="flex-1 p-4 md:p-8 animate-page-enter">
           {children}
         </main>

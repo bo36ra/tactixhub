@@ -5,7 +5,16 @@ import { Capacitor } from '@capacitor/core';
 // so every native call here must no-op safely in a plain browser tab
 // instead of throwing, and only actually fire when running inside the
 // native shell.
-const isNative = () => Capacitor.isNativePlatform();
+// Whether this code is running inside the actual native Capacitor
+// shell (the installed iOS app) versus a regular browser tab — this is
+// the real distinction between "the app" and "the website", unlike a
+// screen-width breakpoint which can't tell a phone browser apart from
+// the installed app. Structural, native-feeling UI (bottom tab bar,
+// bottom sheets, collapsing headers, swipe gestures) is gated on this,
+// not on viewport size, so the website stays a website on any device
+// and the installed app stays an app.
+export const isNativeApp = () => Capacitor.isNativePlatform();
+const isNative = isNativeApp;
 
 export async function hapticImpact(style: 'light' | 'medium' | 'heavy' = 'light') {
   if (!isNative()) return;

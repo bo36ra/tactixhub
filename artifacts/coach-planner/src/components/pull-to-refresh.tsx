@@ -1,4 +1,5 @@
 import React from 'react';
+import { Capacitor } from '@capacitor/core';
 import { RefreshCw } from 'lucide-react';
 import { hapticImpact } from '@/lib/native';
 
@@ -8,10 +9,14 @@ const MAX_PULL = 100;
 // Wraps a page's content so dragging down from the very top of the
 // scroll position (touch only — this is a phone gesture, not a mouse
 // one) reveals a spinner and calls onRefresh once pulled far enough.
-// Hand-rolled rather than a library since the gesture itself is simple:
-// track touch Y from touchstart, only engage while window.scrollY is 0
-// (otherwise it would fight with normal scrolling), and animate the
-// indicator's height back to 0 on release.
+// Native app only: pull-to-refresh is a recognizable "this is an app"
+// affordance, so the website (any device) just scrolls normally and
+// relies on its own explicit refresh/refetch behavior instead — this
+// component becomes a plain pass-through wrapper outside the native
+// shell. Hand-rolled rather than a library since the gesture itself is
+// simple: track touch Y from touchstart, only engage while
+// window.scrollY is 0 (otherwise it would fight with normal
+// scrolling), and animate the indicator's height back to 0 on release.
 export function PullToRefresh({ onRefresh, children }: { onRefresh: () => Promise<unknown> | void; children: React.ReactNode }) {
   const [pullDistance, setPullDistance] = React.useState(0);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -21,6 +26,7 @@ export function PullToRefresh({ onRefresh, children }: { onRefresh: () => Promis
   const refreshingRef = React.useRef(false);
 
   React.useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
     const onTouchStart = (e: TouchEvent) => {
       if (window.scrollY <= 0) {
         startY.current = e.touches[0].clientY;
