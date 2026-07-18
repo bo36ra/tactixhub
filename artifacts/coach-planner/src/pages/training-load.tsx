@@ -1,5 +1,6 @@
 import React from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
+import { FeatureHint } from '@/components/feature-hint';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
 import { useTeam } from '@/lib/team-context';
@@ -538,6 +539,7 @@ export function TrainingLoadPage() {
           <Activity className="w-6 h-6 text-primary" />
           <h1 className="text-2xl font-bold font-display">{t('rpe.title')}</h1>
         </div>
+        <FeatureHint id="training-load" title={t('rpe.hintTitle')} body={t('rpe.hintBody')} />
         <Tabs defaultValue="log">
           <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="log">{t('rpe.tabLog')}</TabsTrigger>

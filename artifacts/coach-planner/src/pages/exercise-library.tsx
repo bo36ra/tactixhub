@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppLayout } from '@/components/layout';
 import { ProPage } from '@/lib/feature-gate';
+import { FeatureHint } from '@/components/feature-hint';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
 import {
@@ -188,6 +189,12 @@ export function ExerciseLibraryPage() {
               <p className="text-xs text-muted-foreground">{t('library.subtitle')}</p>
             </div>
           </div>
+
+          <FeatureHint
+            id="exercise-library"
+            title={t('library.hintTitle')}
+            body={t('library.hintBody')}
+          />
 
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
