@@ -5,6 +5,7 @@ import { StickyHeader, PageTitle } from '@/components/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PullToRefresh } from '@/components/pull-to-refresh';
 import { nativeShare } from '@/lib/native';
+import { useUndoableDelete } from '@/lib/undoable-delete';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { useListMatches, useCreateMatch, useDeleteMatch, getListMatchesQueryKey } from '@workspace/api-client-react';
@@ -69,14 +70,31 @@ export function Matches() {
     });
   };
 
+  const undoableDelete = useUndoableDelete();
+  const [pendingDeleteIds, setPendingDeleteIds] = React.useState<Set<number>>(new Set());
+
+  const removeFromPending = (matchId: number) =>
+    setPendingDeleteIds((prev) => {
+      const next = new Set(prev);
+      next.delete(matchId);
+      return next;
+    });
+
   const handleDelete = (matchId: number) => {
-    deleteMatch.mutate({ teamId: activeTeamId!, matchId }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(activeTeamId!) });
-        toast({ title: t('common.delete') });
+    undoableDelete({
+      onOptimisticRemove: () => setPendingDeleteIds((prev) => new Set(prev).add(matchId)),
+      onRestore: () => removeFromPending(matchId),
+      onConfirmDelete: () => {
+        deleteMatch.mutate({ teamId: activeTeamId!, matchId }, {
+          onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(activeTeamId!) });
+          },
+          onError: (err: unknown) => {
+            removeFromPending(matchId);
+            toast({ title: t('common.saveFailed'), description: err instanceof Error ? err.message : undefined, variant: 'destructive' as any });
+          },
+        });
       },
-      onError: (err: unknown) =>
-        toast({ title: t('common.saveFailed'), description: err instanceof Error ? err.message : undefined, variant: 'destructive' as any }),
     });
   };
 
@@ -151,7 +169,7 @@ export function Matches() {
               <Skeleton className="h-6 w-20 mx-auto rounded-full" />
             </div>
           ))}
-          {matches?.map(match => {
+          {matches?.filter((m) => !pendingDeleteIds.has(m.id)).map(match => {
             const result = match.ourGoals > match.theirGoals ? 'win' : match.ourGoals < match.theirGoals ? 'loss' : 'draw';
             const resultBg = result === 'win' ? 'bg-green-500/[0.06]' : result === 'loss' ? 'bg-red-500/[0.06]' : 'bg-yellow-500/[0.06]';
             const pillClass = result === 'win' ? 'pill-green' : result === 'loss' ? 'pill-red' : 'pill-yellow';

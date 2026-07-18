@@ -5,6 +5,7 @@ import { StickyHeader, PageTitle } from '@/components/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PullToRefresh } from '@/components/pull-to-refresh';
 import { SwipeToDelete } from '@/components/swipe-to-delete';
+import { useUndoableDelete } from '@/lib/undoable-delete';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { useListPlayers, useCreatePlayer, useDeletePlayer, getListPlayersQueryKey } from '@workspace/api-client-react';
@@ -98,11 +99,27 @@ export function Players() {
     });
   };
 
+  const undoableDelete = useUndoableDelete();
+  const [pendingDeleteIds, setPendingDeleteIds] = React.useState<Set<number>>(new Set());
+  const removeFromPending = (playerId: number) =>
+    setPendingDeleteIds((prev) => {
+      const next = new Set(prev);
+      next.delete(playerId);
+      return next;
+    });
+
   const handleDelete = (playerId: number) => {
-    deletePlayer.mutate({ teamId: activeTeamId!, playerId }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(activeTeamId!) });
-      }
+    undoableDelete({
+      onOptimisticRemove: () => setPendingDeleteIds((prev) => new Set(prev).add(playerId)),
+      onRestore: () => removeFromPending(playerId),
+      onConfirmDelete: () => {
+        deletePlayer.mutate({ teamId: activeTeamId!, playerId }, {
+          onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(activeTeamId!) });
+          },
+          onError: () => removeFromPending(playerId),
+        });
+      },
     });
   };
 
@@ -281,14 +298,12 @@ export function Players() {
         {/* Mobile: card list */}
         {filteredPlayers.length > 0 && (
           <div className="grid gap-2.5 sm:hidden">
-            {filteredPlayers.map(player => {
+            {filteredPlayers.filter((p) => !pendingDeleteIds.has(p.id)).map(player => {
               const pillClass = player.status === 'active' ? 'pill-green' : player.status === 'injured' ? 'pill-red' : 'pill-yellow';
               return (
                 <SwipeToDelete
                   key={player.id}
-                  onDelete={() => {
-                    if (window.confirm(t('player.deleteConfirm'))) handleDelete(player.id);
-                  }}
+                  onDelete={() => handleDelete(player.id)}
                 >
                   <div className="bg-card border rounded-xl p-4 flex items-center gap-3">
                     <Link href={`/players/${player.id}`} className="flex items-center gap-3 flex-1 min-w-0">
@@ -327,7 +342,7 @@ export function Players() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {filteredPlayers.map(player => {
+                  {filteredPlayers.filter((p) => !pendingDeleteIds.has(p.id)).map(player => {
                     const pillClass = player.status === 'active' ? 'pill-green' : player.status === 'injured' ? 'pill-red' : 'pill-yellow';
                     return (
                       <tr key={player.id} className="hover:bg-muted/50 transition-colors">

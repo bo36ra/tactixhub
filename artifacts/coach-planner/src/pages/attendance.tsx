@@ -3,6 +3,7 @@ import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
+import { useUndoableDelete } from '@/lib/undoable-delete';
 import { useListPlayers, useCreateAttendance, useDeleteAttendanceDay, useGetAttendanceSummary, getGetAttendanceSummaryQueryKey, getListPlayersQueryKey } from '@workspace/api-client-react';
 import { AttendanceInputSessionType } from '@workspace/api-client-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -61,22 +62,34 @@ export function Attendance() {
 
   const createAttendance = useCreateAttendance();
   const deleteAttendanceDay = useDeleteAttendanceDay();
+  const undoableDelete = useUndoableDelete();
 
   const handleDeleteDay = () => {
-    deleteAttendanceDay.mutate(
-      { teamId: activeTeamId!, params: { date, sessionType } },
-      {
-        onSuccess: () => {
-          toast({ title: t('attendance.dayDeleted') });
-          queryClient.invalidateQueries({ queryKey: getGetAttendanceSummaryQueryKey(activeTeamId!) });
-          const initial: Record<number, string> = {};
-          players?.forEach(p => initial[p.id] = defaultStatus);
-          setRecords(initial);
-          setNotes({});
-        },
-        onError: showApiError,
+    const prevRecords = { ...records };
+    const prevNotes = { ...notes };
+    undoableDelete({
+      onOptimisticRemove: () => {
+        const initial: Record<number, string> = {};
+        players?.forEach(p => initial[p.id] = defaultStatus);
+        setRecords(initial);
+        setNotes({});
       },
-    );
+      onRestore: () => {
+        setRecords(prevRecords);
+        setNotes(prevNotes);
+      },
+      onConfirmDelete: () => {
+        deleteAttendanceDay.mutate(
+          { teamId: activeTeamId!, params: { date, sessionType } },
+          {
+            onSuccess: () => {
+              queryClient.invalidateQueries({ queryKey: getGetAttendanceSummaryQueryKey(activeTeamId!) });
+            },
+            onError: showApiError,
+          },
+        );
+      },
+    });
   };
 
   // Default statuses: trainings assume everyone showed up; match days
