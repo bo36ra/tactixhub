@@ -2,16 +2,17 @@ import { Router } from "express";
 import { and, eq, gte, lte, inArray } from "drizzle-orm";
 import { db, wellnessEntriesTable, playersTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
-import { verifyTeamAccess } from "../lib/teamAccess";
+import { verifyProTeam } from "../lib/teamAccess";
 import { dbErrorMessage } from "../lib/dbError";
 
 const router = Router();
 
+// Same Pro-tier server-side enforcement as rpe.ts and exercise-library.ts.
 function guarded(handler: (req: any, res: any, teamId: number) => Promise<void>) {
   return async (req: any, res: any) => {
     const teamId = parseInt(req.params.teamId as string);
-    if (!(await verifyTeamAccess(req.userId as string, teamId))) {
-      res.status(403).json({ error: "Forbidden" });
+    if (!(await verifyProTeam(req.userId as string, teamId))) {
+      res.status(403).json({ error: "pro_required" });
       return;
     }
     try {
