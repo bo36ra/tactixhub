@@ -35,13 +35,20 @@ export const FOCUS_KEYS = [
   'recovery',
 ] as const;
 
-// A training's focus is free text in the database — most values come
-// from the chip grid (known FOCUS_KEYS), but a coach can also type a
-// custom focus of their own. Known keys get translated; anything else
-// (a custom focus) is shown as-is.
+// A training's focus is free text in the database — a coach can select
+// several preset focuses for one session (stored comma-joined, e.g.
+// "warmup,tactics") plus an optional custom focus of their own; a value
+// with no commas is just the single-focus case. Known keys get
+// translated and joined with " + "; anything unrecognized (a custom
+// focus) is shown as-is.
 export function focusLabel(t: (k: string) => string, focus: string): string {
   if (focus === 'rest_day') return `🌙 ${t('cal.kindRest')}`;
-  return (FOCUS_KEYS as readonly string[]).includes(focus) ? t(`train.focus.${focus}`) : focus;
+  return focus
+    .split(',')
+    .map((f) => f.trim())
+    .filter(Boolean)
+    .map((f) => ((FOCUS_KEYS as readonly string[]).includes(f) ? t(`train.focus.${f}`) : f))
+    .join(' + ');
 }
 
 export default function Trainings() {
@@ -78,7 +85,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
 
   const create = useCreateTraining(teamId);
   const del = useDeleteTraining(teamId);
-  const [form, setForm] = useState<{ date: string; time: string; focus: string; customFocus: string; intensity: string; duration: string; drills: string; notes: string } | null>(null);
+  const [form, setForm] = useState<{ date: string; time: string; focus: string[]; customFocus: string; intensity: string; duration: string; drills: string; notes: string } | null>(null);
   const isPro = useIsPro();
   const { data: library } = useExerciseLibrary(isPro ? teamId : 0);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -92,7 +99,9 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
   };
 
   const save = () => {
-    if (!form?.date || !form.focus || (form.focus === '__custom__' && !form.customFocus.trim())) {
+    const customTrimmed = form?.customFocus.trim() ?? '';
+    const combinedFocus = [...(form?.focus ?? []), ...(customTrimmed ? [customTrimmed] : [])];
+    if (!form?.date || combinedFocus.length === 0) {
       toast({ variant: 'destructive', title: t('train.required') });
       return;
     }
@@ -100,7 +109,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
       {
         date: form.date,
         time: form.time || undefined,
-        focus: form.focus === '__custom__' ? form.customFocus.trim() : form.focus,
+        focus: combinedFocus.join(','),
         intensity: form.intensity || undefined,
         durationMinutes: form.duration ? Number(form.duration) : undefined,
         drills: form.drills || undefined,
@@ -146,20 +155,36 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
               <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
               <Input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} />
             </div>
-            <Select value={form.focus} onValueChange={(v) => setForm({ ...form, focus: v })}>
-              <SelectTrigger><SelectValue placeholder={t('train.focus')} /></SelectTrigger>
-              <SelectContent>
-                {FOCUS_KEYS.map((k) => <SelectItem key={k} value={k}>{t(`train.focus.${k}`)}</SelectItem>)}
-                <SelectItem value="__custom__">{t('train.focus.custom')}</SelectItem>
-              </SelectContent>
-            </Select>
-            {form.focus === '__custom__' && (
-              <Input
-                placeholder={t('train.focusCustomPh')}
-                value={form.customFocus}
-                onChange={(e) => setForm({ ...form, customFocus: e.target.value })}
-              />
-            )}
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground">{t('train.focusMultiHint')}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {FOCUS_KEYS.map((k) => {
+                  const active = form.focus.includes(k);
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          focus: active ? form.focus.filter((f) => f !== k) : [...form.focus, k],
+                        })
+                      }
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                        active ? 'bg-primary text-primary-foreground border-primary' : 'bg-transparent text-muted-foreground border-border/60 hover:border-primary/50'
+                      }`}
+                    >
+                      {t(`train.focus.${k}`)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <Input
+              placeholder={t('train.focusCustomPh')}
+              value={form.customFocus}
+              onChange={(e) => setForm({ ...form, customFocus: e.target.value })}
+            />
             <div className="flex gap-2">
               <Select value={form.intensity} onValueChange={(v) => setForm({ ...form, intensity: v })}>
                 <SelectTrigger><SelectValue placeholder={t('train.intensity')} /></SelectTrigger>
@@ -193,7 +218,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
             </div>
           </div>
         ) : (
-          <Button onClick={() => setForm({ date: '', time: '', focus: '', customFocus: '', intensity: '', duration: '', drills: '', notes: '' })}>
+          <Button onClick={() => setForm({ date: '', time: '', focus: [], customFocus: '', intensity: '', duration: '', drills: '', notes: '' })}>
             <Plus className="w-4 h-4 me-1" />{t('train.new')}
           </Button>
         )}

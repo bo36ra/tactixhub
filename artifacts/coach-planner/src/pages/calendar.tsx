@@ -102,7 +102,7 @@ export function CalendarPage() {
 
   // quick-add on a day
   const [dayOpen, setDayOpen] = React.useState<string | null>(null);
-  const [dayFocus, setDayFocus] = React.useState('tactics');
+  const [dayFocus, setDayFocus] = React.useState<string[]>(['tactics']);
   const [dayIntensity, setDayIntensity] = React.useState('medium');
   const [dayDuration, setDayDuration] = React.useState('90');
   const [dayCustomFocus, setDayCustomFocus] = React.useState('');
@@ -570,9 +570,11 @@ export function CalendarPage() {
                             return;
                           }
                           setDayKind('training');
-                          const known = (FOCUS_KEYS as readonly string[]).includes(tr.focus);
-                          setDayFocus(known ? tr.focus : '__custom__');
-                          setDayCustomFocus(known ? '' : tr.focus);
+                          const parts = tr.focus.split(',').map((f) => f.trim()).filter(Boolean);
+                          const knownParts = parts.filter((f) => (FOCUS_KEYS as readonly string[]).includes(f));
+                          const customParts = parts.filter((f) => !(FOCUS_KEYS as readonly string[]).includes(f));
+                          setDayFocus(knownParts);
+                          setDayCustomFocus(customParts.join(', '));
                           setDayIntensity(tr.intensity ?? 'medium');
                           setDayDuration(tr.durationMinutes ? String(tr.durationMinutes) : '');
                         }}
@@ -740,42 +742,34 @@ export function CalendarPage() {
               <>
               <div className="space-y-1.5">
               <Label className="text-xs">{t('cal.focusLabel')}</Label>
+              <p className="text-[11px] text-muted-foreground">{t('train.focusMultiHint')}</p>
               {/* Focus as a tappable chip grid — every option visible at
-                  once, no dropdown to fight with on a phone. */}
+                  once, no dropdown to fight with on a phone. Multiple
+                  chips can be active together for one session. */}
               <div className="grid grid-cols-3 gap-1.5">
-                {FOCUS_KEYS.map((k) => (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => setDayFocus(k)}
-                    className={`px-1.5 py-2 rounded-lg text-[11px] leading-tight font-medium border transition-colors ${
-                      dayFocus === k
-                        ? 'bg-primary/15 text-primary border-primary/40'
-                        : 'border-border/60 text-muted-foreground hover:bg-white/[0.04]'
-                    }`}
-                  >
-                    {t(`train.focus.${k}`)}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => setDayFocus('__custom__')}
-                  className={`px-1.5 py-2 rounded-lg text-[11px] leading-tight font-medium border transition-colors ${
-                    dayFocus === '__custom__'
-                      ? 'bg-primary/15 text-primary border-primary/40'
-                      : 'border-border/60 text-muted-foreground hover:bg-white/[0.04]'
-                  }`}
-                >
-                  {t('train.focus.custom')}
-                </button>
+                {FOCUS_KEYS.map((k) => {
+                  const active = dayFocus.includes(k);
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setDayFocus(active ? dayFocus.filter((f) => f !== k) : [...dayFocus, k])}
+                      className={`px-1.5 py-2 rounded-lg text-[11px] leading-tight font-medium border transition-colors ${
+                        active
+                          ? 'bg-primary/15 text-primary border-primary/40'
+                          : 'border-border/60 text-muted-foreground hover:bg-white/[0.04]'
+                      }`}
+                    >
+                      {t(`train.focus.${k}`)}
+                    </button>
+                  );
+                })}
               </div>
-              {dayFocus === '__custom__' && (
-                <Input
-                  placeholder={t('train.focusCustomPh')}
-                  value={dayCustomFocus}
-                  onChange={(e) => setDayCustomFocus(e.target.value)}
-                />
-              )}
+              <Input
+                placeholder={t('train.focusCustomPh')}
+                value={dayCustomFocus}
+                onChange={(e) => setDayCustomFocus(e.target.value)}
+              />
               </div>
               <div className="flex gap-3 flex-wrap">
                 <div className="space-y-1.5">
@@ -810,10 +804,10 @@ export function CalendarPage() {
               </div>
               <Button
                 className="w-full gap-1.5"
-                disabled={createTraining.isPending || updateTraining.isPending || (dayFocus === '__custom__' && !dayCustomFocus.trim())}
+                disabled={createTraining.isPending || updateTraining.isPending || (dayFocus.length === 0 && !dayCustomFocus.trim())}
                 onClick={() => {
                   if (!dayOpen) return;
-                  const resolvedFocus = dayFocus === '__custom__' ? dayCustomFocus.trim() : dayFocus;
+                  const resolvedFocus = [...dayFocus, ...(dayCustomFocus.trim() ? [dayCustomFocus.trim()] : [])].join(',');
                   const done = () => {
                     toast({ title: t('tactics.saved') });
                     resetDayForm();
