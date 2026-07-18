@@ -100,7 +100,7 @@ export function Dashboard() {
   return (
     <AppLayout>
       <PullToRefresh onRefresh={() => refetch()}>
-      <div className="space-y-8">
+      <div className="space-y-5">
         <StickyHeader>
           <PageTitle>{t('nav.dashboard')}</PageTitle>
         </StickyHeader>
@@ -155,39 +155,39 @@ export function Dashboard() {
         )}
 
         {/* Stats Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-card border p-6 rounded-xl shadow-sm space-y-2">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="bg-card border p-4 rounded-xl shadow-sm space-y-1.5">
             <div className="flex items-center justify-between text-muted-foreground">
-              <span className="text-sm font-medium">{t('stat.totalPlayers')}</span>
+              <span className="text-xs font-medium">{t('stat.totalPlayers')}</span>
               <Users className="h-4 w-4" />
             </div>
-            <p className="text-3xl font-bold text-foreground">{stats.totalPlayers}</p>
+            <p className="text-2xl font-bold text-foreground">{stats.totalPlayers}</p>
           </div>
           
-          <div className="bg-card border p-6 rounded-xl shadow-sm space-y-2">
+          <div className="bg-card border p-4 rounded-xl shadow-sm space-y-1.5">
             <div className="flex items-center justify-between text-muted-foreground">
-              <span className="text-sm font-medium">{t('stat.winRate')}</span>
+              <span className="text-xs font-medium">{t('stat.winRate')}</span>
               <Swords className="h-4 w-4" />
             </div>
-            <p className="text-3xl font-bold text-foreground">
-              {stats.wins} <span className="text-lg text-muted-foreground font-normal">/ {stats.totalMatches}</span>
+            <p className="text-2xl font-bold text-foreground">
+              {stats.wins} <span className="text-sm text-muted-foreground font-normal">/ {stats.totalMatches}</span>
             </p>
           </div>
 
-          <div className="bg-card border p-6 rounded-xl shadow-sm space-y-2">
+          <div className="bg-card border p-4 rounded-xl shadow-sm space-y-1.5">
             <div className="flex items-center justify-between text-muted-foreground">
-              <span className="text-sm font-medium">{t('stat.goalsScored')}</span>
+              <span className="text-xs font-medium">{t('stat.goalsScored')}</span>
               <Target className="h-4 w-4" />
             </div>
-            <p className="text-3xl font-bold text-foreground">{stats.goalsScored}</p>
+            <p className="text-2xl font-bold text-foreground">{stats.goalsScored}</p>
           </div>
 
-          <div className="bg-card border p-6 rounded-xl shadow-sm space-y-2">
+          <div className="bg-card border p-4 rounded-xl shadow-sm space-y-1.5">
             <div className="flex items-center justify-between text-muted-foreground">
-              <span className="text-sm font-medium">{t('stat.goalsConceded')}</span>
+              <span className="text-xs font-medium">{t('stat.goalsConceded')}</span>
               <ShieldAlert className="h-4 w-4" />
             </div>
-            <p className="text-3xl font-bold text-foreground">{stats.goalsConceded}</p>
+            <p className="text-2xl font-bold text-foreground">{stats.goalsConceded}</p>
           </div>
         </div>
 
