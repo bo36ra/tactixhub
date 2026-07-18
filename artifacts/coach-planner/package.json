@@ -9,7 +9,8 @@
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "cap:sync": "npm run build && npx cap sync ios",
-    "cap:open": "npx cap open ios"
+    "cap:open": "npx cap open ios",
+    "cap:assets": "npx capacitor-assets generate --ios"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -75,7 +76,8 @@
     "vite": "catalog:",
     "wouter": "^3.3.5",
     "zod": "catalog:",
-    "@capacitor/cli": "^8.0.0"
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/assets": "^3.0.0"
   },
   "dependencies": {
     "@clerk/react": "^6.11.3",
