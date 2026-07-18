@@ -31,6 +31,7 @@ import type {
   DashboardStats,
   DeleteAttendanceDayParams,
   GetAttendanceScheduleParams,
+  GetDashboardParams,
   Goal,
   GoalInput,
   HealthStatus,
@@ -2552,20 +2553,29 @@ export function useGetPlayingTimeSummary<TData = Awaited<ReturnType<typeof getPl
 
 
 
-export const getGetDashboardUrl = (teamId: number,) => {
+export const getGetDashboardUrl = (teamId: number,
+    params?: GetDashboardParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/teams/${teamId}/dashboard`
+  return stringifiedParams.length > 0 ? `/api/teams/${teamId}/dashboard?${stringifiedParams}` : `/api/teams/${teamId}/dashboard`
 }
 
 /**
  * @summary Get dashboard stats for a team
  */
-export const getDashboard = async (teamId: number, options?: RequestInit): Promise<DashboardStats> => {
+export const getDashboard = async (teamId: number,
+    params?: GetDashboardParams, options?: RequestInit): Promise<DashboardStats> => {
 
-  return customFetch<DashboardStats>(getGetDashboardUrl(teamId),
+  return customFetch<DashboardStats>(getGetDashboardUrl(teamId,params),
   {
     ...options,
     method: 'GET'
@@ -2578,23 +2588,25 @@ export const getDashboard = async (teamId: number, options?: RequestInit): Promi
 
 
 
-export const getGetDashboardQueryKey = (teamId: number,) => {
+export const getGetDashboardQueryKey = (teamId: number,
+    params?: GetDashboardParams,) => {
     return [
-    `/api/teams/${teamId}/dashboard`
+    `/api/teams/${teamId}/dashboard`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetDashboardQueryOptions = <TData = Awaited<ReturnType<typeof getDashboard>>, TError = ErrorType<unknown>>(teamId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetDashboardQueryOptions = <TData = Awaited<ReturnType<typeof getDashboard>>, TError = ErrorType<unknown>>(teamId: number,
+    params?: GetDashboardParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetDashboardQueryKey(teamId);
+  const queryKey =  queryOptions?.queryKey ?? getGetDashboardQueryKey(teamId,params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDashboard>>> = ({ signal }) => getDashboard(teamId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDashboard>>> = ({ signal }) => getDashboard(teamId,params, { signal, ...requestOptions });
 
 
 
@@ -2612,11 +2624,12 @@ export type GetDashboardQueryError = ErrorType<unknown>
  */
 
 export function useGetDashboard<TData = Awaited<ReturnType<typeof getDashboard>>, TError = ErrorType<unknown>>(
- teamId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ teamId: number,
+    params?: GetDashboardParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetDashboardQueryOptions(teamId,options)
+  const queryOptions = getGetDashboardQueryOptions(teamId,params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CardSummary } from './cardSummary';
+import type { DashboardStatsToday } from './dashboardStatsToday';
 import type { Match } from './match';
 import type { ScorerSummary } from './scorerSummary';
 
@@ -23,4 +24,5 @@ export interface DashboardStats {
   recentMatches: Match[];
   topScorers: ScorerSummary[];
   cardWarnings: CardSummary[];
+  today: DashboardStatsToday;
 }

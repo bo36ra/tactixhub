@@ -11,8 +11,10 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useQueryClient } from '@tanstack/react-query';
-import { Users, Swords, Target, ShieldAlert } from 'lucide-react';
+import { Users, Swords, Target, ShieldAlert, Dumbbell, Check } from 'lucide-react';
 import { format } from 'date-fns';
+import { Link } from 'wouter';
+import { focusLabel } from '@/pages/trainings';
 
 function CreateTeamModal() {
   const { t } = useLanguage();
@@ -60,9 +62,12 @@ function CreateTeamModal() {
 export function Dashboard() {
   const { t, isRtl } = useLanguage();
   const { activeTeamId } = useTeam();
-  const { data: stats, isLoading, refetch } = useGetDashboard(activeTeamId!, {
-    query: { enabled: !!activeTeamId, queryKey: getGetDashboardQueryKey(activeTeamId!) }
-  });
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const { data: stats, isLoading, refetch } = useGetDashboard(
+    activeTeamId!,
+    { date: todayStr },
+    { query: { enabled: !!activeTeamId, queryKey: getGetDashboardQueryKey(activeTeamId!) } },
+  );
 
   if (!activeTeamId) {
     return (
@@ -99,6 +104,55 @@ export function Dashboard() {
         <StickyHeader>
           <PageTitle>{t('nav.dashboard')}</PageTitle>
         </StickyHeader>
+
+        {/* Today — the day's action items, front and center */}
+        {stats.today && (
+          <div className="space-y-2.5">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">{t('dashboard.today')}</h3>
+            {stats.today.trainings.length === 0 && stats.today.matches.length === 0 ? (
+              <div className="bg-card border rounded-xl p-4 text-sm text-muted-foreground text-center">
+                {t('dashboard.todayEmpty')}
+              </div>
+            ) : (
+              <div className="grid gap-2">
+                {stats.today.trainings.map((tr) => (
+                  <div key={tr.id} className="bg-card border rounded-xl p-3.5 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <Dumbbell className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm">{t('dashboard.trainingToday')}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {focusLabel(t, tr.focus)}{tr.time ? ` · ${tr.time}` : ''}
+                      </p>
+                    </div>
+                    <Link href="/attendance">
+                      <Button size="sm" variant={stats.today.attendanceMarked ? 'outline' : 'default'} className="gap-1.5 shrink-0">
+                        {stats.today.attendanceMarked && <Check className="w-3.5 h-3.5" />}
+                        {stats.today.attendanceMarked ? t('dashboard.attendanceDone') : t('dashboard.markAttendance')}
+                      </Button>
+                    </Link>
+                  </div>
+                ))}
+                {stats.today.matches.map((m) => (
+                  <div key={m.id} className="bg-card border rounded-xl p-3.5 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <Swords className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm">{t('dashboard.matchToday')}</p>
+                      <p className="text-xs text-muted-foreground truncate">{m.opponent}</p>
+                    </div>
+                    <Link href="/matches">
+                      <Button size="sm" variant="outline" className="shrink-0">{t('dashboard.viewMatch')}</Button>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Stats Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-card border p-6 rounded-xl shadow-sm space-y-2">

@@ -762,6 +762,10 @@ export const GetDashboardParams = zod.object({
   "teamId": zod.coerce.number()
 })
 
+export const GetDashboardQueryParams = zod.object({
+  "date": zod.coerce.string().optional().describe('Client\'s local today (YYYY-MM-DD) — used to compute the \"today\" section without server-side timezone guessing')
+})
+
 export const GetDashboardResponse = zod.object({
   "totalPlayers": zod.number(),
   "totalMatches": zod.number(),
@@ -799,7 +803,28 @@ export const GetDashboardResponse = zod.object({
   "yellowCards": zod.number(),
   "redCards": zod.number(),
   "status": zod.enum(['clean', 'caution', 'warning', 'suspended'])
-}))
+})),
+  "today": zod.object({
+  "date": zod.string(),
+  "trainings": zod.array(zod.object({
+  "id": zod.number(),
+  "date": zod.string(),
+  "time": zod.string().nullish(),
+  "focus": zod.string()
+})),
+  "matches": zod.array(zod.object({
+  "id": zod.number(),
+  "teamId": zod.number(),
+  "opponent": zod.string(),
+  "date": zod.string(),
+  "type": zod.enum(['league', 'friendly', 'cup']),
+  "formation": zod.string().optional(),
+  "ourGoals": zod.number(),
+  "theirGoals": zod.number(),
+  "createdAt": zod.string()
+})),
+  "attendanceMarked": zod.boolean()
+})
 })
 
 

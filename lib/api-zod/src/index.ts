@@ -6,9 +6,10 @@ export * from "./generated/types";
 // the names ambiguous (TS2308), so re-export them explicitly: the value from
 // the zod file and the type from the types file. Value + type can share a
 // name because they live in different declaration spaces.
-export { SaveLineupBody, GetAttendanceScheduleParams, DeleteAttendanceDayParams } from "./generated/api";
+export { SaveLineupBody, GetAttendanceScheduleParams, DeleteAttendanceDayParams, GetDashboardParams } from "./generated/api";
 export type {
   SaveLineupBody as SaveLineupBodyType,
   GetAttendanceScheduleParams as GetAttendanceScheduleParamsType,
   DeleteAttendanceDayParams as DeleteAttendanceDayParamsType,
+  GetDashboardParams as GetDashboardParamsType,
 } from "./generated/types";

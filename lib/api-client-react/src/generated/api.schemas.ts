@@ -558,6 +558,21 @@ export interface PlayingTimeSummary {
   participationPct: number;
 }
 
+export type DashboardStatsTodayTrainingsItem = {
+  id: number;
+  date: string;
+  /** @nullable */
+  time?: string | null;
+  focus: string;
+};
+
+export type DashboardStatsToday = {
+  date: string;
+  trainings: DashboardStatsTodayTrainingsItem[];
+  matches: Match[];
+  attendanceMarked: boolean;
+};
+
 export interface DashboardStats {
   totalPlayers: number;
   totalMatches: number;
@@ -572,6 +587,7 @@ export interface DashboardStats {
   recentMatches: Match[];
   topScorers: ScorerSummary[];
   cardWarnings: CardSummary[];
+  today: DashboardStatsToday;
 }
 
 export type TeamMemberRole = typeof TeamMemberRole[keyof typeof TeamMemberRole];
@@ -713,5 +729,12 @@ export type GetAttendanceScheduleParams = {
  * Only include days within the last N days. Omit for full history.
  */
 days?: number;
+};
+
+export type GetDashboardParams = {
+/**
+ * Client's local today (YYYY-MM-DD) — used to compute the "today" section without server-side timezone guessing
+ */
+date?: string;
 };
 

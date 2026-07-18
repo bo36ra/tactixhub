@@ -776,6 +776,11 @@ paths:
           required: true
           schema:
             type: integer
+        - name: date
+          in: query
+          description: Client's local today (YYYY-MM-DD) — used to compute the "today" section without server-side timezone guessing
+          schema:
+            type: string
       responses:
         "200":
           description: Dashboard stats
@@ -1604,7 +1609,7 @@ components:
 
     DashboardStats:
       type: object
-      required: [totalPlayers, totalMatches, wins, draws, losses, goalsScored, goalsConceded, cleanSheets, goalDifference, avgAttendanceRate, recentMatches, topScorers, cardWarnings]
+      required: [totalPlayers, totalMatches, wins, draws, losses, goalsScored, goalsConceded, cleanSheets, goalDifference, avgAttendanceRate, recentMatches, topScorers, cardWarnings, today]
       properties:
         totalPlayers:
           type: integer
@@ -1638,6 +1643,32 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CardSummary"
+        today:
+          type: object
+          required: [date, trainings, matches, attendanceMarked]
+          properties:
+            date:
+              type: string
+            trainings:
+              type: array
+              items:
+                type: object
+                required: [id, date, focus]
+                properties:
+                  id:
+                    type: integer
+                  date:
+                    type: string
+                  time:
+                    type: ["string", "null"]
+                  focus:
+                    type: string
+            matches:
+              type: array
+              items:
+                $ref: "#/components/schemas/Match"
+            attendanceMarked:
+              type: boolean
 
     TeamMember:
       type: object

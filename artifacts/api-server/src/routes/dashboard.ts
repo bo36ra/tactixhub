@@ -9,6 +9,7 @@ import {
   cardsTable,
   teamsTable,
   attendanceTable,
+  trainingsTable,
 } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { verifyTeamAccess } from "../lib/teamAccess";
@@ -27,7 +28,7 @@ router.get("/teams/:teamId/dashboard", requireAuth, async (req, res) => {
     return;
   }
   try {
-    const [players, matches, goals, cards, attendance] = await Promise.all([
+    const [players, matches, goals, cards, attendance, trainings] = await Promise.all([
       db.select().from(playersTable).where(eq(playersTable.teamId, teamId)),
       db
         .select()
@@ -37,6 +38,7 @@ router.get("/teams/:teamId/dashboard", requireAuth, async (req, res) => {
       db.select().from(goalsTable).where(eq(goalsTable.teamId, teamId)),
       db.select().from(cardsTable).where(eq(cardsTable.teamId, teamId)),
       db.select().from(attendanceTable).where(eq(attendanceTable.teamId, teamId)),
+      db.select().from(trainingsTable).where(eq(trainingsTable.teamId, teamId)),
     ]);
 
     const totalPlayers = players.length;
@@ -102,6 +104,28 @@ router.get("/teams/:teamId/dashboard", requireAuth, async (req, res) => {
       createdAt: m.createdAt.toISOString(),
     }));
 
+    // "Today" section — driven by the client's own local date (query
+    // param) rather than guessing a timezone server-side, since the
+    // server and the coach's phone are very likely in different zones.
+    const todayDate = typeof req.query.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)
+      ? req.query.date
+      : new Date().toISOString().slice(0, 10);
+    const todayTrainings = trainings
+      .filter((tr) => tr.date === todayDate && tr.focus !== "rest_day")
+      .map((tr) => ({ id: tr.id, date: tr.date, time: tr.time, focus: tr.focus }));
+    const todayMatchesRaw = matches.filter((m) => m.date === todayDate);
+    const todayMatches = todayMatchesRaw.map((m) => ({
+      id: m.id,
+      teamId: m.teamId,
+      opponent: m.opponent,
+      date: m.date,
+      type: m.type,
+      ourGoals: m.ourGoals,
+      theirGoals: m.theirGoals,
+      createdAt: m.createdAt.toISOString(),
+    }));
+    const attendanceMarked = attendance.some((a) => a.date === todayDate);
+
     res.json({
       totalPlayers,
       totalMatches,
@@ -116,6 +140,12 @@ router.get("/teams/:teamId/dashboard", requireAuth, async (req, res) => {
       recentMatches,
       topScorers,
       cardWarnings,
+      today: {
+        date: todayDate,
+        trainings: todayTrainings,
+        matches: todayMatches,
+        attendanceMarked,
+      },
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get dashboard");
