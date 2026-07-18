@@ -22,7 +22,18 @@ const config: CapacitorConfig = {
     cleartext: false,
   },
   ios: {
-    contentInset: 'automatic',
+    // 'automatic' forces WKWebView to always inset itself away from the
+    // status bar/notch — this is a *static, build-time* setting that
+    // overrides the runtime StatusBar.setOverlaysWebView(true) call in
+    // lib/native.ts, which is exactly why that fix alone left a white
+    // strip behind the status bar: 'automatic' was still forcing a gap
+    // there for the native root view's (white) background to show
+    // through. 'never' lets the webview truly extend edge-to-edge, so
+    // the transparent status bar shows the app's own dark background
+    // instead. The app's CSS (env(safe-area-inset-top) padding on the
+    // mobile top bar, StickyHeader, and the offline banner) handles
+    // keeping content clear of the notch on its own.
+    contentInset: 'never',
   },
   plugins: {
     SplashScreen: {
