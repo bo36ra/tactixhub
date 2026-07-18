@@ -31,7 +31,7 @@ export function StickyHeader({ children }: { children: React.ReactNode }) {
   if (!isNative) return <div>{children}</div>;
   return (
     <div
-      className={`sticky top-14 md:top-0 z-30 -mx-4 md:-mx-8 px-4 md:px-8 transition-all duration-200 ${
+      className={`sticky top-[calc(3.5rem+env(safe-area-inset-top))] md:top-0 z-30 -mx-4 md:-mx-8 px-4 md:px-8 transition-all duration-200 ${
         scrolled ? 'py-3 bg-background/90 backdrop-blur-md border-b border-white/[0.06]' : 'py-0 bg-transparent'
       }`}
     >

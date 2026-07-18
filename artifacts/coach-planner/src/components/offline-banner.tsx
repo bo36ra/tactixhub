@@ -45,7 +45,7 @@ export function OfflineBanner() {
   const { t } = useLanguage();
   if (online) return null;
   return (
-    <div className="fixed top-14 md:top-0 inset-x-0 md:start-64 z-50 bg-destructive text-destructive-foreground text-xs font-medium py-1.5 px-3 flex items-center justify-center gap-1.5 print:hidden">
+    <div className="fixed top-[calc(3.5rem+env(safe-area-inset-top))] md:top-0 inset-x-0 md:start-64 z-50 bg-destructive text-destructive-foreground text-xs font-medium py-1.5 px-3 flex items-center justify-center gap-1.5 print:hidden">
       <WifiOff className="w-3.5 h-3.5" />
       {t('offline.banner')}
     </div>

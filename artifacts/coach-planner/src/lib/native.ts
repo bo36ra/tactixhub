@@ -50,15 +50,21 @@ export async function hapticSelection() {
 }
 
 // Called once on app boot (see main.tsx) — matches the status bar's
-// text/icon color and background to the app's dark theme instead of
-// leaving iOS's default (which can render dark-on-dark, effectively
-// invisible clock/battery icons).
+// icon color to the app's dark theme. Note: StatusBar.setBackgroundColor
+// is NOT supported on iOS (Android-only, confirmed in Capacitor's own
+// docs) — calling it there is a silent no-op, which is why an earlier
+// version of this function left a white strip behind the status bar on
+// a real iPhone. The correct cross-platform fix is setOverlaysWebView:
+// it makes the webview extend edge-to-edge under the status bar/notch,
+// so the status bar area shows the app's own dark background through it
+// (transparently) instead of a separate native-colored layer. The app's
+// own CSS handles the resulting safe-area padding (see index.css).
 export async function initStatusBar() {
   if (!isNative()) return;
   try {
     const { StatusBar, Style } = await import('@capacitor/status-bar');
     await StatusBar.setStyle({ style: Style.Dark });
-    await StatusBar.setBackgroundColor({ color: '#141210' });
+    await StatusBar.setOverlaysWebView({ overlay: true });
   } catch {
     // ignore
   }

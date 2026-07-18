@@ -252,7 +252,10 @@ export function Sidebar() {
       <div className="hidden md:block h-screen fixed inset-y-0 z-50 print:hidden">
         <SidebarContent />
       </div>
-      <div className="md:hidden print:hidden fixed top-0 inset-x-0 h-14 bg-sidebar border-b border-white/[0.06] flex items-center px-4 justify-between z-40">
+      <div
+        className="md:hidden print:hidden fixed top-0 inset-x-0 h-14 bg-sidebar border-b border-white/[0.06] flex items-center px-4 justify-between z-40"
+        style={{ paddingTop: 'env(safe-area-inset-top)', height: 'calc(3.5rem + env(safe-area-inset-top))' }}
+      >
         <div className="flex items-center gap-2">
           <img src="/logo-icon.svg" alt="TactixHub" className="w-6 h-6" />
           <h1 className="font-display font-bold text-sm text-foreground tracking-tight">{t('app.title')}</h1>
@@ -349,7 +352,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       <Sidebar />
       <OfflineBanner />
-      <div className={`md:ms-64 pt-16 md:pt-0 ${isNative ? 'pb-16 md:pb-0' : ''} min-h-screen flex flex-col rtl:md:mr-64 rtl:md:ms-0`}>
+      <div className={`md:ms-64 pt-[calc(3.5rem+env(safe-area-inset-top))] md:pt-0 ${isNative ? 'pb-16 md:pb-0' : ''} min-h-screen flex flex-col rtl:md:mr-64 rtl:md:ms-0`}>
         <main className="flex-1 p-4 md:p-8 animate-page-enter">
           {children}
         </main>
