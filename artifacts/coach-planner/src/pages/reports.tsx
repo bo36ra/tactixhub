@@ -21,7 +21,7 @@ import {
   getGetAttendanceSummaryQueryKey,
   getGetAttendanceScheduleQueryKey,
 } from '@workspace/api-client-react';
-import { format, startOfWeek, endOfWeek, startOfMonth, addMonths, getDaysInMonth } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, addMonths, addDays, getDaysInMonth } from 'date-fns';
 import { FileBarChart2, User, CalendarDays, ChevronLeft, ChevronRight, GitCompareArrows } from 'lucide-react';
 import { STATUS_STYLES } from '@/pages/attendance';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -58,6 +58,11 @@ export function Reports() {
   const [scheduleDays, setScheduleDays] = useState<number | undefined>(30);
   const [gridDate, setGridDate] = useState(() => new Date());
   const gridMonth = startOfMonth(gridDate);
+  // Monthly stays exactly as it was (day-of-month keyed, scoped to one
+  // calendar month) — daily/weekly are a separate, date-string-keyed
+  // computation below so the working monthly view is never at risk of
+  // a shared-code regression.
+  const [gridViewMode, setGridViewMode] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
   const [gridPlayer, setGridPlayer] = useState<string>('all');
   const [gridStatusFilter, setGridStatusFilter] = useState<string>('all');
   // Tap popup for a day tile carrying an excuse note
@@ -69,6 +74,31 @@ export function Reports() {
   const avgOf = (rs?: { rating: number }[]) =>
     rs && rs.length ? rs.reduce((s, r) => s + r.rating, 0) / rs.length : null;
   const { data: allAttendance } = useListAttendance(tid, { query: { enabled, queryKey: getListAttendanceQueryKey(tid) } });
+
+  type RangeRec = { status: string; note: string | null };
+  const rangeDates = React.useMemo(() => {
+    if (gridViewMode === 'daily') return [format(gridDate, 'yyyy-MM-dd')];
+    if (gridViewMode === 'weekly') {
+      const start = startOfWeek(gridDate, { weekStartsOn: 6 }); // Saturday-start (Gulf convention)
+      return Array.from({ length: 7 }, (_, i) => format(addDays(start, i), 'yyyy-MM-dd'));
+    }
+    return [];
+  }, [gridViewMode, gridDate]);
+
+  const rangeGrid = React.useMemo(() => {
+    if (gridViewMode === 'monthly' || !players) return null;
+    const byDate = new Map<string, Map<number, RangeRec[]>>();
+    const dateSet = new Set(rangeDates);
+    for (const rec of allAttendance ?? []) {
+      if (!dateSet.has(rec.date)) continue;
+      const statuses = byDate.get(rec.date) ?? new Map<number, RangeRec[]>();
+      const list = statuses.get(rec.playerId) ?? [];
+      list.push({ status: rec.status ?? (rec.present ? 'present' : 'absent'), note: rec.note ?? null });
+      statuses.set(rec.playerId, list);
+      byDate.set(rec.date, statuses);
+    }
+    return byDate;
+  }, [gridViewMode, allAttendance, rangeDates, players]);
 
   // Monthly grid: players as rows, every day of the selected month as
   // columns, one colored cell per recorded status. Built client-side from
@@ -101,29 +131,46 @@ export function Reports() {
   // a plain list (player + occurrence count + dates) reads much faster
   // for spotting a pattern than scanning a dimmed grid for one color.
   const statusFilterSummary = React.useMemo(() => {
-    if (!monthGrid || !players) return [];
+    if (!players) return [];
     const byPlayer = new Map<number, { day: number; note: string | null }[]>();
     const totalByPlayer = new Map<number, number>();
-    for (const day of monthGrid.activeDays) {
-      const dayMap = monthGrid.byDay.get(day);
-      if (!dayMap) continue;
-      for (const [playerId, recs] of dayMap) {
-        // Total sessions this player has *any* record for this month —
-        // the denominator that turns a raw count into a rate (3 of 4 is
-        // a very different story than 3 of 20).
-        totalByPlayer.set(playerId, (totalByPlayer.get(playerId) ?? 0) + 1);
-        const match = recs.find((r) => r.status === gridStatusFilter);
-        if (!match) continue;
-        const list = byPlayer.get(playerId) ?? [];
-        list.push({ day, note: match.note });
-        byPlayer.set(playerId, list);
+
+    if (gridViewMode === 'monthly') {
+      if (!monthGrid) return [];
+      for (const day of monthGrid.activeDays) {
+        const dayMap = monthGrid.byDay.get(day);
+        if (!dayMap) continue;
+        for (const [playerId, recs] of dayMap) {
+          totalByPlayer.set(playerId, (totalByPlayer.get(playerId) ?? 0) + 1);
+          const match = recs.find((r) => r.status === gridStatusFilter);
+          if (!match) continue;
+          const list = byPlayer.get(playerId) ?? [];
+          list.push({ day, note: match.note });
+          byPlayer.set(playerId, list);
+        }
+      }
+    } else {
+      if (!rangeGrid) return [];
+      for (const dateStr of rangeDates) {
+        const dayMap = rangeGrid.get(dateStr);
+        if (!dayMap) continue;
+        const dayNum = Number(dateStr.slice(8, 10));
+        for (const [playerId, recs] of dayMap) {
+          totalByPlayer.set(playerId, (totalByPlayer.get(playerId) ?? 0) + 1);
+          const match = recs.find((r) => r.status === gridStatusFilter);
+          if (!match) continue;
+          const list = byPlayer.get(playerId) ?? [];
+          list.push({ day: dayNum, note: match.note });
+          byPlayer.set(playerId, list);
+        }
       }
     }
+
     return players
       .filter((p) => byPlayer.has(p.id))
       .map((p) => ({ player: p, occurrences: byPlayer.get(p.id)!, total: totalByPlayer.get(p.id) ?? 0 }))
       .sort((a, b) => b.occurrences.length / b.total - a.occurrences.length / a.total);
-  }, [monthGrid, players, gridStatusFilter]);
+  }, [monthGrid, rangeGrid, rangeDates, gridViewMode, players, gridStatusFilter]);
 
   const [scheduleGroupBy, setScheduleGroupBy] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const { data: schedule } = useGetAttendanceSchedule(
@@ -537,7 +584,23 @@ export function Reports() {
             {/* Monthly grid */}
             <div className="bg-card border rounded-xl overflow-hidden">
               <div className="px-4 py-3 border-b space-y-2.5">
-                <h3 className="font-bold text-sm sm:text-base">{t('reports.monthGrid')}</h3>
+                <h3 className="font-bold text-sm sm:text-base">
+                  {gridViewMode === 'daily' ? t('reports.dayGrid') : gridViewMode === 'weekly' ? t('reports.weekGrid') : t('reports.monthGrid')}
+                </h3>
+                <div className="flex gap-1.5">
+                  {(['daily', 'weekly', 'monthly'] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setGridViewMode(mode)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                        gridViewMode === mode ? 'bg-primary text-primary-foreground border-primary' : 'border-border/60 text-muted-foreground hover:bg-white/[0.04]'
+                      }`}
+                    >
+                      {mode === 'daily' ? t('reports.dailyMode') : mode === 'weekly' ? t('reports.weeklyMode') : t('reports.monthlyMode')}
+                    </button>
+                  ))}
+                </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Input
                     type="date"
@@ -591,6 +654,102 @@ export function Reports() {
                     ))}
                   </div>
                 )
+              ) : gridViewMode === 'daily' ? (
+                (() => {
+                  const dateStr = format(gridDate, 'yyyy-MM-dd');
+                  const dayMap = rangeGrid?.get(dateStr);
+                  const rows = (players ?? [])
+                    .filter((p) => gridPlayer === 'all' || String(p.id) === gridPlayer)
+                    .map((p) => ({ player: p, recs: dayMap?.get(p.id) ?? [] }));
+                  const withData = rows.filter((r) => r.recs.length > 0);
+                  if (withData.length === 0) {
+                    return (
+                      <p className="px-6 py-10 text-center text-sm text-muted-foreground">
+                        {t('reports.noSessionThisDay')}
+                      </p>
+                    );
+                  }
+                  return (
+                    <div className="divide-y divide-border/50">
+                      {withData.map(({ player, recs }) => (
+                        <div key={player.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-muted-foreground font-mono text-xs shrink-0">{player.jerseyNumber}</span>
+                            <span className="font-medium text-sm truncate">{playerName(player, lang)}</span>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {recs.map((rec, i) => (
+                              <span
+                                key={i}
+                                title={rec.note ?? undefined}
+                                className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${STATUS_STYLES[rec.status] ?? ''}`}
+                              >
+                                {t(`att.status.${rec.status}`)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()
+              ) : gridViewMode === 'weekly' ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs sm:text-sm">
+                    <thead>
+                      <tr className="bg-muted text-muted-foreground">
+                        <th className="px-3 py-2 text-start sticky start-0 bg-muted z-10 min-w-32">
+                          {t('common.name')}
+                        </th>
+                        {rangeDates.map((dateStr) => {
+                          const d = new Date(`${dateStr}T00:00:00`);
+                          const weekdayFmt = new Intl.DateTimeFormat(isRtl ? 'ar' : 'en', { weekday: 'short' });
+                          return (
+                            <th key={dateStr} className="px-1 py-2 text-center font-mono min-w-10" dir="ltr">
+                              <div className="flex flex-col items-center leading-tight">
+                                <span className="text-[9px] font-sans opacity-70 normal-case">{weekdayFmt.format(d)}</span>
+                                <span>{d.getDate()}</span>
+                              </div>
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/50">
+                      {(players ?? [])
+                        .filter((p) => gridPlayer === 'all' || String(p.id) === gridPlayer)
+                        .map((player) => (
+                          <tr key={player.id}>
+                            <td className="px-3 py-1.5 sticky start-0 bg-card z-10 font-medium truncate max-w-[9rem]">
+                              {playerName(player, lang)}
+                            </td>
+                            {rangeDates.map((dateStr) => {
+                              const recs = rangeGrid?.get(dateStr)?.get(player.id) ?? [];
+                              return (
+                                <td key={dateStr} className="px-1 py-1.5 text-center">
+                                  <div className="flex items-center justify-center gap-0.5">
+                                    {recs.length === 0 ? (
+                                      <span className="text-muted-foreground/30">·</span>
+                                    ) : (
+                                      recs.map((rec, i) => (
+                                        <span
+                                          key={i}
+                                          title={`${t(`att.status.${rec.status}`)}${rec.note ? ` — ${rec.note}` : ''}`}
+                                          className={`inline-flex items-center justify-center w-6 h-6 rounded-md border text-[10px] font-bold ${STATUS_STYLES[rec.status] ?? ''}`}
+                                        >
+                                          {t(`att.status.short.${rec.status}`)}
+                                        </span>
+                                      ))
+                                    )}
+                                  </div>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
               ) : gridPlayer !== 'all' ? (
                 (() => {
                   // Calendar-tile view for one player: each day of the month
