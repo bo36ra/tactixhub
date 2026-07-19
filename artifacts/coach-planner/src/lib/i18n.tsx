@@ -528,6 +528,7 @@ const en: Translations = {
   "reports.weeklyMode": "Weekly",
   "reports.monthlyMode": "Monthly",
   "reports.noSessionThisDay": "No session recorded this day",
+  "reports.attendanceRate": "Attendance rate",
 
   "reports.monthNotes": "Absence / excuse notes this month",
   "reports.noRecordsPlayer": "No attendance recorded for this player this month",
@@ -1205,6 +1206,7 @@ const ar: Translations = {
   "reports.weeklyMode": "أسبوعي",
   "reports.monthlyMode": "شهري",
   "reports.noSessionThisDay": "لا يوجد جلسة مسجلة هذا اليوم",
+  "reports.attendanceRate": "معدل الحضور",
 
   "reports.monthNotes": "أسباب الغياب والأعذار هذا الشهر",
   "reports.noRecordsPlayer": "لا يوجد حضور مسجّل لهذا اللاعب هذا الشهر",

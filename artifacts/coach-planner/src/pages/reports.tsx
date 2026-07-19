@@ -12,14 +12,12 @@ import {
   useGetTopScorers,
   useGetCardsSummary,
   useGetAttendanceSummary,
-  useGetAttendanceSchedule,
   getListMatchesQueryKey,
   getListPlayersQueryKey,
   getGetPlayingTimeSummaryQueryKey,
   getGetTopScorersQueryKey,
   getGetCardsSummaryQueryKey,
   getGetAttendanceSummaryQueryKey,
-  getGetAttendanceScheduleQueryKey,
 } from '@workspace/api-client-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, addMonths, addDays, getDaysInMonth } from 'date-fns';
 import { FileBarChart2, User, CalendarDays, ChevronLeft, ChevronRight, GitCompareArrows } from 'lucide-react';
@@ -55,7 +53,6 @@ export function Reports() {
   const { data: scorers } = useGetTopScorers(tid, { query: { enabled, queryKey: getGetTopScorersQueryKey(tid) } });
   const { data: cardsSummary } = useGetCardsSummary(tid, { query: { enabled, queryKey: getGetCardsSummaryQueryKey(tid) } });
   const { data: attendanceSummary } = useGetAttendanceSummary(tid, { query: { enabled, queryKey: getGetAttendanceSummaryQueryKey(tid) } });
-  const [scheduleDays, setScheduleDays] = useState<number | undefined>(30);
   const [gridDate, setGridDate] = useState(() => new Date());
   const gridMonth = startOfMonth(gridDate);
   // Monthly stays exactly as it was (day-of-month keyed, scoped to one
@@ -130,6 +127,23 @@ export function Reports() {
   // Simple "who has status X this month" summary for the status filter —
   // a plain list (player + occurrence count + dates) reads much faster
   // for spotting a pattern than scanning a dimmed grid for one color.
+  // Attendance rate for whichever range the daily/weekly/monthly toggle
+  // is currently on — same present/absent classification the old
+  // separate 7/30/90-day rollup used (r.present boolean), just now
+  // driven by the grid's own date navigation instead of a second,
+  // disconnected set of controls.
+  const rateSummary = React.useMemo(() => {
+    if (!allAttendance) return null;
+    const monthKey = format(gridMonth, 'yyyy-MM');
+    const dateSet = gridViewMode === 'monthly' ? null : new Set(rangeDates);
+    const recs = allAttendance.filter((r) =>
+      gridViewMode === 'monthly' ? r.date.startsWith(monthKey) : dateSet!.has(r.date),
+    );
+    if (recs.length === 0) return null;
+    const present = recs.filter((r) => r.present).length;
+    return { total: recs.length, present, rate: Math.round((present / recs.length) * 100) };
+  }, [allAttendance, gridViewMode, gridMonth, rangeDates]);
+
   const statusFilterSummary = React.useMemo(() => {
     if (!players) return [];
     const byPlayer = new Map<number, { day: number; note: string | null }[]>();
@@ -171,46 +185,6 @@ export function Reports() {
       .map((p) => ({ player: p, occurrences: byPlayer.get(p.id)!, total: totalByPlayer.get(p.id) ?? 0 }))
       .sort((a, b) => b.occurrences.length / b.total - a.occurrences.length / a.total);
   }, [monthGrid, rangeGrid, rangeDates, gridViewMode, players, gridStatusFilter]);
-
-  const [scheduleGroupBy, setScheduleGroupBy] = useState<'daily' | 'weekly' | 'monthly'>('daily');
-  const { data: schedule } = useGetAttendanceSchedule(
-    tid,
-    { days: scheduleDays },
-    { query: { enabled, queryKey: getGetAttendanceScheduleQueryKey(tid, { days: scheduleDays }) } },
-  );
-
-  // Rolls the day-by-day schedule up into week or month buckets — same
-  // underlying data, just grouped by time window instead of listed per day.
-  const scheduleBuckets = React.useMemo(() => {
-    if (!schedule || scheduleGroupBy === 'daily') return null;
-    const buckets = new Map<
-      string,
-      { label: string; sortKey: string; sessions: number; present: number; total: number }
-    >();
-    for (const day of schedule) {
-      const d = new Date(day.date + 'T00:00:00');
-      let key: string;
-      let label: string;
-      if (scheduleGroupBy === 'weekly') {
-        const start = startOfWeek(d, { weekStartsOn: 6 }); // Saturday-start week (Gulf convention)
-        const end = endOfWeek(d, { weekStartsOn: 6 });
-        key = format(start, 'yyyy-MM-dd');
-        label = `${format(start, 'MMM d')} – ${format(end, 'MMM d')}`;
-      } else {
-        const start = startOfMonth(d);
-        key = format(start, 'yyyy-MM');
-        label = format(start, 'MMMM yyyy');
-      }
-      const bucket = buckets.get(key) ?? { label, sortKey: key, sessions: 0, present: 0, total: 0 };
-      bucket.sessions += 1;
-      bucket.present += day.presentCount;
-      bucket.total += day.totalPlayers;
-      buckets.set(key, bucket);
-    }
-    return Array.from(buckets.values())
-      .sort((a, b) => b.sortKey.localeCompare(a.sortKey))
-      .map((b) => ({ ...b, attendanceRate: b.total > 0 ? (b.present / b.total) * 100 : 0 }));
-  }, [schedule, scheduleGroupBy]);
 
   // Aggregate player full details
   const playerReport = React.useMemo(() => {
@@ -518,66 +492,27 @@ export function Reports() {
 
         {tab === 'schedule' && (
           <div className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex gap-2">
-                {[
-                  { label: t('report.last7'), value: 7 },
-                  { label: t('report.last30'), value: 30 },
-                  { label: t('report.last90'), value: 90 },
-                  { label: t('report.allTime'), value: undefined },
-                ].map((opt) => (
-                  <button
-                    key={opt.label}
-                    onClick={() => setScheduleDays(opt.value)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                      scheduleDays === opt.value
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-card border text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-1 bg-muted rounded-lg p-1">
-                {(['daily', 'weekly', 'monthly'] as const).map((g) => (
-                  <button
-                    key={g}
-                    onClick={() => setScheduleGroupBy(g)}
-                    className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                      scheduleGroupBy === g ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'
-                    }`}
-                  >
-                    {t(`report.groupBy.${g}`)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Weekly / Monthly rollup */}
-            {scheduleBuckets && (
-              <div className="space-y-2.5">
-                {scheduleBuckets.length === 0 && (
-                  <div className="bg-card border rounded-xl px-6 py-12 text-center text-muted-foreground">
-                    {t('report.scheduleEmpty')}
-                  </div>
-                )}
-                {scheduleBuckets.map((b) => {
-                  const attPill = b.attendanceRate >= 80 ? 'pill-green' : b.attendanceRate >= 60 ? 'pill-yellow' : 'pill-red';
-                  return (
-                    <div key={b.sortKey} className="bg-card border rounded-xl p-4 flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-foreground text-sm">{b.label}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {b.sessions} {t('report.sessions')}
-                        </p>
-                      </div>
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold shrink-0 ${attPill}`} dir="ltr">
-                        {b.present}/{b.total} · {b.attendanceRate.toFixed(0)}%
-                      </span>
-                    </div>
-                  );
-                })}
+            {/* Attendance rate for whatever range the grid below is
+                currently showing — one set of controls (the grid's own
+                daily/weekly/monthly toggle + date picker) now drives
+                both the rate and the detailed breakdown, instead of two
+                separate, disconnected navigation controls. */}
+            {rateSummary && (
+              <div className="bg-card border rounded-xl p-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-foreground text-sm">{t('reports.attendanceRate')}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {rateSummary.total} {t('report.sessions')}
+                  </p>
+                </div>
+                <span
+                  className={`px-2.5 py-1 rounded-full text-xs font-bold shrink-0 ${
+                    rateSummary.rate >= 80 ? 'pill-green' : rateSummary.rate >= 60 ? 'pill-yellow' : 'pill-red'
+                  }`}
+                  dir="ltr"
+                >
+                  {rateSummary.present}/{rateSummary.total} · {rateSummary.rate}%
+                </span>
               </div>
             )}
 
@@ -878,55 +813,6 @@ export function Reports() {
                 </>
               )}
             </div>
-
-            {/* Daily list */}
-            {!scheduleBuckets && (!schedule || schedule.length === 0) && (
-              <div className="bg-card border rounded-xl px-6 py-12 text-center text-muted-foreground">
-                {t('report.scheduleEmpty')}
-              </div>
-            )}
-            {!scheduleBuckets && schedule?.map((day) => {
-              const attPill =
-                day.attendanceRate >= 80 ? 'pill-green' : day.attendanceRate >= 60 ? 'pill-yellow' : 'pill-red';
-              return (
-                <div key={`${day.date}-${day.sessionType}`} className="bg-card border rounded-xl p-4 sm:p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                        <CalendarDays className="w-4.5 h-4.5" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-foreground">
-                          {format(new Date(day.date + 'T00:00:00'), 'MMM d, yyyy')}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{t(`attendance.${day.sessionType}`)}</p>
-                      </div>
-                    </div>
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold shrink-0 ${attPill}`} dir="ltr">
-                      {day.presentCount}/{day.totalPlayers} · {day.attendanceRate.toFixed(0)}%
-                    </span>
-                  </div>
-                  <div className="grid sm:grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1">
-                        {t('report.present')} ({day.presentCount})
-                      </p>
-                      <p className="text-foreground">
-                        {day.presentPlayerNames.length > 0 ? day.presentPlayerNames.join('، ') : '—'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1">
-                        {t('report.absent')} ({day.absentCount})
-                      </p>
-                      <p className="text-muted-foreground">
-                        {day.absentPlayerNames.length > 0 ? day.absentPlayerNames.join('، ') : '—'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
           </div>
         )}
         {/* Excuse popup for a tapped day tile */}
