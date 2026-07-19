@@ -530,11 +530,17 @@ export function Reports() {
 
             {/* Monthly grid */}
             <div className="bg-card border rounded-xl overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b">
+              <div className="px-4 py-3 border-b space-y-2.5">
                 <h3 className="font-bold text-sm sm:text-base">{t('reports.monthGrid')}</h3>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    type="date"
+                    value={format(gridMonth, 'yyyy-MM-dd')}
+                    onChange={(e) => e.target.value && setGridMonth(startOfMonth(new Date(e.target.value)))}
+                    className="h-8 flex-1 min-w-[9.5rem] text-xs"
+                  />
                   <Select value={gridPlayer} onValueChange={setGridPlayer}>
-                    <SelectTrigger className="h-8 w-36 sm:w-44 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8 flex-1 min-w-[8rem] text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">{t('reports.allTeam')}</SelectItem>
                       {players?.map((p) => (
@@ -543,7 +549,7 @@ export function Reports() {
                     </SelectContent>
                   </Select>
                   <Select value={gridStatusFilter} onValueChange={setGridStatusFilter}>
-                    <SelectTrigger className="h-8 w-32 sm:w-40 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8 flex-1 min-w-[8rem] text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">{t('reports.allStatuses')}</SelectItem>
                       {ALL_ATTENDANCE_STATUSES.map((status) => (
@@ -551,12 +557,6 @@ export function Reports() {
                       ))}
                     </SelectContent>
                   </Select>
-                <Input
-                  type="date"
-                  value={format(gridMonth, 'yyyy-MM-dd')}
-                  onChange={(e) => e.target.value && setGridMonth(startOfMonth(new Date(e.target.value)))}
-                  className="h-8 w-36 sm:w-40 text-xs"
-                />
                 </div>
               </div>
 
