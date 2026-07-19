@@ -54,7 +54,6 @@ function SidebarContent() {
   const { activeTeamId, setActiveTeamId } = useTeam();
   const { data: teams } = useListTeams();
   const { signOut } = useClerk();
-  const [searchOpen, setSearchOpen] = React.useState(false);
 
   const { data: access } = useAccessStatus();
   const isPro = useIsPro();
@@ -182,16 +181,6 @@ function SidebarContent() {
         )}
       </div>
 
-      <div className="px-3">
-        <button
-          type="button"
-          onClick={() => setSearchOpen(true)}
-          className="w-full flex items-center gap-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] px-3 py-2 text-start transition-colors"
-        >
-          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-          <span className="text-sm text-muted-foreground">{t('search.placeholder')}</span>
-        </button>
-      </div>
 
       {/* Nav */}
       <div className="flex-1 px-3 py-3 overflow-y-auto">
@@ -235,12 +224,7 @@ function SidebarContent() {
     </div>
   );
 
-  return (
-    <>
-      {content}
-      <SearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
-    </>
-  );
+  return content;
 }
 
 export function Sidebar() {
