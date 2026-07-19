@@ -31,14 +31,22 @@ const config: CapacitorConfig = {
   // earlier contentInset:'never' + setOverlaysWebView approach, which
   // did remove the white strip but at the cost of shifting the whole
   // layout up under the notch.
-  backgroundColor: '#141210',
+  // The status bar sits directly above the mobile top bar, which uses
+  // the app's --sidebar color (#080D0A) rather than the general page
+  // --background (#0D1210) — matching the wrong one of these two very
+  // close but distinct shades is exactly what left a visible seam here.
+  backgroundColor: '#080D0A',
   ios: {
     contentInset: 'automatic',
   },
   plugins: {
     SplashScreen: {
       launchShowDuration: 1200,
-      backgroundColor: '#141210',
+      // The splash screen hands off directly into the general page
+      // background (--background), not the top-bar-specific --sidebar
+      // shade used just above — matches index.css exactly instead of
+      // an earlier approximated value.
+      backgroundColor: '#0D1210',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,
     },
