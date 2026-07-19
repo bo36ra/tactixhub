@@ -25,6 +25,7 @@ import { format, startOfWeek, endOfWeek, startOfMonth, addMonths, getDaysInMonth
 import { FileBarChart2, User, CalendarDays, ChevronLeft, ChevronRight, GitCompareArrows } from 'lucide-react';
 import { STATUS_STYLES } from '@/pages/attendance';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { usePlayerRatings } from '@/lib/dev-api';
 import { PlayerAvatar } from '@/components/player-avatar';
@@ -94,6 +95,29 @@ export function Reports() {
     const activeDays = Array.from(byDay.keys()).sort((a, b) => a - b);
     return { daysInMonth, activeDays, byDay, hasRecords };
   }, [players, allAttendance, gridMonth]);
+
+  // Simple "who has status X this month" summary for the status filter —
+  // a plain list (player + occurrence count + dates) reads much faster
+  // for spotting a pattern than scanning a dimmed grid for one color.
+  const statusFilterSummary = React.useMemo(() => {
+    if (!monthGrid || !players) return [];
+    const byPlayer = new Map<number, { day: number; note: string | null }[]>();
+    for (const day of monthGrid.activeDays) {
+      const dayMap = monthGrid.byDay.get(day);
+      if (!dayMap) continue;
+      for (const [playerId, recs] of dayMap) {
+        const match = recs.find((r) => r.status === gridStatusFilter);
+        if (!match) continue;
+        const list = byPlayer.get(playerId) ?? [];
+        list.push({ day, note: match.note });
+        byPlayer.set(playerId, list);
+      }
+    }
+    return players
+      .filter((p) => byPlayer.has(p.id))
+      .map((p) => ({ player: p, occurrences: byPlayer.get(p.id)! }))
+      .sort((a, b) => b.occurrences.length - a.occurrences.length);
+  }, [monthGrid, players, gridStatusFilter]);
 
   const [scheduleGroupBy, setScheduleGroupBy] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const { data: schedule } = useGetAttendanceSchedule(
@@ -527,29 +551,41 @@ export function Reports() {
                       ))}
                     </SelectContent>
                   </Select>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    className="p-1.5 rounded-md hover:bg-white/[0.06] text-muted-foreground"
-                    onClick={() => setGridMonth(m => addMonths(m, -1))}
-                  >
-                    {isRtl ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-                  </button>
-                  <span className="text-sm font-medium min-w-24 text-center" dir="ltr">
-                    {format(gridMonth, 'MM / yyyy')}
-                  </span>
-                  <button
-                    type="button"
-                    className="p-1.5 rounded-md hover:bg-white/[0.06] text-muted-foreground"
-                    onClick={() => setGridMonth(m => addMonths(m, 1))}
-                  >
-                    {isRtl ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                  </button>
-                </div>
+                <Input
+                  type="date"
+                  value={format(gridMonth, 'yyyy-MM-dd')}
+                  onChange={(e) => e.target.value && setGridMonth(startOfMonth(new Date(e.target.value)))}
+                  className="h-8 w-36 sm:w-40 text-xs"
+                />
                 </div>
               </div>
 
-              {gridPlayer !== 'all' ? (
+              {gridStatusFilter !== 'all' ? (
+                statusFilterSummary.length === 0 ? (
+                  <p className="px-6 py-10 text-center text-sm text-muted-foreground">
+                    {t('reports.noMatchesStatus')}
+                  </p>
+                ) : (
+                  <div className="divide-y divide-border/50">
+                    {statusFilterSummary.map(({ player, occurrences }) => (
+                      <div key={player.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-muted-foreground font-mono text-xs shrink-0">{player.jerseyNumber}</span>
+                          <span className="font-medium text-sm truncate">{playerName(player, lang)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${STATUS_STYLES[gridStatusFilter] ?? ''}`}>
+                            {occurrences.length}×
+                          </span>
+                          <span className="text-[11px] text-muted-foreground font-mono" dir="ltr">
+                            {occurrences.map((o) => o.day).join(', ')}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              ) : gridPlayer !== 'all' ? (
                 (() => {
                   // Calendar-tile view for one player: each day of the month
                   // is a rounded tile colored by that player's status —
@@ -575,16 +611,15 @@ export function Reports() {
                           const recs = monthGrid?.byDay.get(day)?.get(pid) ?? [];
                           const primary = recs[0]?.status;
                           const hasNote = recs.some((r) => r.note);
-                          const tileMatches = gridStatusFilter === 'all' || recs.some((r) => r.status === gridStatusFilter);
                           return (
                             <div
                               key={day}
                               role={hasNote ? 'button' : undefined}
                               onClick={() => hasNote && setTilePopup({ day, recs })}
                               title={recs.map((r) => `${t(`att.status.${r.status}`)}${r.note ? ` — ${r.note}` : ''}`).join(' · ')}
-                              className={`relative rounded-xl px-1 py-2 flex flex-col items-center gap-0.5 border overflow-hidden transition-opacity ${
+                              className={`relative rounded-xl px-1 py-2 flex flex-col items-center gap-0.5 border overflow-hidden ${
                                 primary ? STATUS_STYLES[primary] : 'bg-white/[0.02] border-white/[0.05] text-muted-foreground/50'
-                              } ${hasNote ? 'cursor-pointer ring-1 ring-amber-400/40' : ''} ${tileMatches ? '' : 'opacity-15'}`}
+                              } ${hasNote ? 'cursor-pointer ring-1 ring-amber-400/40' : ''}`}
                             >
                               <span className="text-[9px] leading-none opacity-70">{weekdayFmt.format(date)}</span>
                               <span className="text-sm font-bold leading-none" dir="ltr">{day}</span>
@@ -645,18 +680,15 @@ export function Reports() {
                                     {statuses.length === 0 ? (
                                       <span className="text-muted-foreground/30">·</span>
                                     ) : (
-                                      statuses.map((rec, i) => {
-                                        const matches = gridStatusFilter === 'all' || rec.status === gridStatusFilter;
-                                        return (
-                                          <span
-                                            key={i}
-                                            title={`${t(`att.status.${rec.status}`)}${rec.note ? ` — ${rec.note}` : ''}`}
-                                            className={`inline-flex items-center justify-center w-6 h-6 rounded-md border text-[10px] font-bold transition-opacity ${STATUS_STYLES[rec.status] ?? ''} ${matches ? '' : 'opacity-15'}`}
-                                          >
-                                            {t(`att.status.short.${rec.status}`)}
-                                          </span>
-                                        );
-                                      })
+                                      statuses.map((rec, i) => (
+                                        <span
+                                          key={i}
+                                          title={`${t(`att.status.${rec.status}`)}${rec.note ? ` — ${rec.note}` : ''}`}
+                                          className={`inline-flex items-center justify-center w-6 h-6 rounded-md border text-[10px] font-bold ${STATUS_STYLES[rec.status] ?? ''}`}
+                                        >
+                                          {t(`att.status.short.${rec.status}`)}
+                                        </span>
+                                      ))
                                     )}
                                   </div>
                                 </td>
