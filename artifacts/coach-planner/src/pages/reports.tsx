@@ -103,10 +103,15 @@ export function Reports() {
   const statusFilterSummary = React.useMemo(() => {
     if (!monthGrid || !players) return [];
     const byPlayer = new Map<number, { day: number; note: string | null }[]>();
+    const totalByPlayer = new Map<number, number>();
     for (const day of monthGrid.activeDays) {
       const dayMap = monthGrid.byDay.get(day);
       if (!dayMap) continue;
       for (const [playerId, recs] of dayMap) {
+        // Total sessions this player has *any* record for this month —
+        // the denominator that turns a raw count into a rate (3 of 4 is
+        // a very different story than 3 of 20).
+        totalByPlayer.set(playerId, (totalByPlayer.get(playerId) ?? 0) + 1);
         const match = recs.find((r) => r.status === gridStatusFilter);
         if (!match) continue;
         const list = byPlayer.get(playerId) ?? [];
@@ -116,8 +121,8 @@ export function Reports() {
     }
     return players
       .filter((p) => byPlayer.has(p.id))
-      .map((p) => ({ player: p, occurrences: byPlayer.get(p.id)! }))
-      .sort((a, b) => b.occurrences.length - a.occurrences.length);
+      .map((p) => ({ player: p, occurrences: byPlayer.get(p.id)!, total: totalByPlayer.get(p.id) ?? 0 }))
+      .sort((a, b) => b.occurrences.length / b.total - a.occurrences.length / a.total);
   }, [monthGrid, players, gridStatusFilter]);
 
   const [scheduleGroupBy, setScheduleGroupBy] = useState<'daily' | 'weekly' | 'monthly'>('daily');
@@ -568,15 +573,15 @@ export function Reports() {
                   </p>
                 ) : (
                   <div className="divide-y divide-border/50">
-                    {statusFilterSummary.map(({ player, occurrences }) => (
+                    {statusFilterSummary.map(({ player, occurrences, total }) => (
                       <div key={player.id} className="flex items-center justify-between gap-3 px-4 py-3">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-muted-foreground font-mono text-xs shrink-0">{player.jerseyNumber}</span>
                           <span className="font-medium text-sm truncate">{playerName(player, lang)}</span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${STATUS_STYLES[gridStatusFilter] ?? ''}`}>
-                            {occurrences.length}×
+                          <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${STATUS_STYLES[gridStatusFilter] ?? ''}`} dir="ltr">
+                            {occurrences.length}/{total} · {Math.round((occurrences.length / total) * 100)}%
                           </span>
                           <span className="text-[11px] text-muted-foreground font-mono" dir="ltr">
                             {occurrences.map((o) => o.day).join(', ')}
