@@ -5,6 +5,7 @@ import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
 import { useUndoableDelete } from '@/lib/undoable-delete';
 import { useNameFilter, NameFilterInput } from '@/components/name-filter';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useListPlayers, useCreateAttendance, useDeleteAttendanceDay, useGetAttendanceSummary, getGetAttendanceSummaryQueryKey, getListPlayersQueryKey } from '@workspace/api-client-react';
 import { AttendanceInputSessionType } from '@workspace/api-client-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -53,7 +54,7 @@ export function Attendance() {
   const [records, setRecords] = React.useState<Record<number, string>>({});
   const [notes, setNotes] = React.useState<Record<number, string>>({});
 
-  const { data: players } = useListPlayers(activeTeamId!, {
+  const { data: players, isLoading: playersLoading } = useListPlayers(activeTeamId!, {
     query: { enabled: !!activeTeamId, queryKey: getListPlayersQueryKey(activeTeamId!) }
   });
   const { query: nameQuery, setQuery: setNameQuery, filtered: visiblePlayers } = useNameFilter(players);
@@ -196,6 +197,20 @@ export function Attendance() {
 
               <div className="pt-6 border-t space-y-3">
                 <NameFilterInput value={nameQuery} onChange={setNameQuery} />
+                {/* Render's free-tier server can take 30-60s to wake on
+                    the day's first request — without a loading state the
+                    player list silently rendered as nothing (just the
+                    search box), looking broken. */}
+                {playersLoading && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <div key={i} className="p-3 border rounded-lg bg-background space-y-2">
+                        <Skeleton className="h-4 w-1/2" />
+                        <Skeleton className="h-7 w-full" />
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                   {visiblePlayers.map(player => {
                     const current = records[player.id] ?? defaultStatus;

@@ -3,6 +3,7 @@ import { AppLayout, NoTeamState } from '@/components/layout';
 import { FeatureHint } from '@/components/feature-hint';
 import { TermHelp } from '@/components/term-help';
 import { useNameFilter, NameFilterInput } from '@/components/name-filter';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
 import { useTeam } from '@/lib/team-context';
@@ -37,7 +38,7 @@ function ScaleSlider({ label, value, onChange }: { label: string; value: number;
 function WellnessTab({ teamId }: { teamId: number }) {
   const { t, lang } = useLanguage();
   const { toast } = useToast();
-  const { data: players } = useListPlayers(teamId);
+  const { data: players, isLoading: playersLoading } = useListPlayers(teamId);
   const { query: nameQuery, setQuery: setNameQuery, filtered: visiblePlayers } = useNameFilter(players);
   const batchSave = useBatchUpsertWellness(teamId);
 
@@ -79,6 +80,7 @@ function WellnessTab({ teamId }: { teamId: number }) {
       </div>
       <p className="text-xs text-muted-foreground">{t('rpe.scale1to5')}</p>
       <NameFilterInput value={nameQuery} onChange={setNameQuery} />
+      {playersLoading && [1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
 
       <div className="space-y-2">
         {visiblePlayers.map((p) => {
@@ -107,7 +109,7 @@ function WellnessTab({ teamId }: { teamId: number }) {
 function LogTab({ teamId }: { teamId: number }) {
   const { t, lang } = useLanguage();
   const { toast } = useToast();
-  const { data: players } = useListPlayers(teamId);
+  const { data: players, isLoading: playersLoading } = useListPlayers(teamId);
   const { query: nameQuery, setQuery: setNameQuery, filtered: visiblePlayers } = useNameFilter(players);
   const batchSave = useBatchCreateRpeEntries(teamId);
 
@@ -164,6 +166,7 @@ function LogTab({ teamId }: { teamId: number }) {
       </div>
 
       <NameFilterInput value={nameQuery} onChange={setNameQuery} />
+      {playersLoading && [1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
       <div className="space-y-2">
         {visiblePlayers.map((p) => {
           const row = rows[p.id] ?? { duration: '', rpe: 5, notes: '' };
