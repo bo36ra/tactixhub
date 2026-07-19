@@ -21,19 +21,19 @@ const config: CapacitorConfig = {
     url: 'https://coach-planner-web-3.onrender.com',
     cleartext: false,
   },
+  // The white strip behind the status bar was never the webview itself —
+  // it was the *native root view's* default (white) background showing
+  // through the status-bar inset area above the webview. The clean fix
+  // is simply painting that native layer the app's own dark color, and
+  // keeping the normal 'automatic' inset layout (webview starts below
+  // the status bar, exactly as it originally did — no edge-to-edge
+  // extension, no safe-area layout complications). This replaces the
+  // earlier contentInset:'never' + setOverlaysWebView approach, which
+  // did remove the white strip but at the cost of shifting the whole
+  // layout up under the notch.
+  backgroundColor: '#141210',
   ios: {
-    // 'automatic' forces WKWebView to always inset itself away from the
-    // status bar/notch — this is a *static, build-time* setting that
-    // overrides the runtime StatusBar.setOverlaysWebView(true) call in
-    // lib/native.ts, which is exactly why that fix alone left a white
-    // strip behind the status bar: 'automatic' was still forcing a gap
-    // there for the native root view's (white) background to show
-    // through. 'never' lets the webview truly extend edge-to-edge, so
-    // the transparent status bar shows the app's own dark background
-    // instead. The app's CSS (env(safe-area-inset-top) padding on the
-    // mobile top bar, StickyHeader, and the offline banner) handles
-    // keeping content clear of the notch on its own.
-    contentInset: 'never',
+    contentInset: 'automatic',
   },
   plugins: {
     SplashScreen: {
