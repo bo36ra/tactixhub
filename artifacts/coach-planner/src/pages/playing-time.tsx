@@ -3,6 +3,7 @@ import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
+import { useNameFilter, NameFilterInput } from '@/components/name-filter';
 import { useGetPlayingTimeSummary, useRecordPlayingTime, useListMatches, useListPlayers, getGetPlayingTimeSummaryQueryKey, getListMatchesQueryKey, getListPlayersQueryKey } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,7 @@ export function PlayingTime() {
   const { data: summary } = useGetPlayingTimeSummary(activeTeamId!, { query: { enabled: !!activeTeamId, queryKey: getGetPlayingTimeSummaryQueryKey(activeTeamId!) } });
   const { data: matches } = useListMatches(activeTeamId!, { query: { enabled: !!activeTeamId, queryKey: getListMatchesQueryKey(activeTeamId!) } });
   const { data: players } = useListPlayers(activeTeamId!, { query: { enabled: !!activeTeamId, queryKey: getListPlayersQueryKey(activeTeamId!) } });
+  const { query: nameQuery, setQuery: setNameQuery, filtered: visiblePlayers } = useNameFilter(players);
 
   const recordTime = useRecordPlayingTime();
 
@@ -99,8 +101,9 @@ export function PlayingTime() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto px-1 space-y-2 min-h-0">
+                  <NameFilterInput value={nameQuery} onChange={setNameQuery} />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {players?.map(p => (
+                    {visiblePlayers.map(p => (
                       <div key={p.id} className="flex items-center justify-between p-2 border rounded bg-muted/20">
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground font-mono">{p.jerseyNumber}</span>

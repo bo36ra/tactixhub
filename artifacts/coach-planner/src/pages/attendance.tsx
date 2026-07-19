@@ -4,6 +4,7 @@ import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
 import { useUndoableDelete } from '@/lib/undoable-delete';
+import { useNameFilter, NameFilterInput } from '@/components/name-filter';
 import { useListPlayers, useCreateAttendance, useDeleteAttendanceDay, useGetAttendanceSummary, getGetAttendanceSummaryQueryKey, getListPlayersQueryKey } from '@workspace/api-client-react';
 import { AttendanceInputSessionType } from '@workspace/api-client-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -55,6 +56,7 @@ export function Attendance() {
   const { data: players } = useListPlayers(activeTeamId!, {
     query: { enabled: !!activeTeamId, queryKey: getListPlayersQueryKey(activeTeamId!) }
   });
+  const { query: nameQuery, setQuery: setNameQuery, filtered: visiblePlayers } = useNameFilter(players);
 
   const { data: summary } = useGetAttendanceSummary(activeTeamId!, {
     query: { enabled: !!activeTeamId, queryKey: getGetAttendanceSummaryQueryKey(activeTeamId!) }
@@ -192,9 +194,10 @@ export function Attendance() {
                 </div>
               </div>
 
-              <div className="pt-6 border-t">
+              <div className="pt-6 border-t space-y-3">
+                <NameFilterInput value={nameQuery} onChange={setNameQuery} />
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  {players?.map(player => {
+                  {visiblePlayers.map(player => {
                     const current = records[player.id] ?? defaultStatus;
                     return (
                       <div key={player.id} className="flex flex-col gap-2 p-3 border rounded-lg bg-background">

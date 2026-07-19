@@ -2,6 +2,7 @@ import React from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { FeatureHint } from '@/components/feature-hint';
 import { TermHelp } from '@/components/term-help';
+import { useNameFilter, NameFilterInput } from '@/components/name-filter';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
 import { useTeam } from '@/lib/team-context';
@@ -37,6 +38,7 @@ function WellnessTab({ teamId }: { teamId: number }) {
   const { t, lang } = useLanguage();
   const { toast } = useToast();
   const { data: players } = useListPlayers(teamId);
+  const { query: nameQuery, setQuery: setNameQuery, filtered: visiblePlayers } = useNameFilter(players);
   const batchSave = useBatchUpsertWellness(teamId);
 
   const [date, setDate] = React.useState(format(new Date(), 'yyyy-MM-dd'));
@@ -76,9 +78,10 @@ function WellnessTab({ teamId }: { teamId: number }) {
         <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </div>
       <p className="text-xs text-muted-foreground">{t('rpe.scale1to5')}</p>
+      <NameFilterInput value={nameQuery} onChange={setNameQuery} />
 
       <div className="space-y-2">
-        {players.map((p) => {
+        {visiblePlayers.map((p) => {
           const row = rows[p.id] ?? { sleepQuality: 3, fatigue: 3, soreness: 3, mood: 3 };
           return (
             <div key={p.id} className="bg-card border rounded-xl p-3 space-y-2.5">
@@ -105,6 +108,7 @@ function LogTab({ teamId }: { teamId: number }) {
   const { t, lang } = useLanguage();
   const { toast } = useToast();
   const { data: players } = useListPlayers(teamId);
+  const { query: nameQuery, setQuery: setNameQuery, filtered: visiblePlayers } = useNameFilter(players);
   const batchSave = useBatchCreateRpeEntries(teamId);
 
   const [date, setDate] = React.useState(format(new Date(), 'yyyy-MM-dd'));
@@ -159,8 +163,9 @@ function LogTab({ teamId }: { teamId: number }) {
         </div>
       </div>
 
+      <NameFilterInput value={nameQuery} onChange={setNameQuery} />
       <div className="space-y-2">
-        {players.map((p) => {
+        {visiblePlayers.map((p) => {
           const row = rows[p.id] ?? { duration: '', rpe: 5, notes: '' };
           const load = row.duration ? Number(row.duration) * row.rpe : null;
           return (

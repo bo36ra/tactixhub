@@ -3,6 +3,7 @@ import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
+import { NameFilterInput } from '@/components/name-filter';
 import {
   useListPlayers,
   getListPlayersQueryKey,
@@ -111,6 +112,17 @@ export function Readiness() {
     });
   }, [players, injuries, cardsSummary, recentRates, availability, t]);
 
+  // Name search over the computed rows — rows wrap the player object, so
+  // filter on r.player rather than reusing useNameFilter's array shape.
+  const [nameQuery, setNameQuery] = React.useState('');
+  const visibleRows = React.useMemo(() => {
+    const q = nameQuery.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter(
+      (r) => r.player.name.toLowerCase().includes(q) || (r.player.nameAlt ?? '').toLowerCase().includes(q),
+    );
+  }, [rows, nameQuery]);
+
   const counts = React.useMemo(() => {
     const c: Record<Verdict, number> = { available: 0, injured: 0, suspended: 0, away: 0, watch: 0 };
     rows.forEach((r) => c[r.verdict]++);
@@ -150,11 +162,13 @@ export function Readiness() {
           })}
         </div>
 
+        <NameFilterInput value={nameQuery} onChange={setNameQuery} />
+
         {rows.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('ready.empty')}</p>
         ) : (
           sections.map(({ verdict, label }) => {
-            const group = rows.filter((r) => r.verdict === verdict);
+            const group = visibleRows.filter((r) => r.verdict === verdict);
             if (group.length === 0) return null;
             const Icon = VERDICT_META[verdict].icon;
             return (

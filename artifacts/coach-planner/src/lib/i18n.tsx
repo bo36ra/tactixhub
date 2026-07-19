@@ -203,6 +203,7 @@ const en: Translations = {
   "search.placeholder": "Search players, matches, notes…",
   "search.hint": "Type at least 2 characters to search",
   "search.noResults": "No results found",
+  "nameFilter.placeholder": "Search by name…",
 
   "offline.banner": "No internet connection — changes won't save until it's back",
   "common.nationality": "Nationality",
@@ -870,6 +871,7 @@ const ar: Translations = {
   "search.placeholder": "ابحث عن لاعب، مباراة، ملاحظة…",
   "search.hint": "اكتب حرفين على الأقل للبحث",
   "search.noResults": "لا توجد نتائج",
+  "nameFilter.placeholder": "ابحث بالاسم…",
 
   "offline.banner": "لا يوجد اتصال بالإنترنت — التعديلات ما راح تُحفظ لين يرجع الاتصال",
   "common.nationality": "الجنسية",
