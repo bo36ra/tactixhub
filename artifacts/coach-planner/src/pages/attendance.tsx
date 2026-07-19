@@ -6,7 +6,7 @@ import { playerName } from '@/lib/player-name';
 import { useUndoableDelete } from '@/lib/undoable-delete';
 import { useNameFilter, NameFilterInput } from '@/components/name-filter';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useListPlayers, useCreateAttendance, useDeleteAttendanceDay, useGetAttendanceSummary, getGetAttendanceSummaryQueryKey, getListPlayersQueryKey } from '@workspace/api-client-react';
+import { useListPlayers, useCreateAttendance, useDeleteAttendanceDay, useGetAttendanceSummary, useListAttendance, getGetAttendanceSummaryQueryKey, getListAttendanceQueryKey, getListPlayersQueryKey } from '@workspace/api-client-react';
 import { AttendanceInputSessionType } from '@workspace/api-client-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Trash2 } from 'lucide-react';
@@ -58,6 +58,9 @@ export function Attendance() {
     query: { enabled: !!activeTeamId, queryKey: getListPlayersQueryKey(activeTeamId!) }
   });
   const { query: nameQuery, setQuery: setNameQuery, filtered: visiblePlayers } = useNameFilter(players);
+  const { data: allAttendance } = useListAttendance(activeTeamId!, {
+    query: { enabled: !!activeTeamId, queryKey: getListAttendanceQueryKey(activeTeamId!) }
+  });
 
   const { data: summary } = useGetAttendanceSummary(activeTeamId!, {
     query: { enabled: !!activeTeamId, queryKey: getGetAttendanceSummaryQueryKey(activeTeamId!) }
@@ -87,6 +90,7 @@ export function Attendance() {
           {
             onSuccess: () => {
               queryClient.invalidateQueries({ queryKey: getGetAttendanceSummaryQueryKey(activeTeamId!) });
+              queryClient.invalidateQueries({ queryKey: getListAttendanceQueryKey(activeTeamId!) });
             },
             onError: showApiError,
           },
@@ -100,11 +104,25 @@ export function Attendance() {
   const defaultStatus = sessionType === 'match' ? 'substitute' : 'present';
   useEffect(() => {
     if (!players) return;
+    // If this date+session already has saved records, prefill the form
+    // with them so re-opening a saved day EDITS it instead of silently
+    // starting from defaults and overwriting everything on save.
+    // Players without a saved record (e.g. added to the squad after that
+    // day was recorded) still get the default.
+    const saved = (allAttendance ?? []).filter(
+      (a) => a.date === date && a.sessionType === sessionType,
+    );
+    const savedByPlayer = new Map(saved.map((a) => [a.playerId, a]));
     const initial: Record<number, string> = {};
-    players.forEach(p => initial[p.id] = defaultStatus);
+    const initialNotes: Record<number, string> = {};
+    players.forEach(p => {
+      const rec = savedByPlayer.get(p.id);
+      initial[p.id] = rec?.status ?? defaultStatus;
+      if (rec?.note) initialNotes[p.id] = rec.note;
+    });
     setRecords(initial);
-    setNotes({});
-  }, [players, sessionType]);
+    setNotes(initialNotes);
+  }, [players, sessionType, date, allAttendance]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,11 +146,10 @@ export function Attendance() {
       onSuccess: () => {
         toast({ title: t('att.saved') });
         queryClient.invalidateQueries({ queryKey: getGetAttendanceSummaryQueryKey(activeTeamId) });
-        // Reset to defaults for convenience
-        const initial: Record<number, string> = {};
-        players?.forEach(p => initial[p.id] = defaultStatus);
-        setRecords(initial);
-        setNotes({});
+        // Refresh the raw records so the prefill effect re-syncs — the
+        // form now reflects exactly what was just saved (ready for
+        // further edits) instead of resetting to blank defaults.
+        queryClient.invalidateQueries({ queryKey: getListAttendanceQueryKey(activeTeamId) });
       }
     });
   };
