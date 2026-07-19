@@ -31,6 +31,15 @@ import { PlayerAvatar } from '@/components/player-avatar';
 
 type TabId = 'games' | 'players' | 'schedule' | 'compare';
 
+// Every attendance status the monthly grid can show, training and match
+// days combined — single source of truth for both the legend and the
+// status filter dropdown so they can never drift out of sync.
+const ALL_ATTENDANCE_STATUSES = [
+  'present', 'late_excused', 'late_unexcused', 'absent',
+  'starter', 'substitute', 'bench', 'not_called',
+  'excused_absence', 'injured', 'called_up', 'national_duty', 'other',
+] as const;
+
 export function Reports() {
   const { t, isRtl, lang } = useLanguage();
   const { activeTeamId } = useTeam();
@@ -48,6 +57,7 @@ export function Reports() {
   const [scheduleDays, setScheduleDays] = useState<number | undefined>(30);
   const [gridMonth, setGridMonth] = useState(() => startOfMonth(new Date()));
   const [gridPlayer, setGridPlayer] = useState<string>('all');
+  const [gridStatusFilter, setGridStatusFilter] = useState<string>('all');
   // Tap popup for a day tile carrying an excuse note
   const [tilePopup, setTilePopup] = useState<{ day: number; recs: { status: string; note: string | null }[] } | null>(null);
   const [cmpA, setCmpA] = useState<string>('');
@@ -508,6 +518,15 @@ export function Reports() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <Select value={gridStatusFilter} onValueChange={setGridStatusFilter}>
+                    <SelectTrigger className="h-8 w-32 sm:w-40 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('reports.allStatuses')}</SelectItem>
+                      {ALL_ATTENDANCE_STATUSES.map((status) => (
+                        <SelectItem key={status} value={status}>{t(`att.status.${status}`)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
@@ -556,15 +575,16 @@ export function Reports() {
                           const recs = monthGrid?.byDay.get(day)?.get(pid) ?? [];
                           const primary = recs[0]?.status;
                           const hasNote = recs.some((r) => r.note);
+                          const tileMatches = gridStatusFilter === 'all' || recs.some((r) => r.status === gridStatusFilter);
                           return (
                             <div
                               key={day}
                               role={hasNote ? 'button' : undefined}
                               onClick={() => hasNote && setTilePopup({ day, recs })}
                               title={recs.map((r) => `${t(`att.status.${r.status}`)}${r.note ? ` — ${r.note}` : ''}`).join(' · ')}
-                              className={`relative rounded-xl px-1 py-2 flex flex-col items-center gap-0.5 border overflow-hidden ${
+                              className={`relative rounded-xl px-1 py-2 flex flex-col items-center gap-0.5 border overflow-hidden transition-opacity ${
                                 primary ? STATUS_STYLES[primary] : 'bg-white/[0.02] border-white/[0.05] text-muted-foreground/50'
-                              } ${hasNote ? 'cursor-pointer ring-1 ring-amber-400/40' : ''}`}
+                              } ${hasNote ? 'cursor-pointer ring-1 ring-amber-400/40' : ''} ${tileMatches ? '' : 'opacity-15'}`}
                             >
                               <span className="text-[9px] leading-none opacity-70">{weekdayFmt.format(date)}</span>
                               <span className="text-sm font-bold leading-none" dir="ltr">{day}</span>
@@ -596,11 +616,18 @@ export function Reports() {
                           <th className="px-3 py-2 text-start sticky start-0 bg-muted z-10 min-w-32">
                             {t('common.name')}
                           </th>
-                          {monthGrid.activeDays.map(day => (
-                            <th key={day} className="px-1 py-2 text-center font-mono min-w-8" dir="ltr">
-                              {day}
-                            </th>
-                          ))}
+                          {monthGrid.activeDays.map(day => {
+                            const date = new Date(gridMonth.getFullYear(), gridMonth.getMonth(), day);
+                            const weekdayFmt = new Intl.DateTimeFormat(isRtl ? 'ar' : 'en', { weekday: 'short' });
+                            return (
+                              <th key={day} className="px-1 py-2 text-center font-mono min-w-8" dir="ltr">
+                                <div className="flex flex-col items-center leading-tight">
+                                  <span className="text-[9px] font-sans opacity-70 normal-case">{weekdayFmt.format(date)}</span>
+                                  <span>{day}</span>
+                                </div>
+                              </th>
+                            );
+                          })}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border/50">
@@ -618,15 +645,18 @@ export function Reports() {
                                     {statuses.length === 0 ? (
                                       <span className="text-muted-foreground/30">·</span>
                                     ) : (
-                                      statuses.map((rec, i) => (
-                                        <span
-                                          key={i}
-                                          title={`${t(`att.status.${rec.status}`)}${rec.note ? ` — ${rec.note}` : ''}`}
-                                          className={`inline-flex items-center justify-center w-6 h-6 rounded-md border text-[10px] font-bold ${STATUS_STYLES[rec.status] ?? ''}`}
-                                        >
-                                          {t(`att.status.short.${rec.status}`)}
-                                        </span>
-                                      ))
+                                      statuses.map((rec, i) => {
+                                        const matches = gridStatusFilter === 'all' || rec.status === gridStatusFilter;
+                                        return (
+                                          <span
+                                            key={i}
+                                            title={`${t(`att.status.${rec.status}`)}${rec.note ? ` — ${rec.note}` : ''}`}
+                                            className={`inline-flex items-center justify-center w-6 h-6 rounded-md border text-[10px] font-bold transition-opacity ${STATUS_STYLES[rec.status] ?? ''} ${matches ? '' : 'opacity-15'}`}
+                                          >
+                                            {t(`att.status.short.${rec.status}`)}
+                                          </span>
+                                        );
+                                      })
                                     )}
                                   </div>
                                 </td>
@@ -639,7 +669,7 @@ export function Reports() {
                   </div>
                   <div className="px-4 py-3 border-t flex flex-wrap items-center gap-x-4 gap-y-1.5">
                     <span className="text-[11px] font-medium text-muted-foreground">{t('reports.legend')}:</span>
-                    {['present', 'late_excused', 'late_unexcused', 'absent', 'starter', 'substitute', 'bench', 'not_called', 'excused_absence', 'injured', 'called_up', 'national_duty', 'other'].map(status => (
+                    {ALL_ATTENDANCE_STATUSES.map(status => (
                       <span key={status} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                         <span className={`inline-flex items-center justify-center w-5 h-5 rounded-md border text-[9px] font-bold ${STATUS_STYLES[status]}`}>
                           {t(`att.status.short.${status}`)}
