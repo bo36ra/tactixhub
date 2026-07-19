@@ -56,7 +56,8 @@ export function Reports() {
   const { data: cardsSummary } = useGetCardsSummary(tid, { query: { enabled, queryKey: getGetCardsSummaryQueryKey(tid) } });
   const { data: attendanceSummary } = useGetAttendanceSummary(tid, { query: { enabled, queryKey: getGetAttendanceSummaryQueryKey(tid) } });
   const [scheduleDays, setScheduleDays] = useState<number | undefined>(30);
-  const [gridMonth, setGridMonth] = useState(() => startOfMonth(new Date()));
+  const [gridDate, setGridDate] = useState(() => new Date());
+  const gridMonth = startOfMonth(gridDate);
   const [gridPlayer, setGridPlayer] = useState<string>('all');
   const [gridStatusFilter, setGridStatusFilter] = useState<string>('all');
   // Tap popup for a day tile carrying an excuse note
@@ -94,7 +95,7 @@ export function Reports() {
     // 1..31 grid is mostly empty and unreadable on mobile.
     const activeDays = Array.from(byDay.keys()).sort((a, b) => a - b);
     return { daysInMonth, activeDays, byDay, hasRecords };
-  }, [players, allAttendance, gridMonth]);
+  }, [players, allAttendance, gridDate.getFullYear(), gridDate.getMonth()]);
 
   // Simple "who has status X this month" summary for the status filter —
   // a plain list (player + occurrence count + dates) reads much faster
@@ -535,8 +536,8 @@ export function Reports() {
                 <div className="flex flex-wrap items-center gap-2">
                   <Input
                     type="date"
-                    value={format(gridMonth, 'yyyy-MM-dd')}
-                    onChange={(e) => e.target.value && setGridMonth(startOfMonth(new Date(e.target.value)))}
+                    value={format(gridDate, 'yyyy-MM-dd')}
+                    onChange={(e) => e.target.value && setGridDate(new Date(`${e.target.value}T00:00:00`))}
                     className="h-8 flex-1 min-w-[9.5rem] text-xs"
                   />
                   <Select value={gridPlayer} onValueChange={setGridPlayer}>
