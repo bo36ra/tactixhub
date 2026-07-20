@@ -187,6 +187,7 @@ const STATEMENTS = [
     "lift" text NOT NULL,
     "date" text NOT NULL,
     "weight_kg" real NOT NULL,
+    "reps" integer NOT NULL DEFAULT 1,
     "notes" text,
     "created_at" timestamp DEFAULT now() NOT NULL
   )`,
@@ -199,6 +200,7 @@ const STATEMENTS = [
     ALTER TABLE "one_rep_max_entries" ADD CONSTRAINT "one_rep_max_entries_player_lift_date_unique" UNIQUE ("player_id", "lift", "date");
   EXCEPTION WHEN duplicate_object THEN NULL;
   END $$`,
+  `ALTER TABLE "one_rep_max_entries" ADD COLUMN IF NOT EXISTS "reps" integer NOT NULL DEFAULT 1`,
   `CREATE TABLE IF NOT EXISTS "rpe_entries" (
     "id" serial PRIMARY KEY,
     "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,

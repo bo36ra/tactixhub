@@ -117,14 +117,16 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
   const { data: liftEntries } = useOneRepMaxEntries(teamId, resolvedLift ? { lift: resolvedLift } : undefined);
   const batchSave = useBatchCreateOneRepMax(teamId);
   const del = useDeleteOneRepMax(teamId);
-  const [rows, setRows] = React.useState<Record<number, string>>({});
+  const [rows, setRows] = React.useState<Record<number, { weight: string; reps: string }>>({});
 
   // Same "editing a saved day loads the saved values" fix as attendance
   // and body weight — re-opening a lift+date that already has entries
   // prefills instead of starting blank.
   React.useEffect(() => {
-    const initial: Record<number, string> = {};
-    (liftEntries ?? []).filter((e) => e.date === date).forEach((e) => { initial[e.playerId] = String(e.weightKg); });
+    const initial: Record<number, { weight: string; reps: string }> = {};
+    (liftEntries ?? []).filter((e) => e.date === date).forEach((e) => {
+      initial[e.playerId] = { weight: String(e.weightKg), reps: String(e.reps) };
+    });
     setRows(initial);
   }, [liftEntries, date]);
 
@@ -134,7 +136,7 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
       return;
     }
     const entries = Object.entries(rows)
-      .map(([playerId, v]) => ({ playerId: Number(playerId), weightKg: parseFloat(v) }))
+      .map(([playerId, r]) => ({ playerId: Number(playerId), weightKg: parseFloat(r.weight), reps: parseInt(r.reps) || 1 }))
       .filter((e) => Number.isFinite(e.weightKg) && e.weightKg > 0);
     if (entries.length === 0) return;
     batchSave.mutate(
@@ -147,6 +149,11 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
   };
 
   const liftLabel = (l: string) => ((LIFTS as readonly string[]).includes(l) ? t(`gym.lift.${l}`) : l);
+
+  // Epley formula — the standard estimate for translating a submaximal
+  // set (weight x reps > 1) into an equivalent true 1RM. A set of 1
+  // already *is* the max, no estimation needed.
+  const estimatedOneRm = (weightKg: number, reps: number) => (reps <= 1 ? weightKg : weightKg * (1 + reps / 30));
 
   // Each player's most recent max for the selected lift (latest date
   // wins) — the reference list a coach checks while programming.
@@ -196,19 +203,32 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
 
       <div className="space-y-2">
         {visiblePlayers.map((p) => (
-          <div key={p.id} className="bg-card border rounded-xl p-3 flex items-center gap-3">
+          <div key={p.id} className="bg-card border rounded-xl p-3 flex items-center gap-2">
             <span className="text-sm font-medium truncate flex-1 min-w-0">#{p.jerseyNumber} {playerName(p, lang)}</span>
-            <div className="relative w-28 shrink-0">
+            <div className="relative w-24 shrink-0">
               <Input
                 type="number"
                 inputMode="decimal"
                 step="0.5"
                 placeholder="—"
-                value={rows[p.id] ?? ''}
-                onChange={(e) => setRows((prev) => ({ ...prev, [p.id]: e.target.value }))}
-                className="pe-9 text-center"
+                value={rows[p.id]?.weight ?? ''}
+                onChange={(e) => setRows((prev) => ({ ...prev, [p.id]: { weight: e.target.value, reps: prev[p.id]?.reps ?? '1' } }))}
+                className="pe-8 text-center"
               />
-              <span className="absolute top-1/2 -translate-y-1/2 end-3 text-xs text-muted-foreground pointer-events-none">{t('gym.kg')}</span>
+              <span className="absolute top-1/2 -translate-y-1/2 end-2 text-[10px] text-muted-foreground pointer-events-none">{t('gym.kg')}</span>
+            </div>
+            <div className="relative w-16 shrink-0">
+              <Input
+                type="number"
+                inputMode="numeric"
+                step="1"
+                min="1"
+                placeholder="1"
+                value={rows[p.id]?.reps ?? ''}
+                onChange={(e) => setRows((prev) => ({ ...prev, [p.id]: { weight: prev[p.id]?.weight ?? '', reps: e.target.value } }))}
+                className="pe-6 text-center"
+              />
+              <span className="absolute top-1/2 -translate-y-1/2 end-1.5 text-[10px] text-muted-foreground pointer-events-none">{t('gym.repsShort')}</span>
             </div>
           </div>
         ))}
@@ -225,7 +245,9 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
           </p>
           <p className="text-[11px] text-muted-foreground">{t('gym.tapForPercentages')}</p>
           <div className="divide-y divide-border/50 bg-card border rounded-xl overflow-hidden">
-            {currentMaxes.map(({ player, entry }) => (
+            {currentMaxes.map(({ player, entry }) => {
+              const est1rm = Math.round(estimatedOneRm(entry.weightKg, entry.reps) * 10) / 10;
+              return (
               <div key={player.id}>
                 <div className="flex items-center gap-2 px-1">
                   <button
@@ -234,7 +256,10 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
                     className="flex-1 flex items-center justify-between gap-3 px-2 py-2.5 min-w-0"
                   >
                     <span className="text-sm font-medium truncate">#{player.jerseyNumber} {playerName(player, lang)}</span>
-                    <span className="font-bold text-sm shrink-0" dir="ltr">{entry.weightKg} {t('gym.kg')}</span>
+                    <span className="text-end shrink-0" dir="ltr">
+                      <span className="font-bold text-sm">{entry.weightKg}{t('gym.kg')}{entry.reps > 1 ? ` × ${entry.reps}` : ''}</span>
+                      {entry.reps > 1 && <span className="block text-[10px] text-muted-foreground">{t('gym.estOneRm')}: {est1rm}{t('gym.kg')}</span>}
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -250,7 +275,7 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
                       {PERCENTAGES.map((pct) => (
                         <div key={pct} className={`rounded-lg px-2 py-1.5 text-center ${pct === 100 ? 'bg-primary/10' : 'bg-white/[0.03]'}`}>
                           <p className="text-[10px] text-muted-foreground">{pct}%</p>
-                          <p className="text-sm font-bold" dir="ltr">{Math.round(((entry.weightKg * pct) / 100) * 10) / 10}</p>
+                          <p className="text-sm font-bold" dir="ltr">{Math.round(((est1rm * pct) / 100) * 10) / 10}</p>
                         </div>
                       ))}
                     </div>
@@ -265,7 +290,7 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
                           <div className="flex flex-wrap gap-1.5" dir="ltr">
                             {playerHistory.map((h) => (
                               <span key={h.id} className="text-[11px] bg-white/[0.03] rounded-md px-2 py-1">
-                                {h.date}: <span className="font-bold">{h.weightKg}{t('gym.kg')}</span>
+                                {h.date}: <span className="font-bold">{h.weightKg}{t('gym.kg')}{h.reps > 1 ? `×${h.reps}` : ''}</span>
                               </span>
                             ))}
                           </div>
@@ -275,7 +300,8 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

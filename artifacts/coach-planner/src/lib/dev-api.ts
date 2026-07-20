@@ -303,7 +303,7 @@ export function useDeleteBodyWeightEntry(teamId: number) {
 }
 
 export interface OneRepMaxEntry {
-  id: number; teamId: number; playerId: number; lift: string; date: string; weightKg: number; notes: string | null; createdAt: string;
+  id: number; teamId: number; playerId: number; lift: string; date: string; weightKg: number; reps: number; notes: string | null; createdAt: string;
 }
 export function useOneRepMaxEntries(teamId: number, params?: { playerId?: number; lift?: string }) {
   const qs = new URLSearchParams();
@@ -319,7 +319,7 @@ export function useOneRepMaxEntries(teamId: number, params?: { playerId?: number
 export function useBatchCreateOneRepMax(teamId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { lift: string; date: string; entries: { playerId: number; weightKg: number }[] }) =>
+    mutationFn: (input: { lift: string; date: string; entries: { playerId: number; weightKg: number; reps?: number }[] }) =>
       customFetch<OneRepMaxEntry[]>(`/api/teams/${teamId}/one-rep-max-entries/batch`, { method: 'POST', body: JSON.stringify(input) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['one-rep-max-entries', teamId] }),
   });

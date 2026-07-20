@@ -29,6 +29,11 @@ function cleanWeight(v: unknown): number | null {
   return Number.isFinite(n) && n > 0 && n < 400 ? Math.round(n * 10) / 10 : null;
 }
 
+function cleanReps(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 1 && n <= 50 ? Math.round(n) : 1;
+}
+
 // ---- Body weight ----
 
 router.get("/teams/:teamId/body-weight-entries", requireAuth, guarded(async (req, res, teamId) => {
@@ -121,8 +126,8 @@ router.post("/teams/:teamId/one-rep-max-entries/batch", requireAuth, guarded(asy
   const validIds = new Set(validPlayers.map((p) => p.id));
 
   const clean = entries
-    .map((e: any) => ({ playerId: parseInt(e.playerId), weightKg: cleanWeight(e.weightKg) }))
-    .filter((e: any): e is { playerId: number; weightKg: number } => validIds.has(e.playerId) && e.weightKg !== null);
+    .map((e: any) => ({ playerId: parseInt(e.playerId), weightKg: cleanWeight(e.weightKg), reps: cleanReps(e.reps) }))
+    .filter((e: any): e is { playerId: number; weightKg: number; reps: number } => validIds.has(e.playerId) && e.weightKg !== null);
 
   if (clean.length === 0) {
     res.status(400).json({ error: "No valid entries to save" });
@@ -133,10 +138,10 @@ router.post("/teams/:teamId/one-rep-max-entries/batch", requireAuth, guarded(asy
   for (const e of clean) {
     const [row] = await db
       .insert(oneRepMaxEntriesTable)
-      .values({ teamId, playerId: e.playerId, lift: cleanLift, date, weightKg: e.weightKg })
+      .values({ teamId, playerId: e.playerId, lift: cleanLift, date, weightKg: e.weightKg, reps: e.reps })
       .onConflictDoUpdate({
         target: [oneRepMaxEntriesTable.playerId, oneRepMaxEntriesTable.lift, oneRepMaxEntriesTable.date],
-        set: { weightKg: e.weightKg },
+        set: { weightKg: e.weightKg, reps: e.reps },
       })
       .returning();
     rows.push(row);
