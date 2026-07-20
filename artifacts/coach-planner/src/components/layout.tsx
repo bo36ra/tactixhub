@@ -71,6 +71,7 @@ function SidebarContent() {
         { href: '/players', label: t('nav.players'), icon: Users },
         { href: '/attendance', label: t('nav.attendance'), icon: CalendarCheck },
         { href: '/training-load', label: t('nav.rpe'), icon: Activity, pro: true },
+        { href: '/gym', label: t('nav.gym'), icon: Dumbbell, pro: true },
       ],
     },
     {
@@ -292,6 +293,7 @@ function BottomTabBar() {
     { href: '/calendar', label: t('nav.calendar'), icon: CalendarDays },
     { href: '/players', label: t('nav.players'), icon: Users },
     { href: '/matches', label: t('nav.matches'), icon: Swords },
+    { href: '/gym', label: t('nav.gym'), icon: Dumbbell },
   ];
 
   return (

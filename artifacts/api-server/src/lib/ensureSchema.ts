@@ -170,6 +170,26 @@ const STATEMENTS = [
     "created_at" timestamp DEFAULT now() NOT NULL,
     UNIQUE ("player_id", "date")
   )`,
+  `CREATE TABLE IF NOT EXISTS "body_weight_entries" (
+    "id" serial PRIMARY KEY,
+    "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+    "player_id" integer NOT NULL REFERENCES "players"("id") ON DELETE CASCADE,
+    "date" text NOT NULL,
+    "weight_kg" real NOT NULL,
+    "notes" text,
+    "created_at" timestamp DEFAULT now() NOT NULL,
+    UNIQUE ("player_id", "date")
+  )`,
+  `CREATE TABLE IF NOT EXISTS "one_rep_max_entries" (
+    "id" serial PRIMARY KEY,
+    "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+    "player_id" integer NOT NULL REFERENCES "players"("id") ON DELETE CASCADE,
+    "lift" text NOT NULL,
+    "date" text NOT NULL,
+    "weight_kg" real NOT NULL,
+    "notes" text,
+    "created_at" timestamp DEFAULT now() NOT NULL
+  )`,
   `CREATE TABLE IF NOT EXISTS "rpe_entries" (
     "id" serial PRIMARY KEY,
     "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,

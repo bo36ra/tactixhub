@@ -18,3 +18,4 @@ export * from "./access";
 export * from "./rpe";
 export * from "./wellness";
 export * from "./exercise-library";
+export * from "./gym";

@@ -271,6 +271,67 @@ export function useBatchUpsertWellness(teamId: number) {
   });
 }
 
+export interface BodyWeightEntry {
+  id: number; teamId: number; playerId: number; date: string; weightKg: number; notes: string | null; createdAt: string;
+}
+export function useBodyWeightEntries(teamId: number, params?: { playerId?: number; from?: string; to?: string }) {
+  const qs = new URLSearchParams();
+  if (params?.playerId) qs.set('playerId', String(params.playerId));
+  if (params?.from) qs.set('from', params.from);
+  if (params?.to) qs.set('to', params.to);
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return useQuery({
+    queryKey: ['body-weight-entries', teamId, params?.playerId ?? null, params?.from ?? null, params?.to ?? null],
+    enabled: !!teamId,
+    queryFn: () => customFetch<BodyWeightEntry[]>(`/api/teams/${teamId}/body-weight-entries${suffix}`),
+  });
+}
+export function useBatchUpsertBodyWeight(teamId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { date: string; entries: { playerId: number; weightKg: number; notes?: string }[] }) =>
+      customFetch<BodyWeightEntry[]>(`/api/teams/${teamId}/body-weight-entries/batch`, { method: 'POST', body: JSON.stringify(input) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['body-weight-entries', teamId] }),
+  });
+}
+export function useDeleteBodyWeightEntry(teamId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => customFetch<void>(`/api/teams/${teamId}/body-weight-entries/${id}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['body-weight-entries', teamId] }),
+  });
+}
+
+export interface OneRepMaxEntry {
+  id: number; teamId: number; playerId: number; lift: string; date: string; weightKg: number; notes: string | null; createdAt: string;
+}
+export function useOneRepMaxEntries(teamId: number, params?: { playerId?: number; lift?: string }) {
+  const qs = new URLSearchParams();
+  if (params?.playerId) qs.set('playerId', String(params.playerId));
+  if (params?.lift) qs.set('lift', params.lift);
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return useQuery({
+    queryKey: ['one-rep-max-entries', teamId, params?.playerId ?? null, params?.lift ?? null],
+    enabled: !!teamId,
+    queryFn: () => customFetch<OneRepMaxEntry[]>(`/api/teams/${teamId}/one-rep-max-entries${suffix}`),
+  });
+}
+export function useCreateOneRepMax(teamId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { playerId: number; lift: string; date: string; weightKg: number; notes?: string }) =>
+      customFetch<OneRepMaxEntry>(`/api/teams/${teamId}/one-rep-max-entries`, { method: 'POST', body: JSON.stringify(input) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['one-rep-max-entries', teamId] }),
+  });
+}
+export function useDeleteOneRepMax(teamId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => customFetch<void>(`/api/teams/${teamId}/one-rep-max-entries/${id}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['one-rep-max-entries', teamId] }),
+  });
+}
+
 export interface LibraryExercise {
   id: number; teamId: number; title: string; category: string;
   objectiveOffense: string | null; objectiveDefense: string | null; space: string | null;
