@@ -39,6 +39,10 @@ const en: Translations = {
   "gym.customLiftPh": "e.g. Trap Bar Deadlift",
   "gym.history": "History",
   "gym.noHistory": "No records yet for this player",
+  "gym.currentMaxes": "Current maxes",
+  "gym.tapForPercentages": "Tap a player to see their % chart and past tests",
+  "gym.progression": "Progression",
+
   "gym.hintTitle": "Track strength over time",
   "gym.hintBody": "Log body weight per session day, and one-rep-max tests per lift — each 1RM entry stays as its own record, so you can see a player's progression (e.g. squat 80kg in January, 95kg in July), not just the latest number.",
 
@@ -736,6 +740,10 @@ const ar: Translations = {
   "gym.customLiftPh": "مثلاً: ديدلفت بار السداسي",
   "gym.history": "السجل",
   "gym.noHistory": "لا توجد سجلات لهذا اللاعب بعد",
+  "gym.currentMaxes": "الأرقام الحالية",
+  "gym.tapForPercentages": "اضغط على أي لاعب لتشوف جدول النسب واختباراته السابقة",
+  "gym.progression": "التطور",
+
   "gym.hintTitle": "تابع تطور القوة عبر الوقت",
   "gym.hintBody": "سجّل وزن اللاعبين بكل يوم حصة، واختبارات الحد الأقصى لتكرار واحد (1RM) لكل تمرين — كل اختبار 1RM يبقى سجل مستقل، فتقدر تشوف تطور اللاعب (مثلاً سكوات 80كجم بيناير، 95كجم بيوليو)، مو بس آخر رقم.",
 

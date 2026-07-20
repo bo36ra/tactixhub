@@ -190,6 +190,15 @@ const STATEMENTS = [
     "notes" text,
     "created_at" timestamp DEFAULT now() NOT NULL
   )`,
+  // Postgres has no "ADD CONSTRAINT IF NOT EXISTS" — this DO block is
+  // the standard idempotent equivalent, so re-running this on a table
+  // that already has the constraint doesn't error. One row per
+  // player+lift+day: lets a batch re-save of the same lift/date upsert
+  // (correcting a typo, etc.) instead of piling up duplicate rows.
+  `DO $$ BEGIN
+    ALTER TABLE "one_rep_max_entries" ADD CONSTRAINT "one_rep_max_entries_player_lift_date_unique" UNIQUE ("player_id", "lift", "date");
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END $$`,
   `CREATE TABLE IF NOT EXISTS "rpe_entries" (
     "id" serial PRIMARY KEY,
     "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,

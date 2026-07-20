@@ -101,27 +101,47 @@ router.get("/teams/:teamId/one-rep-max-entries", requireAuth, guarded(async (req
   res.json(rows);
 }));
 
-// Individual create — unlike body weight, a 1RM test isn't a
-// whole-squad-at-once event, it's tested per player per lift as it
-// happens, so this is a single insert rather than a batch endpoint.
-router.post("/teams/:teamId/one-rep-max-entries", requireAuth, guarded(async (req, res, teamId) => {
-  const { playerId, lift, date, weightKg, notes } = req.body ?? {};
-  const pid = parseInt(playerId);
-  const w = cleanWeight(weightKg);
-  if (!Number.isFinite(pid) || typeof lift !== "string" || !lift.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(date) || w === null) {
-    res.status(400).json({ error: "playerId, lift, date, and a valid weightKg are required" });
+// Batch upsert: one lift + one date, all players entered together —
+// matches how a coach actually runs a testing day (everyone tests the
+// same lift), instead of one player/lift/save cycle repeated 30 times.
+// Re-saving the same lift+date upserts each player's row via the
+// unique(player_id, lift, date) constraint rather than duplicating.
+router.post("/teams/:teamId/one-rep-max-entries/batch", requireAuth, guarded(async (req, res, teamId) => {
+  const { lift, date, entries } = req.body ?? {};
+  if (typeof lift !== "string" || !lift.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Array.isArray(entries)) {
+    res.status(400).json({ error: "lift, date, and entries[] are required" });
     return;
   }
-  const [player] = await db.select({ id: playersTable.id }).from(playersTable).where(and(eq(playersTable.id, pid), eq(playersTable.teamId, teamId)));
-  if (!player) {
-    res.status(400).json({ error: "Player not found on this team" });
+  const cleanLift = lift.trim();
+
+  const playerIds = entries.map((e: any) => parseInt(e.playerId)).filter(Number.isFinite);
+  const validPlayers = playerIds.length
+    ? await db.select({ id: playersTable.id }).from(playersTable).where(and(eq(playersTable.teamId, teamId), inArray(playersTable.id, playerIds)))
+    : [];
+  const validIds = new Set(validPlayers.map((p) => p.id));
+
+  const clean = entries
+    .map((e: any) => ({ playerId: parseInt(e.playerId), weightKg: cleanWeight(e.weightKg) }))
+    .filter((e: any): e is { playerId: number; weightKg: number } => validIds.has(e.playerId) && e.weightKg !== null);
+
+  if (clean.length === 0) {
+    res.status(400).json({ error: "No valid entries to save" });
     return;
   }
-  const [row] = await db
-    .insert(oneRepMaxEntriesTable)
-    .values({ teamId, playerId: pid, lift: lift.trim(), date, weightKg: w, notes: typeof notes === "string" && notes.trim() ? notes.trim() : null })
-    .returning();
-  res.status(201).json(row);
+
+  const rows = [];
+  for (const e of clean) {
+    const [row] = await db
+      .insert(oneRepMaxEntriesTable)
+      .values({ teamId, playerId: e.playerId, lift: cleanLift, date, weightKg: e.weightKg })
+      .onConflictDoUpdate({
+        target: [oneRepMaxEntriesTable.playerId, oneRepMaxEntriesTable.lift, oneRepMaxEntriesTable.date],
+        set: { weightKg: e.weightKg },
+      })
+      .returning();
+    rows.push(row);
+  }
+  res.status(201).json(rows);
 }));
 
 router.delete("/teams/:teamId/one-rep-max-entries/:id", requireAuth, guarded(async (req, res, teamId) => {

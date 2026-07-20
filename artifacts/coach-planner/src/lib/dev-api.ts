@@ -316,11 +316,11 @@ export function useOneRepMaxEntries(teamId: number, params?: { playerId?: number
     queryFn: () => customFetch<OneRepMaxEntry[]>(`/api/teams/${teamId}/one-rep-max-entries${suffix}`),
   });
 }
-export function useCreateOneRepMax(teamId: number) {
+export function useBatchCreateOneRepMax(teamId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { playerId: number; lift: string; date: string; weightKg: number; notes?: string }) =>
-      customFetch<OneRepMaxEntry>(`/api/teams/${teamId}/one-rep-max-entries`, { method: 'POST', body: JSON.stringify(input) }),
+    mutationFn: (input: { lift: string; date: string; entries: { playerId: number; weightKg: number }[] }) =>
+      customFetch<OneRepMaxEntry[]>(`/api/teams/${teamId}/one-rep-max-entries/batch`, { method: 'POST', body: JSON.stringify(input) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['one-rep-max-entries', teamId] }),
   });
 }

@@ -19,11 +19,13 @@ export const bodyWeightEntriesTable = pgTable("body_weight_entries", {
 
 export type BodyWeightEntry = typeof bodyWeightEntriesTable.$inferSelect;
 
-// A tested one-rep-max for a given lift on a given day. Unlike body
-// weight, a player can test the same lift again later and both records
-// stay — this is a progression log (every test is a data point), not a
-// single current value, so a coach can see "squat 1RM: 80kg in Jan, 95kg
-// in July" rather than only the latest number.
+// A tested one-rep-max for a given lift on a given day. One row per
+// player+lift+day (a batch re-save of the same lift/date upserts,
+// correcting a mistake, rather than piling up duplicates) — but a
+// player can test the same lift again on a *different* day, and both
+// records stay. This is a progression log (every test is a data
+// point), not a single current value, so a coach can see "squat 1RM:
+// 80kg in Jan, 95kg in July" rather than only the latest number.
 export const oneRepMaxEntriesTable = pgTable("one_rep_max_entries", {
   id: serial("id").primaryKey(),
   teamId: integer("team_id").notNull().references(() => teamsTable.id, { onDelete: "cascade" }),
@@ -33,6 +35,8 @@ export const oneRepMaxEntriesTable = pgTable("one_rep_max_entries", {
   weightKg: real("weight_kg").notNull(),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => ({
+  onePerPlayerPerLiftPerDay: unique().on(t.playerId, t.lift, t.date),
+}));
 
 export type OneRepMaxEntry = typeof oneRepMaxEntriesTable.$inferSelect;
