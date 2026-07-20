@@ -3,6 +3,7 @@ import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
+import { JerseyNumber } from '@/components/jersey-number';
 import { useListPlayers, getListPlayersQueryKey } from '@workspace/api-client-react';
 import { useAvailability, useCreateAvailability, useDeleteAvailability } from '@/lib/dev-api';
 import { PlayerAvatar } from '@/components/player-avatar';
@@ -131,7 +132,7 @@ export function AvailabilityPage() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {(players ?? []).map((p) => (
-                      <SelectItem key={p.id} value={String(p.id)}>#{p.jerseyNumber} {playerName(p, lang)}</SelectItem>
+                      <SelectItem key={p.id} value={String(p.id)}><JerseyNumber n={p.jerseyNumber} className="" /> {playerName(p, lang)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

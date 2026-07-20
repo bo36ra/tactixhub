@@ -12,6 +12,7 @@ import {
 } from '@/lib/dev-api';
 import { playerName } from '@/lib/player-name';
 import { useNameFilter, NameFilterInput } from '@/components/name-filter';
+import { JerseyNumber } from '@/components/jersey-number';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,7 +76,7 @@ function BodyWeightTab({ teamId }: { teamId: number }) {
         {visiblePlayers.map((p) => (
           <div key={p.id} className="bg-card border rounded-xl p-3 flex items-center gap-3">
             <span className="text-sm font-medium truncate flex-1 min-w-0 flex items-center gap-1.5">
-              <span className="text-muted-foreground font-mono text-xs shrink-0">#{p.jerseyNumber}</span>
+              <JerseyNumber n={p.jerseyNumber} className="text-muted-foreground font-mono text-xs shrink-0" />
               <span className="truncate">{playerName(p, lang)}</span>
             </span>
             <div className="relative w-28 shrink-0">
@@ -208,7 +209,7 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
         {visiblePlayers.map((p) => (
           <div key={p.id} className="bg-card border rounded-xl p-3 flex items-center gap-2">
             <span className="text-sm font-medium truncate flex-1 min-w-0 flex items-center gap-1.5">
-              <span className="text-muted-foreground font-mono text-xs shrink-0">#{p.jerseyNumber}</span>
+              <JerseyNumber n={p.jerseyNumber} className="text-muted-foreground font-mono text-xs shrink-0" />
               <span className="truncate">{playerName(p, lang)}</span>
             </span>
             <div className="relative w-24 shrink-0">
@@ -262,7 +263,7 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
                     className="flex-1 flex items-center justify-between gap-3 px-2 py-2.5 min-w-0"
                   >
                     <span className="text-sm font-medium truncate flex items-center gap-1.5">
-                      <span className="text-muted-foreground font-mono text-xs shrink-0">#{player.jerseyNumber}</span>
+                      <JerseyNumber n={player.jerseyNumber} className="text-muted-foreground font-mono text-xs shrink-0" />
                       <span className="truncate">{playerName(player, lang)}</span>
                     </span>
                     <span className="text-end shrink-0" dir="ltr">
@@ -378,7 +379,7 @@ function TrainingLogTab({ teamId }: { teamId: number }) {
             <SelectTrigger><SelectValue placeholder={t('reports.allTeam')} /></SelectTrigger>
             <SelectContent>
               {players?.map((p) => (
-                <SelectItem key={p.id} value={String(p.id)}><span className="font-mono text-xs text-muted-foreground">#{p.jerseyNumber}</span> {playerName(p, lang)}</SelectItem>
+                <SelectItem key={p.id} value={String(p.id)}><JerseyNumber n={p.jerseyNumber} className="font-mono text-xs text-muted-foreground" /> {playerName(p, lang)}</SelectItem>
               ))}
             </SelectContent>
           </Select>

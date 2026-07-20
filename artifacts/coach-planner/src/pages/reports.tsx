@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
+import { JerseyNumber } from '@/components/jersey-number';
 import { useTeam } from '@/lib/team-context';
 import {
   useListAttendance,
@@ -435,7 +436,7 @@ export function Reports() {
                   <SelectTrigger><SelectValue placeholder={t(label)} /></SelectTrigger>
                   <SelectContent>
                     {playerReport.map((p) => (
-                      <SelectItem key={p.id} value={String(p.id)}>#{p.jerseyNumber} {playerName(p, lang)}</SelectItem>
+                      <SelectItem key={p.id} value={String(p.id)}><JerseyNumber n={p.jerseyNumber} className="" /> {playerName(p, lang)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -548,7 +549,7 @@ export function Reports() {
                     <SelectContent>
                       <SelectItem value="all">{t('reports.allTeam')}</SelectItem>
                       {players?.map((p) => (
-                        <SelectItem key={p.id} value={String(p.id)}>#{p.jerseyNumber} {playerName(p, lang)}</SelectItem>
+                        <SelectItem key={p.id} value={String(p.id)}><JerseyNumber n={p.jerseyNumber} className="" /> {playerName(p, lang)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

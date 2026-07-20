@@ -3,6 +3,7 @@ import { useRoute, Link } from 'wouter';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
+import { JerseyNumber } from '@/components/jersey-number';
 import {
   useListPlayers,
   useGetLineup,
@@ -195,7 +196,7 @@ export function Lineup() {
                           .filter((p) => !assignedPlayerIds.has(p.id) || assignments[slot.slotIndex] === p.id)
                           .map((p) => (
                             <SelectItem key={p.id} value={String(p.id)}>
-                              #{p.jerseyNumber} {playerName(p, lang)}
+                              <JerseyNumber n={p.jerseyNumber} className="" /> {playerName(p, lang)}
                             </SelectItem>
                           ))}
                       </SelectContent>
@@ -210,7 +211,7 @@ export function Lineup() {
               <div className="flex flex-wrap gap-1.5">
                 {benchPlayers.map((p) => (
                   <span key={p.id} className="text-xs bg-card border rounded-full px-2.5 py-1 text-muted-foreground">
-                    #{p.jerseyNumber} {playerName(p, lang)}
+                    <JerseyNumber n={p.jerseyNumber} className="" /> {playerName(p, lang)}
                   </span>
                 ))}
                 {benchPlayers.length === 0 && (

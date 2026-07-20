@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
+import { JerseyNumber } from '@/components/jersey-number';
 import { useTeam } from '@/lib/team-context';
 import { useListPlayers, useListMatches } from '@workspace/api-client-react';
 import {
@@ -68,7 +69,7 @@ function RatingsTab({ teamId, t }: { teamId: number; t: (k: string) => string })
             return (
               <div key={p.id} className="border border-border rounded-lg p-3 bg-card">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold">#{p.jerseyNumber} {playerName(p, lang)}</span>
+                  <span className="font-semibold"><JerseyNumber n={p.jerseyNumber} className="" /> {playerName(p, lang)}</span>
                   {r && <span className="pill-beige rounded px-2 py-0.5 text-xs flex items-center gap-1">
                     <Star className="w-3 h-3" />{r.rating}/10</span>}
                 </div>
@@ -127,7 +128,7 @@ function InjuriesTab({ teamId, t }: { teamId: number; t: (k: string) => string }
             <SelectTrigger><SelectValue placeholder={t('perf.pickPlayer')} /></SelectTrigger>
             <SelectContent>
               {(players ?? []).map((p: any) => (
-                <SelectItem key={p.id} value={String(p.id)}>#{p.jerseyNumber} {playerName(p, lang)}</SelectItem>
+                <SelectItem key={p.id} value={String(p.id)}><JerseyNumber n={p.jerseyNumber} className="" /> {playerName(p, lang)}</SelectItem>
               ))}
             </SelectContent>
           </Select>
