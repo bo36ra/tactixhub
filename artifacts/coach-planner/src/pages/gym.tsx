@@ -11,6 +11,7 @@ import {
   useOneRepMaxEntries, useBatchCreateOneRepMax, useDeleteOneRepMax,
 } from '@/lib/dev-api';
 import { playerName } from '@/lib/player-name';
+import { PlayerAvatar } from '@/components/player-avatar';
 import { useNameFilter, NameFilterInput } from '@/components/name-filter';
 import { JerseyNumber } from '@/components/jersey-number';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -76,7 +77,7 @@ function BodyWeightTab({ teamId }: { teamId: number }) {
         {visiblePlayers.map((p) => (
           <div key={p.id} className="bg-card border rounded-xl p-3 flex items-center gap-3">
             <span className="text-sm font-medium truncate flex-1 min-w-0 flex items-center gap-1.5">
-              <JerseyNumber n={p.jerseyNumber} className="text-muted-foreground font-mono text-xs shrink-0" />
+              <PlayerAvatar photo={p.photo} jerseyNumber={p.jerseyNumber} className="w-8 h-8 text-xs" />
               <span className="truncate">{playerName(p, lang)}</span>
             </span>
             <div className="relative w-28 shrink-0">
@@ -209,7 +210,7 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
         {visiblePlayers.map((p) => (
           <div key={p.id} className="bg-card border rounded-xl p-3 flex items-center gap-2">
             <span className="text-sm font-medium truncate flex-1 min-w-0 flex items-center gap-1.5">
-              <JerseyNumber n={p.jerseyNumber} className="text-muted-foreground font-mono text-xs shrink-0" />
+              <PlayerAvatar photo={p.photo} jerseyNumber={p.jerseyNumber} className="w-8 h-8 text-xs" />
               <span className="truncate">{playerName(p, lang)}</span>
             </span>
             <div className="relative w-24 shrink-0">
@@ -263,7 +264,7 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
                     className="flex-1 flex items-center justify-between gap-3 px-2 py-2.5 min-w-0"
                   >
                     <span className="text-sm font-medium truncate flex items-center gap-1.5">
-                      <JerseyNumber n={player.jerseyNumber} className="text-muted-foreground font-mono text-xs shrink-0" />
+                      <PlayerAvatar photo={player.photo} jerseyNumber={player.jerseyNumber} className="w-7 h-7 text-[11px]" />
                       <span className="truncate">{playerName(player, lang)}</span>
                     </span>
                     <span className="text-end shrink-0" dir="ltr">

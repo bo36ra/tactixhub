@@ -5,6 +5,7 @@ import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
+import { PlayerAvatar } from '@/components/player-avatar';
 import { useUndoableDelete } from '@/lib/undoable-delete';
 import { useNameFilter, NameFilterInput } from '@/components/name-filter';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -237,7 +238,7 @@ export function Attendance() {
                     return (
                       <div key={player.id} className="flex flex-col gap-2 p-3 border rounded-lg bg-background">
                         <div className="flex items-center gap-3 min-w-0">
-                          <span className="text-muted-foreground font-mono text-sm">{player.jerseyNumber}</span>
+                          <PlayerAvatar photo={player.photo} jerseyNumber={player.jerseyNumber} className="w-8 h-8 text-xs" />
                           <span className="font-medium text-sm truncate">{playerName(player, lang)}</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">

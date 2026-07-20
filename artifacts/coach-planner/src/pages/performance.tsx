@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
+import { PlayerAvatar } from '@/components/player-avatar';
 import { JerseyNumber } from '@/components/jersey-number';
 import { useTeam } from '@/lib/team-context';
 import { useListPlayers, useListMatches } from '@workspace/api-client-react';
@@ -69,7 +70,7 @@ function RatingsTab({ teamId, t }: { teamId: number; t: (k: string) => string })
             return (
               <div key={p.id} className="border border-border rounded-lg p-3 bg-card">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold"><JerseyNumber n={p.jerseyNumber} className="" /> {playerName(p, lang)}</span>
+                  <span className="font-semibold flex items-center gap-2"><PlayerAvatar photo={p.photo} jerseyNumber={p.jerseyNumber} className="w-7 h-7 text-[11px]" /><span className="truncate">{playerName(p, lang)}</span></span>
                   {r && <span className="pill-beige rounded px-2 py-0.5 text-xs flex items-center gap-1">
                     <Star className="w-3 h-3" />{r.rating}/10</span>}
                 </div>
