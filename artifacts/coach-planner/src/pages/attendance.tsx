@@ -1,4 +1,6 @@
 import React, { useEffect } from 'react';
+import { StickyHeader, PageTitle } from '@/components/page-header';
+import { PullToRefresh } from '@/components/pull-to-refresh';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
@@ -164,10 +166,11 @@ export function Attendance() {
 
   return (
     <AppLayout>
+      <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
       <div className="space-y-12">
         {/* Record Session Form */}
         <section className="space-y-6">
-          <h2 className="text-2xl font-bold">{t('nav.attendance')}</h2>
+          <StickyHeader><PageTitle>{t('nav.attendance')}</PageTitle></StickyHeader>
           
           <div className="bg-card border rounded-xl p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -320,6 +323,7 @@ export function Attendance() {
           </div>
         </section>
       </div>
+      </PullToRefresh>
     </AppLayout>
   );
 }

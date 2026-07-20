@@ -1,4 +1,5 @@
 import { format, startOfWeek, addWeeks } from 'date-fns';
+import { PageTitle } from '@/components/page-header';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import React, { useState } from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
@@ -124,7 +125,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Dumbbell className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-bold font-display">{t('nav.trainings')}</h1>
+          <PageTitle>{t('nav.trainings')}</PageTitle>
         </div>
 
         {hasLoad && (

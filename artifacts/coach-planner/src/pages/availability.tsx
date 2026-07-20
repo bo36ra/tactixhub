@@ -1,4 +1,5 @@
 import React from 'react';
+import { PageTitle } from '@/components/page-header';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
@@ -89,7 +90,7 @@ export function AvailabilityPage() {
     <AppLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">{t('avail.title')}</h2>
+          <PageTitle>{t('avail.title')}</PageTitle>
           <Button size="sm" className="gap-1.5" onClick={() => setOpen(true)}>
             <Plus className="w-4 h-4" /> {t('avail.add')}
           </Button>

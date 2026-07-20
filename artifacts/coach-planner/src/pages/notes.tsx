@@ -1,4 +1,5 @@
 import React from 'react';
+import { StickyHeader, PageTitle } from '@/components/page-header';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
@@ -107,7 +108,7 @@ export function Notes() {
   return (
     <AppLayout>
       <div className="space-y-8 max-w-3xl">
-        <h2 className="text-2xl font-bold">{t('notes.title')}</h2>
+        <StickyHeader><PageTitle>{t('notes.title')}</PageTitle></StickyHeader>
 
         {/* Composer */}
         <form

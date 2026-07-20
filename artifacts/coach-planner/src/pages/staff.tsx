@@ -1,4 +1,5 @@
 import React from 'react';
+import { PageTitle } from '@/components/page-header';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
@@ -137,7 +138,7 @@ export function Staff() {
     <AppLayout>
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h2 className="text-2xl font-bold">{t('staff.title')}</h2>
+          <PageTitle>{t('staff.title')}</PageTitle>
 
           {isOwner && (
             <Dialog open={open} onOpenChange={setOpen}>

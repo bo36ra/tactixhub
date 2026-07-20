@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { StickyHeader, PageTitle } from '@/components/page-header';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
@@ -248,7 +249,7 @@ export function Reports() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold">{t('nav.reports')}</h2>
+        <StickyHeader><PageTitle>{t('nav.reports')}</PageTitle></StickyHeader>
 
         {/* Tab switcher */}
         <div className="flex gap-1 bg-muted p-1 rounded-lg w-fit">

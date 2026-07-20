@@ -1,4 +1,5 @@
 import React from 'react';
+import { PageTitle } from '@/components/page-header';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
@@ -142,7 +143,7 @@ export function Readiness() {
   return (
     <AppLayout>
       <div className="space-y-8">
-        <h2 className="text-2xl font-bold">{t('ready.title')}</h2>
+        <PageTitle>{t('ready.title')}</PageTitle>
 
         {/* Summary counters */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
