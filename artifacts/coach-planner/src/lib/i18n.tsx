@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { DirectionProvider } from '@radix-ui/react-direction';
 
 type Language = 'en' | 'ar';
 
@@ -1456,7 +1457,15 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <LanguageContext.Provider value={{ lang, setLang, t, isRtl: lang === 'ar' }}>
-      {children}
+      {/* Radix primitives (Tabs, Select, DropdownMenu, ...) do NOT read
+          the document's dir attribute — without this provider they
+          assume LTR and force it onto their entire subtree, which is
+          exactly why the two pages built around <Tabs> (Gym, Training
+          Load) rendered left-to-right in Arabic while every non-Tabs
+          page inherited RTL correctly. */}
+      <DirectionProvider dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+        {children}
+      </DirectionProvider>
     </LanguageContext.Provider>
   );
 }
