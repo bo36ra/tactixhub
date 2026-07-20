@@ -452,14 +452,14 @@ function TrainingLogTab({ teamId }: { teamId: number }) {
 }
 
 export default function Gym() {
-  const { t, isRtl } = useLanguage();
+  const { t } = useLanguage();
   const { activeTeamId } = useTeam();
   if (!activeTeamId) return null;
 
   return (
     <ProPage>
       <AppLayout>
-        <div className="space-y-4" dir={isRtl ? 'rtl' : 'ltr'}>
+        <div className="space-y-4">
           <StickyHeader>
             <div className="flex items-center gap-2">
               <Dumbbell className="w-6 h-6 text-primary" />
