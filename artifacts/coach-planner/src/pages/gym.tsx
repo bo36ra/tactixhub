@@ -19,7 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Dumbbell, Weight, Trash2 } from 'lucide-react';
+import { Dumbbell, Weight, Trash2, Plus, ClipboardList } from 'lucide-react';
 import { format } from 'date-fns';
 
 const LIFTS = ['back_squat', 'front_squat', 'bench_press', 'deadlift', 'overhead_press', 'power_clean'] as const;
@@ -309,6 +309,138 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
   );
 }
 
+// A per-player, per-day training log — several exercises in one
+// session (unlike the 1RM tab, which is one lift for the whole squad
+// at once). Reuses the exact same one-rep-max-entries data and batch
+// endpoint (one entry at a time here), just a different lens on it:
+// pick a player + date, see what's already logged for that day as a
+// running reference, and append more exercises to it whenever.
+function TrainingLogTab({ teamId }: { teamId: number }) {
+  const { t, lang } = useLanguage();
+  const { toast } = useToast();
+  const { data: players } = useListPlayers(teamId, {
+    query: { enabled: !!teamId, queryKey: getListPlayersQueryKey(teamId) },
+  });
+  const [playerId, setPlayerId] = React.useState<string>('');
+  const [date, setDate] = React.useState(format(new Date(), 'yyyy-MM-dd'));
+
+  const { data: playerEntries } = useOneRepMaxEntries(teamId, playerId ? { playerId: Number(playerId) } : undefined);
+  const dayEntries = React.useMemo(
+    () => (playerEntries ?? []).filter((e) => e.date === date),
+    [playerEntries, date],
+  );
+
+  const addExercise = useBatchCreateOneRepMax(teamId);
+  const del = useDeleteOneRepMax(teamId);
+
+  const [newLift, setNewLift] = React.useState('back_squat');
+  const [newCustomLift, setNewCustomLift] = React.useState('');
+  const [newWeight, setNewWeight] = React.useState('');
+  const [newReps, setNewReps] = React.useState('1');
+  const resolvedNewLift = newLift === '__custom__' ? newCustomLift.trim() : newLift;
+
+  const liftLabel = (l: string) => ((LIFTS as readonly string[]).includes(l) ? t(`gym.lift.${l}`) : l);
+
+  const handleAdd = () => {
+    const w = parseFloat(newWeight);
+    if (!playerId || !resolvedNewLift || !Number.isFinite(w) || w <= 0) {
+      toast({ title: t('train.required'), variant: 'destructive' as any });
+      return;
+    }
+    addExercise.mutate(
+      { lift: resolvedNewLift, date, entries: [{ playerId: Number(playerId), weightKg: w, reps: parseInt(newReps) || 1 }] },
+      {
+        onSuccess: () => {
+          toast({ title: t('tactics.saved') });
+          setNewWeight('');
+          setNewReps('1');
+        },
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' as any }),
+      },
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5 col-span-2 sm:col-span-1">
+          <Label className="text-xs">{t('common.name')}</Label>
+          <Select value={playerId} onValueChange={setPlayerId}>
+            <SelectTrigger><SelectValue placeholder={t('reports.allTeam')} /></SelectTrigger>
+            <SelectContent>
+              {players?.map((p) => (
+                <SelectItem key={p.id} value={String(p.id)}>#{p.jerseyNumber} {playerName(p, lang)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5 col-span-2 sm:col-span-1">
+          <Label className="text-xs">{t('rpe.date')}</Label>
+          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </div>
+      </div>
+
+      {!playerId ? (
+        <p className="text-sm text-muted-foreground text-center py-10">{t('gym.pickPlayerHint')}</p>
+      ) : (
+        <>
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('gym.todaysLog')}</p>
+            {dayEntries.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6 bg-card border rounded-xl">{t('gym.noExercisesYet')}</p>
+            ) : (
+              <div className="divide-y divide-border/50 bg-card border rounded-xl overflow-hidden">
+                {dayEntries.map((e) => (
+                  <div key={e.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                    <span className="text-sm font-medium truncate">{liftLabel(e.lift)}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="font-bold text-sm" dir="ltr">{e.weightKg}{t('gym.kg')}{e.reps > 1 ? ` × ${e.reps}` : ''}</span>
+                      <button
+                        type="button"
+                        onClick={() => del.mutate(e.id)}
+                        className="text-destructive/60 hover:text-destructive active:text-destructive p-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-card border rounded-xl p-3 space-y-2.5">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('gym.addExercise')}</p>
+            <Select value={newLift} onValueChange={setNewLift}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {LIFTS.map((l) => <SelectItem key={l} value={l}>{t(`gym.lift.${l}`)}</SelectItem>)}
+                <SelectItem value="__custom__">{t('train.focus.custom')}</SelectItem>
+              </SelectContent>
+            </Select>
+            {newLift === '__custom__' && (
+              <Input placeholder={t('gym.customLiftPh')} value={newCustomLift} onChange={(e) => setNewCustomLift(e.target.value)} />
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="relative">
+                <Input
+                  type="number" inputMode="decimal" step="0.5" placeholder={t('gym.weightKg')}
+                  value={newWeight} onChange={(e) => setNewWeight(e.target.value)} className="pe-9"
+                />
+                <span className="absolute top-1/2 -translate-y-1/2 end-3 text-xs text-muted-foreground pointer-events-none">{t('gym.kg')}</span>
+              </div>
+              <Input type="number" inputMode="numeric" min="1" placeholder={t('gym.reps')} value={newReps} onChange={(e) => setNewReps(e.target.value)} />
+            </div>
+            <Button className="w-full gap-1.5" onClick={handleAdd} disabled={addExercise.isPending}>
+              <Plus className="w-4 h-4" /> {t('gym.addExercise')}
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function Gym() {
   const { t } = useLanguage();
   const { activeTeamId } = useTeam();
@@ -328,12 +460,14 @@ export default function Gym() {
           <FeatureHint id="gym" title={t('gym.hintTitle')} body={t('gym.hintBody')} />
 
           <Tabs defaultValue="weight">
-            <TabsList>
+            <TabsList className="flex-wrap h-auto">
               <TabsTrigger value="weight" className="gap-1.5"><Weight className="w-3.5 h-3.5" />{t('gym.tabWeight')}</TabsTrigger>
               <TabsTrigger value="orm" className="gap-1.5"><Dumbbell className="w-3.5 h-3.5" />{t('gym.tabOrm')}</TabsTrigger>
+              <TabsTrigger value="log" className="gap-1.5"><ClipboardList className="w-3.5 h-3.5" />{t('gym.tabLog')}</TabsTrigger>
             </TabsList>
             <TabsContent value="weight"><BodyWeightTab teamId={activeTeamId} /></TabsContent>
             <TabsContent value="orm"><OneRepMaxTab teamId={activeTeamId} /></TabsContent>
+            <TabsContent value="log"><TrainingLogTab teamId={activeTeamId} /></TabsContent>
           </Tabs>
         </div>
       </AppLayout>
