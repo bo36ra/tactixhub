@@ -25,7 +25,7 @@ import { format } from 'date-fns';
 const LIFTS = ['back_squat', 'front_squat', 'bench_press', 'deadlift', 'overhead_press', 'power_clean'] as const;
 
 function BodyWeightTab({ teamId }: { teamId: number }) {
-  const { t, lang } = useLanguage();
+  const { t, lang, isRtl } = useLanguage();
   const { toast } = useToast();
   const { data: players, isLoading: playersLoading } = useListPlayers(teamId, {
     query: { enabled: !!teamId, queryKey: getListPlayersQueryKey(teamId) },
@@ -102,7 +102,7 @@ function BodyWeightTab({ teamId }: { teamId: number }) {
 }
 
 function OneRepMaxTab({ teamId }: { teamId: number }) {
-  const { t, lang } = useLanguage();
+  const { t, lang, isRtl } = useLanguage();
   const { toast } = useToast();
   const { data: players, isLoading: playersLoading } = useListPlayers(teamId, {
     query: { enabled: !!teamId, queryKey: getListPlayersQueryKey(teamId) },
@@ -325,7 +325,7 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
 // pick a player + date, see what's already logged for that day as a
 // running reference, and append more exercises to it whenever.
 function TrainingLogTab({ teamId }: { teamId: number }) {
-  const { t, lang } = useLanguage();
+  const { t, lang, isRtl } = useLanguage();
   const { toast } = useToast();
   const { data: players } = useListPlayers(teamId, {
     query: { enabled: !!teamId, queryKey: getListPlayersQueryKey(teamId) },
@@ -451,14 +451,14 @@ function TrainingLogTab({ teamId }: { teamId: number }) {
 }
 
 export default function Gym() {
-  const { t } = useLanguage();
+  const { t, isRtl } = useLanguage();
   const { activeTeamId } = useTeam();
   if (!activeTeamId) return null;
 
   return (
     <ProPage>
       <AppLayout>
-        <div className="space-y-4">
+        <div className="space-y-4" dir={isRtl ? 'rtl' : 'ltr'}>
           <StickyHeader>
             <div className="flex items-center gap-2">
               <Dumbbell className="w-6 h-6 text-primary" />
