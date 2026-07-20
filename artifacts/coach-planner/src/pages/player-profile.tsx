@@ -158,7 +158,7 @@ export function PlayerProfile() {
               )}
               <div>
                 <p style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>{playerName(player, lang)}</p>
-                <p style={{ margin: '2px 0', fontSize: 14 }}>#{player.jerseyNumber} · {t(`position.${player.position}`)}</p>
+                <p style={{ margin: '2px 0', fontSize: 14 }}>{player.jerseyNumber} · {t(`position.${player.position}`)}</p>
                 {playerAge(player) != null && <p style={{ margin: 0, fontSize: 13 }}>{t('common.age')}: {playerAge(player)}{player.birthYear ? ` (${player.birthYear})` : ''}</p>}
                 {player.nationality && <p style={{ margin: 0, fontSize: 13 }}>{player.nationality}</p>}
               {player.phone && <p style={{ margin: 0, fontSize: 13, direction: 'ltr' }}>{player.phone}</p>}

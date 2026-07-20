@@ -443,7 +443,7 @@ function SquadTab({ teamId }: { teamId: number }) {
   };
   const hasAnyData = rows.some((r) => r.snapshot.weeklyLoad > 0);
   const chartData = rows.map((r) => ({
-    name: `#${r.player.jerseyNumber}`,
+    name: `${r.player.jerseyNumber}`,
     load: r.snapshot.weeklyLoad,
     status: r.snapshot.status,
   }));
