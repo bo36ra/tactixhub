@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
@@ -17,7 +17,7 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Trash2, Undo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus } from 'lucide-react';
+import { Trash2, Undo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus, Maximize, Minimize } from 'lucide-react';
 
 // ---------------------------------------------------------------- board
 
@@ -102,13 +102,14 @@ const emptyBoard = (): BoardData => ({
 });
 
 function TacticBoard({
-  board, setBoard, mode, selectedMarkerId, onSelectMarker,
+  board, setBoard, mode, selectedMarkerId, onSelectMarker, isFullscreen,
 }: {
   board: BoardData;
   setBoard: (b: BoardData) => void;
   mode: 'move' | 'arrow' | 'line' | 'pen' | 'erase';
   selectedMarkerId: string | null;
   onSelectMarker: (id: string | null) => void;
+  isFullscreen?: boolean;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragId = useRef<string | null>(null);
@@ -240,7 +241,7 @@ function TacticBoard({
     <svg
       ref={svgRef}
       viewBox="0 0 100 140"
-      className="w-full max-w-md mx-auto rounded-xl border border-border select-none"
+      className={`w-full mx-auto rounded-xl border border-border select-none ${isFullscreen ? 'max-w-2xl' : 'max-w-md'}`}
       style={{ touchAction: 'none', background: 'linear-gradient(180deg, #1e7a3d 0%, #24923f 50%, #1e7a3d 100%)' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -337,6 +338,33 @@ function BoardsTab({
   // (setBoard supports functional updates natively; playback relies on it)
   const [mode, setMode] = useState<'move' | 'arrow' | 'line' | 'pen' | 'erase'>('move');
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
+  const boardContainerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Presenting the board to the squad on a tablet/TV works much better
+  // full-bleed, without the rest of the app's chrome around it — the
+  // standard Fullscreen API expands just this container rather than
+  // the whole page, so the toolbar (formation picker, add player, etc.)
+  // stays usable while presenting. Listens for fullscreenchange too,
+  // since the person can also exit via Esc or the browser's own UI,
+  // not just this toggle button.
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      boardContainerRef.current?.requestFullscreen?.().catch(() => {
+        // Some browser/WebView contexts reject this (e.g. no user
+        // gesture, or unsupported) — the button just stays a no-op
+        // rather than throwing an unhandled rejection.
+      });
+    }
+  };
   const [playing, setPlaying] = useState(false);
   const animRef = useRef<number | null>(null);
 
@@ -443,7 +471,7 @@ function BoardsTab({
 
   if (editing) {
     return (
-      <div className="space-y-3">
+      <div ref={boardContainerRef} className={isFullscreen ? 'space-y-3 bg-background p-4 overflow-y-auto h-full' : 'space-y-3'}>
         <div className="flex flex-wrap gap-2 items-center">
           <Input value={editing.name} placeholder={t('tactics.namePlaceholder')}
             onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="max-w-56" />
@@ -518,6 +546,10 @@ function BoardsTab({
           <Button size="sm" variant="secondary" onClick={() => setBoard(emptyBoard())}>
             {t('tactics.clearAll')}
           </Button>
+          <Button size="sm" variant="secondary" onClick={toggleFullscreen}>
+            {isFullscreen ? <Minimize className="w-4 h-4 me-1" /> : <Maximize className="w-4 h-4 me-1" />}
+            {isFullscreen ? t('tactics.exitFullscreen') : t('tactics.fullscreen')}
+          </Button>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -552,7 +584,7 @@ function BoardsTab({
           </Button>
         </div>
 
-        <TacticBoard board={board} setBoard={setBoard} mode={mode} selectedMarkerId={selectedMarkerId} onSelectMarker={setSelectedMarkerId} />
+        <TacticBoard board={board} setBoard={setBoard} mode={mode} selectedMarkerId={selectedMarkerId} onSelectMarker={setSelectedMarkerId} isFullscreen={isFullscreen} />
 
         {/* Marker editor — appears once a marker is tapped/dragged in
             move mode. Recoloring here is what makes a training-game
