@@ -37,6 +37,61 @@ const DEFAULT_MARKERS: BoardMarker[] = [
   { id: 'ball', x: 50, y: 48, label: '', side: 'ball' },
 ];
 
+// Each preset is 11 positions ordered from deepest (GK) to most
+// advanced — applying one takes whichever markers are currently on
+// the "us" side, sorted by their current depth (y, descending, i.e.
+// closest to the own goal first), and reassigns them onto this list in
+// the same order. That preserves each marker's id/label/color (and
+// therefore who's who) while only changing the shape, and doesn't
+// require the squad to already be in the default 11 marker ids —
+// works the same after markers have been dragged around or recolored.
+const FORMATIONS: Record<string, { x: number; y: number }[]> = {
+  '4-3-3': [
+    { x: 50, y: 92 },
+    { x: 18, y: 76 }, { x: 38, y: 80 }, { x: 62, y: 80 }, { x: 82, y: 76 },
+    { x: 30, y: 58 }, { x: 50, y: 64 }, { x: 70, y: 58 },
+    { x: 22, y: 36 }, { x: 50, y: 30 }, { x: 78, y: 36 },
+  ],
+  '4-4-2': [
+    { x: 50, y: 92 },
+    { x: 18, y: 76 }, { x: 38, y: 80 }, { x: 62, y: 80 }, { x: 82, y: 76 },
+    { x: 15, y: 55 }, { x: 38, y: 58 }, { x: 62, y: 58 }, { x: 85, y: 55 },
+    { x: 38, y: 32 }, { x: 62, y: 32 },
+  ],
+  '4-2-3-1': [
+    { x: 50, y: 92 },
+    { x: 18, y: 76 }, { x: 38, y: 80 }, { x: 62, y: 80 }, { x: 82, y: 76 },
+    { x: 38, y: 64 }, { x: 62, y: 64 },
+    { x: 20, y: 44 }, { x: 50, y: 46 }, { x: 80, y: 44 },
+    { x: 50, y: 28 },
+  ],
+  '4-1-4-1': [
+    { x: 50, y: 92 },
+    { x: 18, y: 76 }, { x: 38, y: 80 }, { x: 62, y: 80 }, { x: 82, y: 76 },
+    { x: 50, y: 66 },
+    { x: 15, y: 50 }, { x: 38, y: 48 }, { x: 62, y: 48 }, { x: 85, y: 50 },
+    { x: 50, y: 28 },
+  ],
+  '3-5-2': [
+    { x: 50, y: 92 },
+    { x: 30, y: 78 }, { x: 50, y: 82 }, { x: 70, y: 78 },
+    { x: 10, y: 56 }, { x: 30, y: 60 }, { x: 50, y: 64 }, { x: 70, y: 60 }, { x: 90, y: 56 },
+    { x: 38, y: 32 }, { x: 62, y: 32 },
+  ],
+  '3-4-3': [
+    { x: 50, y: 92 },
+    { x: 30, y: 78 }, { x: 50, y: 82 }, { x: 70, y: 78 },
+    { x: 15, y: 56 }, { x: 38, y: 60 }, { x: 62, y: 60 }, { x: 85, y: 56 },
+    { x: 22, y: 34 }, { x: 50, y: 30 }, { x: 78, y: 34 },
+  ],
+  '5-3-2': [
+    { x: 50, y: 92 },
+    { x: 10, y: 76 }, { x: 28, y: 80 }, { x: 50, y: 82 }, { x: 72, y: 80 }, { x: 90, y: 76 },
+    { x: 30, y: 56 }, { x: 50, y: 60 }, { x: 70, y: 56 },
+    { x: 38, y: 32 }, { x: 62, y: 32 },
+  ],
+};
+
 const emptyBoard = (): BoardData => ({
   markers: DEFAULT_MARKERS.map((m) => ({ ...m })),
   arrows: [],
@@ -286,6 +341,24 @@ function BoardsTab({
   const animRef = useRef<number | null>(null);
 
   // Capture the current player positions as an animation frame
+  // Reassigns the current "us" markers onto a formation preset's shape,
+  // ordered by current depth (own-goal-ward first) so each marker keeps
+  // its id/label/color — only the layout changes. Markers beyond the
+  // preset's 11 slots (extras added via "Add player") are left as-is.
+  const applyFormation = (key: string) => {
+    const preset = FORMATIONS[key];
+    if (!preset) return;
+    const usMarkers = board.markers.filter((m) => m.side === 'us').sort((a, b) => b.y - a.y);
+    const positioned = new Map(usMarkers.slice(0, preset.length).map((m, i) => [m.id, preset[i]]));
+    setBoard({
+      ...board,
+      markers: board.markers.map((m) => {
+        const pos = positioned.get(m.id);
+        return pos ? { ...m, x: pos.x, y: pos.y } : m;
+      }),
+    });
+  };
+
   const addFrame = () => {
     const frame: BoardFrame = { markers: board.markers.map((m) => ({ ...m })) };
     setBoard({ ...board, frames: [...(board.frames ?? []), frame] });
@@ -434,6 +507,14 @@ function BoardsTab({
           >
             <Plus className="w-4 h-4 me-1" />{t('tactics.addOpponent')}
           </Button>
+          <Select onValueChange={applyFormation}>
+            <SelectTrigger className="w-32 h-9"><SelectValue placeholder={t('tactics.formation')} /></SelectTrigger>
+            <SelectContent>
+              {Object.keys(FORMATIONS).map((key) => (
+                <SelectItem key={key} value={key} dir="ltr">{key}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button size="sm" variant="secondary" onClick={() => setBoard(emptyBoard())}>
             {t('tactics.clearAll')}
           </Button>
