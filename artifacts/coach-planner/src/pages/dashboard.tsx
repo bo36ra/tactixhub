@@ -161,18 +161,18 @@ export function Dashboard() {
           <h3 className="text-sm font-bold text-muted-foreground">{t('dash.shortcuts')}</h3>
           <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-none">
             {[
-              { href: '/players', icon: Users, label: t('nav.players'), desc: t('dash.scPlayers') },
-              { href: '/matches', icon: Swords, label: t('nav.matches'), desc: t('dash.scMatches') },
-              { href: '/attendance', icon: CalendarCheck, label: t('nav.attendance'), desc: t('dash.scAttendance') },
-              { href: '/calendar', icon: CalendarDays, label: t('nav.calendar'), desc: t('dash.scCalendar') },
-              { href: '/gym', icon: Dumbbell, label: t('nav.gym'), desc: t('dash.scGym') },
-              { href: '/training-load', icon: Activity, label: t('nav.rpe'), desc: t('dash.scLoad') },
-              { href: '/tactics', icon: PenTool, label: t('nav.tactics'), desc: t('dash.scTactics') },
-              { href: '/reports', icon: BarChart3, label: t('nav.reports'), desc: t('dash.scReports') },
+              { href: '/players', icon: Users, label: t('nav.players'), desc: t('dash.scPlayers'), color: '#5B9BD5' },
+              { href: '/matches', icon: Swords, label: t('nav.matches'), desc: t('dash.scMatches'), color: '#E85D5D' },
+              { href: '/attendance', icon: CalendarCheck, label: t('nav.attendance'), desc: t('dash.scAttendance'), color: '#6FCF97' },
+              { href: '/calendar', icon: CalendarDays, label: t('nav.calendar'), desc: t('dash.scCalendar'), color: '#BB8FCE' },
+              { href: '/gym', icon: Dumbbell, label: t('nav.gym'), desc: t('dash.scGym'), color: '#F2994A' },
+              { href: '/training-load', icon: Activity, label: t('nav.rpe'), desc: t('dash.scLoad'), color: '#4FC3F7' },
+              { href: '/tactics', icon: PenTool, label: t('nav.tactics'), desc: t('dash.scTactics'), color: '#FFD84D' },
+              { href: '/reports', icon: BarChart3, label: t('nav.reports'), desc: t('dash.scReports'), color: '#F06FA0' },
             ].map((s) => (
               <Link key={s.href} href={s.href} className="shrink-0 w-32 bg-card border rounded-xl p-3.5 space-y-2 hover:border-primary/40 transition-colors">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <s.icon className="w-4.5 h-4.5 text-primary" />
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${s.color}1a` }}>
+                  <s.icon className="w-4.5 h-4.5" style={{ color: s.color }} />
                 </div>
                 <div>
                   <p className="font-bold text-sm">{s.label}</p>
