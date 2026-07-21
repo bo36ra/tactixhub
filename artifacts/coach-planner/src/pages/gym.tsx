@@ -23,10 +23,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Dumbbell, Weight, Trash2, Plus, ClipboardList, Calculator } from 'lucide-react';
 import { format } from 'date-fns';
+import { useWeightUnit, type WeightUnit } from '@/lib/weight-unit';
 
 const LIFTS = ['back_squat', 'front_squat', 'bench_press', 'deadlift', 'overhead_press', 'power_clean'] as const;
 
-function BodyWeightTab({ teamId }: { teamId: number }) {
+interface UnitProps {
+  unit: WeightUnit;
+  toDisplay: (kg: number) => number;
+  toKg: (displayValue: number) => number;
+}
+
+function BodyWeightTab({ teamId, unit, toDisplay, toKg }: { teamId: number } & UnitProps) {
   const { t, lang, isRtl } = useLanguage();
   const { toast } = useToast();
   const { data: players, isLoading: playersLoading } = useListPlayers(teamId, {
@@ -42,13 +49,13 @@ function BodyWeightTab({ teamId }: { teamId: number }) {
   // a saved day loads the saved values" fix applied to attendance.
   React.useEffect(() => {
     const initial: Record<number, string> = {};
-    (entries ?? []).forEach((e) => { initial[e.playerId] = String(e.weightKg); });
+    (entries ?? []).forEach((e) => { initial[e.playerId] = String(toDisplay(e.weightKg)); });
     setRows(initial);
-  }, [entries]);
+  }, [entries, unit]);
 
   const handleSave = () => {
     const parsed = Object.entries(rows)
-      .map(([playerId, v]) => ({ playerId: Number(playerId), weightKg: parseFloat(v) }))
+      .map(([playerId, v]) => ({ playerId: Number(playerId), weightKg: toKg(parseFloat(v)) }))
       .filter((e) => Number.isFinite(e.weightKg) && e.weightKg > 0);
     if (parsed.length === 0) return;
     batchSave.mutate(
@@ -90,7 +97,7 @@ function BodyWeightTab({ teamId }: { teamId: number }) {
                 onChange={(e) => setRows((prev) => ({ ...prev, [p.id]: e.target.value }))}
                 className="pe-9 text-center"
               />
-              <span className="absolute top-1/2 -translate-y-1/2 end-3 text-xs text-muted-foreground pointer-events-none">{t('gym.kg')}</span>
+              <span className="absolute top-1/2 -translate-y-1/2 end-3 text-xs text-muted-foreground pointer-events-none">{unit}</span>
             </div>
           </div>
         ))}
@@ -103,7 +110,7 @@ function BodyWeightTab({ teamId }: { teamId: number }) {
   );
 }
 
-function OneRepMaxTab({ teamId }: { teamId: number }) {
+function OneRepMaxTab({ teamId, unit, toDisplay, toKg }: { teamId: number } & UnitProps) {
   const { t, lang, isRtl } = useLanguage();
   const { toast } = useToast();
   const { data: players, isLoading: playersLoading } = useListPlayers(teamId, {
@@ -130,10 +137,10 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
   React.useEffect(() => {
     const initial: Record<number, { weight: string; reps: string }> = {};
     (liftEntries ?? []).filter((e) => e.date === date).forEach((e) => {
-      initial[e.playerId] = { weight: String(e.weightKg), reps: String(e.reps) };
+      initial[e.playerId] = { weight: String(toDisplay(e.weightKg)), reps: String(e.reps) };
     });
     setRows(initial);
-  }, [liftEntries, date]);
+  }, [liftEntries, date, unit]);
 
   const handleSave = () => {
     if (!resolvedLift) {
@@ -141,7 +148,7 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
       return;
     }
     const entries = Object.entries(rows)
-      .map(([playerId, r]) => ({ playerId: Number(playerId), weightKg: parseFloat(r.weight), reps: parseInt(r.reps) || 1 }))
+      .map(([playerId, r]) => ({ playerId: Number(playerId), weightKg: toKg(parseFloat(r.weight)), reps: parseInt(r.reps) || 1 }))
       .filter((e) => Number.isFinite(e.weightKg) && e.weightKg > 0);
     if (entries.length === 0) return;
     batchSave.mutate(
@@ -223,7 +230,7 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
                 onChange={(e) => setRows((prev) => ({ ...prev, [p.id]: { weight: e.target.value, reps: prev[p.id]?.reps ?? '1' } }))}
                 className="pe-8 text-center"
               />
-              <span className="absolute top-1/2 -translate-y-1/2 end-2 text-[10px] text-muted-foreground pointer-events-none">{t('gym.kg')}</span>
+              <span className="absolute top-1/2 -translate-y-1/2 end-2 text-[10px] text-muted-foreground pointer-events-none">{unit}</span>
             </div>
             <div className="relative w-16 shrink-0">
               <Input
@@ -254,7 +261,9 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
           <p className="text-[11px] text-muted-foreground">{t('gym.tapForPercentages')}</p>
           <div className="divide-y divide-border/50 bg-card border rounded-xl overflow-hidden">
             {currentMaxes.map(({ player, entry }) => {
-              const est1rm = Math.round(estimatedOneRm(entry.weightKg, entry.reps) * 10) / 10;
+              const est1rmKg = estimatedOneRm(entry.weightKg, entry.reps);
+              const est1rm = toDisplay(est1rmKg);
+              const displayWeight = toDisplay(entry.weightKg);
               return (
               <div key={player.id}>
                 <div className="flex items-center gap-2 px-1">
@@ -268,8 +277,8 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
                       <span className="truncate">{playerName(player, lang)}</span>
                     </span>
                     <span className="text-end shrink-0" dir="ltr">
-                      <span className="font-bold text-sm">{entry.weightKg}{t('gym.kg')}{entry.reps > 1 ? ` × ${entry.reps}` : ''}</span>
-                      {entry.reps > 1 && <span className="block text-[10px] text-muted-foreground">{t('gym.estOneRm')}: {est1rm}{t('gym.kg')}</span>}
+                      <span className="font-bold text-sm">{displayWeight}{unit}{entry.reps > 1 ? ` × ${entry.reps}` : ''}</span>
+                      {entry.reps > 1 && <span className="block text-[10px] text-muted-foreground">{t('gym.estOneRm')}: {est1rm}{unit}</span>}
                     </span>
                   </button>
                   <button
@@ -301,7 +310,7 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
                           <div className="flex flex-wrap gap-1.5" dir="ltr">
                             {playerHistory.map((h) => (
                               <span key={h.id} className="text-[11px] bg-white/[0.03] rounded-md px-2 py-1">
-                                {h.date}: <span className="font-bold">{h.weightKg}{t('gym.kg')}{h.reps > 1 ? `×${h.reps}` : ''}</span>
+                                {h.date}: <span className="font-bold">{toDisplay(h.weightKg)}{unit}{h.reps > 1 ? `×${h.reps}` : ''}</span>
                               </span>
                             ))}
                           </div>
@@ -326,7 +335,7 @@ function OneRepMaxTab({ teamId }: { teamId: number }) {
 // endpoint (one entry at a time here), just a different lens on it:
 // pick a player + date, see what's already logged for that day as a
 // running reference, and append more exercises to it whenever.
-function TrainingLogTab({ teamId }: { teamId: number }) {
+function TrainingLogTab({ teamId, unit, toKg, toDisplay }: { teamId: number } & UnitProps) {
   const { t, lang, isRtl } = useLanguage();
   const { toast } = useToast();
   const { data: players } = useListPlayers(teamId, {
@@ -359,7 +368,7 @@ function TrainingLogTab({ teamId }: { teamId: number }) {
       return;
     }
     addExercise.mutate(
-      { lift: resolvedNewLift, date, entries: [{ playerId: Number(playerId), weightKg: w, reps: parseInt(newReps) || 1 }] },
+      { lift: resolvedNewLift, date, entries: [{ playerId: Number(playerId), weightKg: toKg(w), reps: parseInt(newReps) || 1 }] },
       {
         onSuccess: () => {
           toast({ title: t('tactics.saved') });
@@ -405,7 +414,7 @@ function TrainingLogTab({ teamId }: { teamId: number }) {
                   <div key={e.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
                     <span className="text-sm font-medium truncate">{liftLabel(e.lift)}</span>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="font-bold text-sm" dir="ltr">{e.weightKg}{t('gym.kg')}{e.reps > 1 ? ` × ${e.reps}` : ''}</span>
+                      <span className="font-bold text-sm" dir="ltr">{toDisplay(e.weightKg)}{unit}{e.reps > 1 ? ` × ${e.reps}` : ''}</span>
                       <button
                         type="button"
                         onClick={() => del.mutate(e.id)}
@@ -435,10 +444,10 @@ function TrainingLogTab({ teamId }: { teamId: number }) {
             <div className="grid grid-cols-2 gap-2">
               <div className="relative">
                 <Input
-                  type="number" inputMode="decimal" step="0.5" placeholder={t('gym.weightKg')}
+                  type="number" inputMode="decimal" step="0.5" placeholder="80"
                   value={newWeight} onChange={(e) => setNewWeight(e.target.value)} className="pe-9"
                 />
-                <span className="absolute top-1/2 -translate-y-1/2 end-3 text-xs text-muted-foreground pointer-events-none">{t('gym.kg')}</span>
+                <span className="absolute top-1/2 -translate-y-1/2 end-3 text-xs text-muted-foreground pointer-events-none">{unit}</span>
               </div>
               <Input type="number" inputMode="numeric" min="1" placeholder={t('gym.reps')} value={newReps} onChange={(e) => setNewReps(e.target.value)} />
             </div>
@@ -458,7 +467,7 @@ function TrainingLogTab({ teamId }: { teamId: number }) {
 // rep count) and Brzycki (slightly more precise under ~10 reps, but
 // breaks down — can go negative — as reps approach 37, so it's capped
 // off past that range rather than shown as a nonsense number).
-function CalculatorTab() {
+function CalculatorTab({ unit }: { unit: WeightUnit }) {
   const { t } = useLanguage();
   const [weight, setWeight] = React.useState('');
   const [reps, setReps] = React.useState('1');
@@ -481,7 +490,7 @@ function CalculatorTab() {
       <div className="bg-card border rounded-xl p-3 space-y-2.5">
         <div className="grid grid-cols-2 gap-2">
           <div className="relative">
-            <Label className="text-xs">{t('gym.weightKg')}</Label>
+            <Label className="text-xs">{t('gym.weight')} ({unit})</Label>
             <Input type="number" inputMode="decimal" step="0.5" placeholder="100" value={weight} onChange={(e) => setWeight(e.target.value)} />
           </div>
           <div>
@@ -498,15 +507,15 @@ function CalculatorTab() {
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-card border rounded-xl p-2.5 text-center space-y-0.5">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Epley</p>
-              <p className="text-lg font-bold" dir="ltr">{Math.round(epley! * 10) / 10}{t('gym.kg')}</p>
+              <p className="text-lg font-bold" dir="ltr">{Math.round(epley! * 10) / 10}{unit}</p>
             </div>
             <div className="bg-card border rounded-xl p-2.5 text-center space-y-0.5">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Brzycki</p>
-              <p className="text-lg font-bold" dir="ltr">{brzycki !== null ? `${Math.round(brzycki * 10) / 10}${t('gym.kg')}` : '—'}</p>
+              <p className="text-lg font-bold" dir="ltr">{brzycki !== null ? `${Math.round(brzycki * 10) / 10}${unit}` : '—'}</p>
             </div>
             <div className="bg-card border rounded-xl p-2.5 text-center space-y-0.5">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Lombardi</p>
-              <p className="text-lg font-bold" dir="ltr">{Math.round(lombardi! * 10) / 10}{t('gym.kg')}</p>
+              <p className="text-lg font-bold" dir="ltr">{Math.round(lombardi! * 10) / 10}{unit}</p>
             </div>
           </div>
 
@@ -530,6 +539,7 @@ function CalculatorTab() {
 export default function Gym() {
   const { t } = useLanguage();
   const { activeTeamId } = useTeam();
+  const { unit, setUnit, toDisplay, toKg } = useWeightUnit();
   if (!activeTeamId) return null;
 
   return (
@@ -537,9 +547,25 @@ export default function Gym() {
       <AppLayout>
         <div className="space-y-4">
           <StickyHeader>
-            <div className="flex items-center gap-2">
-              <Dumbbell className="w-6 h-6 text-primary" />
-              <PageTitle>{t('gym.title')}</PageTitle>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Dumbbell className="w-6 h-6 text-primary" />
+                <PageTitle>{t('gym.title')}</PageTitle>
+              </div>
+              <div className="flex rounded-lg border border-border/60 overflow-hidden shrink-0">
+                {(['kg', 'lb'] as const).map((u) => (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => setUnit(u)}
+                    className={`px-2.5 py-1 text-xs font-semibold uppercase transition-colors ${
+                      unit === u ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-white/[0.04]'
+                    }`}
+                  >
+                    {u}
+                  </button>
+                ))}
+              </div>
             </div>
           </StickyHeader>
 
@@ -552,10 +578,10 @@ export default function Gym() {
               <TabsTrigger value="log" className="gap-1.5"><ClipboardList className="w-3.5 h-3.5" />{t('gym.tabLog')}</TabsTrigger>
               <TabsTrigger value="calc" className="gap-1.5"><Calculator className="w-3.5 h-3.5" />{t('gym.tabCalc')}</TabsTrigger>
             </TabsList>
-            <TabsContent value="weight"><BodyWeightTab teamId={activeTeamId} /></TabsContent>
-            <TabsContent value="orm"><OneRepMaxTab teamId={activeTeamId} /></TabsContent>
-            <TabsContent value="log"><TrainingLogTab teamId={activeTeamId} /></TabsContent>
-            <TabsContent value="calc"><CalculatorTab /></TabsContent>
+            <TabsContent value="weight"><BodyWeightTab teamId={activeTeamId} unit={unit} toDisplay={toDisplay} toKg={toKg} /></TabsContent>
+            <TabsContent value="orm"><OneRepMaxTab teamId={activeTeamId} unit={unit} toDisplay={toDisplay} toKg={toKg} /></TabsContent>
+            <TabsContent value="log"><TrainingLogTab teamId={activeTeamId} unit={unit} toDisplay={toDisplay} toKg={toKg} /></TabsContent>
+            <TabsContent value="calc"><CalculatorTab unit={unit} /></TabsContent>
           </Tabs>
         </div>
       </AppLayout>
