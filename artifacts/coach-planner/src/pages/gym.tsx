@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Dumbbell, Weight, Trash2, Plus, ClipboardList } from 'lucide-react';
+import { Dumbbell, Weight, Trash2, Plus, ClipboardList, Calculator } from 'lucide-react';
 import { format } from 'date-fns';
 
 const LIFTS = ['back_squat', 'front_squat', 'bench_press', 'deadlift', 'overhead_press', 'power_clean'] as const;
@@ -452,6 +452,73 @@ function TrainingLogTab({ teamId }: { teamId: number }) {
   );
 }
 
+// Standalone calculator — no player, no save, just the math. Shows
+// both common formulas side by side so a coach can compare them
+// instead of trusting one blindly: Epley (simple, stays sane at any
+// rep count) and Brzycki (slightly more precise under ~10 reps, but
+// breaks down — can go negative — as reps approach 37, so it's capped
+// off past that range rather than shown as a nonsense number).
+function CalculatorTab() {
+  const { t } = useLanguage();
+  const [weight, setWeight] = React.useState('');
+  const [reps, setReps] = React.useState('1');
+
+  const w = parseFloat(weight);
+  const r = parseInt(reps) || 1;
+  const valid = Number.isFinite(w) && w > 0 && r >= 1;
+
+  const epley = valid ? w * (1 + r / 30) : null;
+  const brzycki = valid && r < 37 ? w * (36 / (37 - r)) : null;
+
+  const PERCENTAGES = [50, 60, 70, 75, 80, 85, 90, 95, 100];
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card border rounded-xl p-3 space-y-2.5">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="relative">
+            <Label className="text-xs">{t('gym.weightKg')}</Label>
+            <Input type="number" inputMode="decimal" step="0.5" placeholder="100" value={weight} onChange={(e) => setWeight(e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs">{t('gym.reps')}</Label>
+            <Input type="number" inputMode="numeric" min="1" placeholder="5" value={reps} onChange={(e) => setReps(e.target.value)} />
+          </div>
+        </div>
+      </div>
+
+      {!valid ? (
+        <p className="text-sm text-muted-foreground text-center py-6">{t('gym.calcHint')}</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-card border rounded-xl p-3 text-center space-y-0.5">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Epley</p>
+              <p className="text-xl font-bold" dir="ltr">{Math.round(epley! * 10) / 10}{t('gym.kg')}</p>
+            </div>
+            <div className="bg-card border rounded-xl p-3 text-center space-y-0.5">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Brzycki</p>
+              <p className="text-xl font-bold" dir="ltr">{brzycki !== null ? `${Math.round(brzycki * 10) / 10}${t('gym.kg')}` : '—'}</p>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('gym.percentTable')} (Epley)</p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {PERCENTAGES.map((pct) => (
+                <div key={pct} className={`rounded-lg px-2 py-1.5 text-center ${pct === 100 ? 'bg-primary/10' : 'bg-white/[0.03]'}`}>
+                  <p className="text-[10px] text-muted-foreground">{pct}%</p>
+                  <p className="text-sm font-bold" dir="ltr">{Math.round(((epley! * pct) / 100) * 10) / 10}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function Gym() {
   const { t } = useLanguage();
   const { activeTeamId } = useTeam();
@@ -475,10 +542,12 @@ export default function Gym() {
               <TabsTrigger value="weight" className="gap-1.5"><Weight className="w-3.5 h-3.5" />{t('gym.tabWeight')}</TabsTrigger>
               <TabsTrigger value="orm" className="gap-1.5"><Dumbbell className="w-3.5 h-3.5" />{t('gym.tabOrm')}</TabsTrigger>
               <TabsTrigger value="log" className="gap-1.5"><ClipboardList className="w-3.5 h-3.5" />{t('gym.tabLog')}</TabsTrigger>
+              <TabsTrigger value="calc" className="gap-1.5"><Calculator className="w-3.5 h-3.5" />{t('gym.tabCalc')}</TabsTrigger>
             </TabsList>
             <TabsContent value="weight"><BodyWeightTab teamId={activeTeamId} /></TabsContent>
             <TabsContent value="orm"><OneRepMaxTab teamId={activeTeamId} /></TabsContent>
             <TabsContent value="log"><TrainingLogTab teamId={activeTeamId} /></TabsContent>
+            <TabsContent value="calc"><CalculatorTab /></TabsContent>
           </Tabs>
         </div>
       </AppLayout>
