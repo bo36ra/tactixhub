@@ -424,7 +424,12 @@ function BoardsTab({
   const applyFormation = (key: string, side: 'us' | 'them' = 'us') => {
     const preset = FORMATIONS[key];
     if (!preset) return;
-    const positions = side === 'them' ? preset.map((p) => ({ x: p.x, y: 140 - p.y })) : preset;
+    // Marker y is stored on a 0..100 scale (the SVG render multiplies
+    // by 1.4 to reach the 140-tall viewBox) — mirroring must flip
+    // against that same 100, not the rendered 140, or the opponent's
+    // positions land in roughly the same region as ours instead of the
+    // opposite end of the pitch.
+    const positions = side === 'them' ? preset.map((p) => ({ x: p.x, y: 100 - p.y })) : preset;
     const existing = board.markers.filter((m) => m.side === side).sort((a, b) => b.y - a.y);
     const toKeep = existing.slice(0, positions.length);
     const missingCount = positions.length - toKeep.length;
