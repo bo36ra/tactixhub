@@ -469,6 +469,10 @@ function CalculatorTab() {
 
   const epley = valid ? w * (1 + r / 30) : null;
   const brzycki = valid && r < 37 ? w * (36 / (37 - r)) : null;
+  // Lombardi: a power curve rather than a linear/rational one — tends
+  // to sit below Epley at higher rep counts, another data point rather
+  // than a tie-breaker between the two.
+  const lombardi = valid ? w * Math.pow(r, 0.1) : null;
 
   const PERCENTAGES = [50, 60, 70, 75, 80, 85, 90, 95, 100];
 
@@ -491,14 +495,18 @@ function CalculatorTab() {
         <p className="text-sm text-muted-foreground text-center py-6">{t('gym.calcHint')}</p>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-card border rounded-xl p-3 text-center space-y-0.5">
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-card border rounded-xl p-2.5 text-center space-y-0.5">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Epley</p>
-              <p className="text-xl font-bold" dir="ltr">{Math.round(epley! * 10) / 10}{t('gym.kg')}</p>
+              <p className="text-lg font-bold" dir="ltr">{Math.round(epley! * 10) / 10}{t('gym.kg')}</p>
             </div>
-            <div className="bg-card border rounded-xl p-3 text-center space-y-0.5">
+            <div className="bg-card border rounded-xl p-2.5 text-center space-y-0.5">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Brzycki</p>
-              <p className="text-xl font-bold" dir="ltr">{brzycki !== null ? `${Math.round(brzycki * 10) / 10}${t('gym.kg')}` : '—'}</p>
+              <p className="text-lg font-bold" dir="ltr">{brzycki !== null ? `${Math.round(brzycki * 10) / 10}${t('gym.kg')}` : '—'}</p>
+            </div>
+            <div className="bg-card border rounded-xl p-2.5 text-center space-y-0.5">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Lombardi</p>
+              <p className="text-lg font-bold" dir="ltr">{Math.round(lombardi! * 10) / 10}{t('gym.kg')}</p>
             </div>
           </div>
 
