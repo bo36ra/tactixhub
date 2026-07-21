@@ -2,12 +2,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { customFetch } from '@workspace/api-client-react';
 
 // Board format stored as a JSON string in the `data` column.
+export type EquipmentType = 'cone' | 'barrier' | 'goal' | 'flag';
 export interface BoardMarker {
   id: string;
   x: number; // 0..100 (percent of pitch width)
   y: number; // 0..100 (percent of pitch height)
   label: string;
-  side: 'us' | 'them' | 'ball';
+  side: 'us' | 'them' | 'ball' | 'equipment';
+  // Which equipment shape to render — only meaningful when side is 'equipment'.
+  equipment?: EquipmentType;
   // Overrides the side's default color when set — lets a coach split
   // markers into a third (or more) group for training-game scenarios
   // (e.g. splitting the squad into 3 teams) without needing a rigid

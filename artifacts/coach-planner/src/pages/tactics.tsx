@@ -7,7 +7,7 @@ import {
   useTactics, useSaveTactic, useDeleteTactic,
   useOpponentNotes, useSaveOpponentNote, useDeleteOpponentNote,
   parseBoard, type BoardData, type BoardMarker, type Tactic, type TacticKind,
-  type BoardFrame,
+  type BoardFrame, type EquipmentType,
 } from '@/lib/tactics-api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,7 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Trash2, Undo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus, Maximize, Minimize } from 'lucide-react';
+import { Trash2, Undo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus, Maximize, Minimize, Move as MoveIcon, ArrowUpRight } from 'lucide-react';
 
 // ---------------------------------------------------------------- board
 
@@ -100,6 +100,41 @@ const emptyBoard = (): BoardData => ({
   frames: [],
   notes: '',
 });
+
+// Training equipment renders as a distinct shape rather than a labeled
+// circle, so it reads at a glance as "not a player" — a cone, a low
+// hurdle/barrier, a small goal, and a corner flag, the standard set
+// for marking out a training-game grid or drill.
+function EquipmentShape({ type, color }: { type: EquipmentType; color?: string }) {
+  if (type === 'cone') {
+    return <polygon points="0,-3.2 2.6,3 -2.6,3" fill={color ?? '#F2994A'} stroke="#7a3d0e" strokeWidth="0.4" />;
+  }
+  if (type === 'barrier') {
+    return (
+      <g>
+        <rect x="-4" y="-1" width="8" height="2" rx="0.5" fill={color ?? '#E85D5D'} stroke="#7a2020" strokeWidth="0.3" />
+        <rect x="-3.4" y="1" width="0.8" height="1.6" fill="#555" />
+        <rect x="2.6" y="1" width="0.8" height="1.6" fill="#555" />
+      </g>
+    );
+  }
+  if (type === 'goal') {
+    return (
+      <g fill="none" stroke={color ?? '#F4F1EC'} strokeWidth="0.7">
+        <line x1="-4" y1="2.5" x2="-4" y2="-2.5" />
+        <line x1="4" y1="2.5" x2="4" y2="-2.5" />
+        <line x1="-4" y1="-2.5" x2="4" y2="-2.5" />
+      </g>
+    );
+  }
+  // flag
+  return (
+    <g>
+      <line x1="0" y1="3" x2="0" y2="-3.2" stroke="#555" strokeWidth="0.5" />
+      <polygon points="0,-3.2 3.4,-2.2 0,-1.2" fill={color ?? '#5B9BD5'} />
+    </g>
+  );
+}
 
 function TacticBoard({
   board, setBoard, mode, selectedMarkerId, onSelectMarker, isFullscreen,
@@ -241,7 +276,7 @@ function TacticBoard({
     <svg
       ref={svgRef}
       viewBox="0 0 100 140"
-      className={`w-full mx-auto rounded-xl border border-border select-none ${isFullscreen ? 'max-w-2xl' : 'max-w-md'}`}
+      className={`mx-auto rounded-xl border border-border select-none ${isFullscreen ? 'w-auto h-[calc(100vh-9rem)] max-h-[100vh]' : 'w-full max-w-md'}`}
       style={{ touchAction: 'none', background: 'linear-gradient(180deg, #1e7a3d 0%, #24923f 50%, #1e7a3d 100%)' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -301,13 +336,15 @@ function TacticBoard({
         const stroke = m.color ? '#1a1a1a' : (m.side === 'us' ? '#7a6410' : '#333');
         return (
         <g key={m.id} transform={`translate(${m.x}, ${m.y * 1.4})`} style={{ cursor: 'grab' }}>
+          {m.id === selectedMarkerId && m.side !== 'ball' && (
+            <circle r="5.6" fill="none" stroke="#4FC3F7" strokeWidth="0.6" strokeDasharray="1.4 1" />
+          )}
           {m.side === 'ball' ? (
             <circle r="2.2" fill={m.color ?? '#FFFFFF'} stroke="#111" strokeWidth="0.4" />
+          ) : m.side === 'equipment' ? (
+            <EquipmentShape type={m.equipment ?? 'cone'} color={m.color} />
           ) : (
             <>
-              {m.id === selectedMarkerId && (
-                <circle r="5.6" fill="none" stroke="#4FC3F7" strokeWidth="0.6" strokeDasharray="1.4 1" />
-              )}
               <circle r="4.2" fill={fill} stroke={stroke} strokeWidth="0.5" />
               <text textAnchor="middle" dy="1.6" fontSize="4"
                 fontWeight="700" fill="#1a1a1a">{m.label}</text>
@@ -489,67 +526,101 @@ function BoardsTab({
           )}
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant={mode === 'move' ? 'default' : 'secondary'} onClick={() => setMode('move')}>
-            {t('tactics.modeMove')}
-          </Button>
-          <Button size="sm" variant={mode === 'arrow' ? 'default' : 'secondary'} onClick={() => setMode('arrow')}>
-            {t('tactics.modeArrow')}
-          </Button>
-          <Button size="sm" variant={mode === 'line' ? 'default' : 'secondary'} onClick={() => setMode('line')}>
-            <Minus className="w-4 h-4 me-1" />{t('tactics.modeLine')}
-          </Button>
-          <Button size="sm" variant={mode === 'pen' ? 'default' : 'secondary'} onClick={() => setMode('pen')}>
-            <Pencil className="w-4 h-4 me-1" />{t('tactics.modePen')}
-          </Button>
-          <Button size="sm" variant="secondary"
-            onClick={() => {
-              if (mode === 'pen') setBoard({ ...board, drawings: (board.drawings ?? []).slice(0, -1) });
-              else if (mode === 'line') setBoard({ ...board, lines: (board.lines ?? []).slice(0, -1) });
-              else setBoard({ ...board, arrows: board.arrows.slice(0, -1) });
-            }}>
-            <Undo2 className="w-4 h-4" />
-          </Button>
-          <Button size="sm" variant={mode === 'erase' ? 'default' : 'secondary'} onClick={() => setMode('erase')}>
-            <Eraser className="w-4 h-4 me-1" />{t('tactics.modeErase')}
-          </Button>
-          <Button
-            size="sm" variant="secondary"
-            onClick={() => {
-              const id = `extra-${Date.now()}`;
-              setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'us' }] });
-              setMode('move');
-              setSelectedMarkerId(id);
-            }}
-          >
-            <Plus className="w-4 h-4 me-1" />{t('tactics.addPlayer')}
-          </Button>
-          <Button
-            size="sm" variant="secondary"
-            onClick={() => {
-              const id = `extra-${Date.now()}`;
-              setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'them' }] });
-              setMode('move');
-              setSelectedMarkerId(id);
-            }}
-          >
-            <Plus className="w-4 h-4 me-1" />{t('tactics.addOpponent')}
-          </Button>
-          <Select onValueChange={applyFormation}>
-            <SelectTrigger className="w-32 h-9"><SelectValue placeholder={t('tactics.formation')} /></SelectTrigger>
-            <SelectContent>
-              {Object.keys(FORMATIONS).map((key) => (
-                <SelectItem key={key} value={key} dir="ltr">{key}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button size="sm" variant="secondary" onClick={() => setBoard(emptyBoard())}>
-            {t('tactics.clearAll')}
-          </Button>
-          <Button size="sm" variant="secondary" onClick={toggleFullscreen}>
-            {isFullscreen ? <Minimize className="w-4 h-4 me-1" /> : <Maximize className="w-4 h-4 me-1" />}
-            {isFullscreen ? t('tactics.exitFullscreen') : t('tactics.fullscreen')}
-          </Button>
+        <div className="space-y-2.5">
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{t('tactics.groupDraw')}</p>
+            <div className="flex flex-wrap gap-1.5">
+              <Button size="icon" variant={mode === 'move' ? 'default' : 'secondary'} onClick={() => setMode('move')} title={t('tactics.modeMove')}>
+                <MoveIcon className="w-4 h-4" />
+              </Button>
+              <Button size="icon" variant={mode === 'arrow' ? 'default' : 'secondary'} onClick={() => setMode('arrow')} title={t('tactics.modeArrow')}>
+                <ArrowUpRight className="w-4 h-4" />
+              </Button>
+              <Button size="icon" variant={mode === 'line' ? 'default' : 'secondary'} onClick={() => setMode('line')} title={t('tactics.modeLine')}>
+                <Minus className="w-4 h-4" />
+              </Button>
+              <Button size="icon" variant={mode === 'pen' ? 'default' : 'secondary'} onClick={() => setMode('pen')} title={t('tactics.modePen')}>
+                <Pencil className="w-4 h-4" />
+              </Button>
+              <Button size="icon" variant={mode === 'erase' ? 'default' : 'secondary'} onClick={() => setMode('erase')} title={t('tactics.modeErase')}>
+                <Eraser className="w-4 h-4" />
+              </Button>
+              <Button
+                size="icon" variant="secondary" title={t('tactics.undo')}
+                onClick={() => {
+                  if (mode === 'pen') setBoard({ ...board, drawings: (board.drawings ?? []).slice(0, -1) });
+                  else if (mode === 'line') setBoard({ ...board, lines: (board.lines ?? []).slice(0, -1) });
+                  else setBoard({ ...board, arrows: board.arrows.slice(0, -1) });
+                }}>
+                <Undo2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{t('tactics.groupAdd')}</p>
+            <div className="flex flex-wrap gap-1.5">
+              <Button
+                size="sm" variant="secondary"
+                onClick={() => {
+                  const id = `extra-${Date.now()}`;
+                  setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'us' }] });
+                  setMode('move');
+                  setSelectedMarkerId(id);
+                }}
+              >
+                <Plus className="w-4 h-4 me-1" />{t('tactics.addPlayer')}
+              </Button>
+              <Button
+                size="sm" variant="secondary"
+                onClick={() => {
+                  const id = `extra-${Date.now()}`;
+                  setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'them' }] });
+                  setMode('move');
+                  setSelectedMarkerId(id);
+                }}
+              >
+                <Plus className="w-4 h-4 me-1" />{t('tactics.addOpponent')}
+              </Button>
+              <Select
+                onValueChange={(v) => {
+                  const id = `equip-${Date.now()}`;
+                  setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'equipment', equipment: v as EquipmentType }] });
+                  setMode('move');
+                  setSelectedMarkerId(id);
+                }}
+              >
+                <SelectTrigger className="w-32 h-9"><SelectValue placeholder={t('tactics.addEquipment')} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cone">{t('tactics.equipCone')}</SelectItem>
+                  <SelectItem value="barrier">{t('tactics.equipBarrier')}</SelectItem>
+                  <SelectItem value="goal">{t('tactics.equipGoal')}</SelectItem>
+                  <SelectItem value="flag">{t('tactics.equipFlag')}</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select onValueChange={applyFormation}>
+                <SelectTrigger className="w-32 h-9"><SelectValue placeholder={t('tactics.formation')} /></SelectTrigger>
+                <SelectContent>
+                  {Object.keys(FORMATIONS).map((key) => (
+                    <SelectItem key={key} value={key} dir="ltr">{key}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{t('tactics.groupBoard')}</p>
+            <div className="flex flex-wrap gap-1.5">
+              <Button size="sm" variant="secondary" onClick={() => setBoard(emptyBoard())}>
+                {t('tactics.clearAll')}
+              </Button>
+              <Button size="sm" variant="secondary" onClick={toggleFullscreen}>
+                {isFullscreen ? <Minimize className="w-4 h-4 me-1" /> : <Maximize className="w-4 h-4 me-1" />}
+                {isFullscreen ? t('tactics.exitFullscreen') : t('tactics.fullscreen')}
+              </Button>
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
