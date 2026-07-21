@@ -411,17 +411,39 @@ function BoardsTab({
   // ordered by current depth (own-goal-ward first) so each marker keeps
   // its id/label/color — only the layout changes. Markers beyond the
   // preset's 11 slots (extras added via "Add player") are left as-is.
-  const applyFormation = (key: string) => {
+  // Reassigns markers of the given side onto a formation preset's shape,
+  // ordered by current depth so each marker keeps its id/label/color —
+  // only the layout changes (see FORMATIONS' comment for why). For
+  // "them" the preset is mirrored top-to-bottom (y -> 140 - y) so the
+  // opponent faces our team from the opposite end, the standard way a
+  // two-team tactical diagram is read. If there are fewer than 11
+  // markers of that side yet (e.g. no opponents added), creates the
+  // rest — makes "apply formation" work as a complete starting point
+  // for the opponent, not just something that only helps once 11
+  // opponent markers already exist one at a time.
+  const applyFormation = (key: string, side: 'us' | 'them' = 'us') => {
     const preset = FORMATIONS[key];
     if (!preset) return;
-    const usMarkers = board.markers.filter((m) => m.side === 'us').sort((a, b) => b.y - a.y);
-    const positioned = new Map(usMarkers.slice(0, preset.length).map((m, i) => [m.id, preset[i]]));
+    const positions = side === 'them' ? preset.map((p) => ({ x: p.x, y: 140 - p.y })) : preset;
+    const existing = board.markers.filter((m) => m.side === side).sort((a, b) => b.y - a.y);
+    const toKeep = existing.slice(0, positions.length);
+    const missingCount = positions.length - toKeep.length;
+    const newMarkers: BoardMarker[] = Array.from({ length: missingCount }, (_, i) => ({
+      id: `extra-${Date.now()}-${i}`,
+      x: 50, y: 50, label: '', side,
+    }));
+    const allForSide = [...toKeep, ...newMarkers];
+    const positioned = new Map(allForSide.map((m, i) => [m.id, positions[i]]));
+    const placedNewMarkers = newMarkers.map((m) => ({ ...m, ...positioned.get(m.id)! }));
     setBoard({
       ...board,
-      markers: board.markers.map((m) => {
-        const pos = positioned.get(m.id);
-        return pos ? { ...m, x: pos.x, y: pos.y } : m;
-      }),
+      markers: [
+        ...board.markers.map((m) => {
+          const pos = positioned.get(m.id);
+          return pos ? { ...m, x: pos.x, y: pos.y } : m;
+        }),
+        ...placedNewMarkers,
+      ],
     });
   };
 
@@ -599,8 +621,16 @@ function BoardsTab({
                   <SelectItem value="flag">{t('tactics.equipFlag')}</SelectItem>
                 </SelectContent>
               </Select>
-              <Select onValueChange={applyFormation}>
-                <SelectTrigger className="w-32 h-9"><SelectValue placeholder={t('tactics.formation')} /></SelectTrigger>
+              <Select onValueChange={(v) => applyFormation(v, 'us')}>
+                <SelectTrigger className="w-36 h-9"><SelectValue placeholder={t('tactics.formationUs')} /></SelectTrigger>
+                <SelectContent>
+                  {Object.keys(FORMATIONS).map((key) => (
+                    <SelectItem key={key} value={key} dir="ltr">{key}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select onValueChange={(v) => applyFormation(v, 'them')}>
+                <SelectTrigger className="w-36 h-9"><SelectValue placeholder={t('tactics.formationThem')} /></SelectTrigger>
                 <SelectContent>
                   {Object.keys(FORMATIONS).map((key) => (
                     <SelectItem key={key} value={key} dir="ltr">{key}</SelectItem>
