@@ -291,3 +291,14 @@ input[type='time']::-webkit-calendar-picker-indicator {
     animation: none;
   }
 }
+
+/* Hides the scrollbar on horizontal-scroll rows (shortcut cards, chip
+   lists, etc.) — the content is still scrollable, just without the
+   visual scrollbar track/thumb cluttering a compact mobile row. */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
