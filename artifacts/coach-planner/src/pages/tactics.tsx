@@ -276,7 +276,8 @@ function TacticBoard({
     <svg
       ref={svgRef}
       viewBox="0 0 100 140"
-      className={`mx-auto rounded-xl border border-border select-none ${isFullscreen ? 'w-auto h-[calc(100vh-9rem)] max-h-[100vh]' : 'w-full max-w-md'}`}
+      className={`mx-auto rounded-xl border border-border select-none ${isFullscreen ? 'w-full h-[calc(100vh-9rem)] max-w-none' : 'w-full max-w-md'}`}
+      preserveAspectRatio="xMidYMid meet"
       style={{ touchAction: 'none', background: 'linear-gradient(180deg, #1e7a3d 0%, #24923f 50%, #1e7a3d 100%)' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
