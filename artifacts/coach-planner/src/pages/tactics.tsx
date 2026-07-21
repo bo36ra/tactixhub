@@ -47,11 +47,13 @@ const emptyBoard = (): BoardData => ({
 });
 
 function TacticBoard({
-  board, setBoard, mode,
+  board, setBoard, mode, selectedMarkerId, onSelectMarker,
 }: {
   board: BoardData;
   setBoard: (b: BoardData) => void;
   mode: 'move' | 'arrow' | 'line' | 'pen' | 'erase';
+  selectedMarkerId: string | null;
+  onSelectMarker: (id: string | null) => void;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragId = useRef<string | null>(null);
@@ -78,7 +80,7 @@ function TacticBoard({
         const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / len2));
         return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
       };
-      let bestKind: 'arrow' | 'line' | 'drawing' | null = null;
+      let bestKind: 'arrow' | 'line' | 'drawing' | 'marker' | null = null;
       let bestIdx = -1;
       let bestDist = 5; // tap tolerance in pitch percent units
       board.arrows.forEach((a, i) => {
@@ -95,7 +97,20 @@ function TacticBoard({
           if (d < bestDist) { bestDist = d; bestKind = 'drawing'; bestIdx = i; }
         }
       });
-      if (bestKind === 'arrow') {
+      // Markers use a different distance metric (radial, y-scaled to
+      // match the pitch's aspect ratio) than the segment-based one
+      // above, same as the move-mode grab check below — kept separate
+      // rather than forcing everything onto one metric.
+      let bestMarkerId: string | null = null;
+      let bestMarkerDist = 6;
+      for (const m of board.markers) {
+        const d = Math.hypot(m.x - p.x, (m.y - p.y) * 1.4);
+        if (d < bestMarkerDist) { bestMarkerDist = d; bestMarkerId = m.id; }
+      }
+      if (bestMarkerId && bestMarkerDist < bestDist) {
+        setBoard({ ...board, markers: board.markers.filter((m) => m.id !== bestMarkerId) });
+        if (selectedMarkerId === bestMarkerId) onSelectMarker(null);
+      } else if (bestKind === 'arrow') {
         setBoard({ ...board, arrows: board.arrows.filter((_, i) => i !== bestIdx) });
       } else if (bestKind === 'line') {
         setBoard({ ...board, lines: (board.lines ?? []).filter((_, i) => i !== bestIdx) });
@@ -117,6 +132,7 @@ function TacticBoard({
         if (d < bestDist) { best = m.id; bestDist = d; }
       }
       dragId.current = best;
+      onSelectMarker(best);
     }
     (e.target as Element).setPointerCapture?.(e.pointerId);
   };
@@ -224,20 +240,26 @@ function TacticBoard({
       )}
 
       {/* markers */}
-      {board.markers.map((m) => (
+      {board.markers.map((m) => {
+        const fill = m.color ?? (m.side === 'us' ? '#FFD84D' : '#F4F1EC');
+        const stroke = m.color ? '#1a1a1a' : (m.side === 'us' ? '#7a6410' : '#333');
+        return (
         <g key={m.id} transform={`translate(${m.x}, ${m.y * 1.4})`} style={{ cursor: 'grab' }}>
           {m.side === 'ball' ? (
-            <circle r="2.2" fill="#FFFFFF" stroke="#111" strokeWidth="0.4" />
+            <circle r="2.2" fill={m.color ?? '#FFFFFF'} stroke="#111" strokeWidth="0.4" />
           ) : (
             <>
-              <circle r="4.2" fill={m.side === 'us' ? '#FFD84D' : '#F4F1EC'}
-                stroke={m.side === 'us' ? '#7a6410' : '#333'} strokeWidth="0.5" />
+              {m.id === selectedMarkerId && (
+                <circle r="5.6" fill="none" stroke="#4FC3F7" strokeWidth="0.6" strokeDasharray="1.4 1" />
+              )}
+              <circle r="4.2" fill={fill} stroke={stroke} strokeWidth="0.5" />
               <text textAnchor="middle" dy="1.6" fontSize="4"
                 fontWeight="700" fill="#1a1a1a">{m.label}</text>
             </>
           )}
         </g>
-      ))}
+        );
+      })}
     </svg>
   );
 }
@@ -259,6 +281,7 @@ function BoardsTab({
   const [board, setBoard] = useState<BoardData>(emptyBoard());
   // (setBoard supports functional updates natively; playback relies on it)
   const [mode, setMode] = useState<'move' | 'arrow' | 'line' | 'pen' | 'erase'>('move');
+  const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const animRef = useRef<number | null>(null);
 
@@ -389,6 +412,28 @@ function BoardsTab({
           <Button size="sm" variant={mode === 'erase' ? 'default' : 'secondary'} onClick={() => setMode('erase')}>
             <Eraser className="w-4 h-4 me-1" />{t('tactics.modeErase')}
           </Button>
+          <Button
+            size="sm" variant="secondary"
+            onClick={() => {
+              const id = `extra-${Date.now()}`;
+              setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'us' }] });
+              setMode('move');
+              setSelectedMarkerId(id);
+            }}
+          >
+            <Plus className="w-4 h-4 me-1" />{t('tactics.addPlayer')}
+          </Button>
+          <Button
+            size="sm" variant="secondary"
+            onClick={() => {
+              const id = `extra-${Date.now()}`;
+              setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'them' }] });
+              setMode('move');
+              setSelectedMarkerId(id);
+            }}
+          >
+            <Plus className="w-4 h-4 me-1" />{t('tactics.addOpponent')}
+          </Button>
           <Button size="sm" variant="secondary" onClick={() => setBoard(emptyBoard())}>
             {t('tactics.clearAll')}
           </Button>
@@ -426,7 +471,56 @@ function BoardsTab({
           </Button>
         </div>
 
-        <TacticBoard board={board} setBoard={setBoard} mode={mode} />
+        <TacticBoard board={board} setBoard={setBoard} mode={mode} selectedMarkerId={selectedMarkerId} onSelectMarker={setSelectedMarkerId} />
+
+        {/* Marker editor — appears once a marker is tapped/dragged in
+            move mode. Recoloring here is what makes a training-game
+            3-team split possible: add extra players/opponents, then
+            give one group a third distinct color instead of being
+            locked to the fixed us/them colors. */}
+        {selectedMarkerId && (() => {
+          const marker = board.markers.find((m) => m.id === selectedMarkerId);
+          if (!marker || marker.side === 'ball') return null;
+          const COLORS = ['#FFD84D', '#F4F1EC', '#E85D5D', '#5B9BD5', '#6FCF97', '#F2994A', '#BB8FCE'];
+          const isActiveColor = (c: string) =>
+            marker.color ? marker.color === c : (marker.side === 'us' ? c === '#FFD84D' : c === '#F4F1EC');
+          return (
+            <div className="bg-card border rounded-xl p-3 flex flex-wrap items-center gap-3">
+              <Input
+                value={marker.label}
+                onChange={(e) => setBoard({
+                  ...board,
+                  markers: board.markers.map((m) => (m.id === selectedMarkerId ? { ...m, label: e.target.value } : m)),
+                })}
+                placeholder={t('tactics.markerLabel')}
+                className="h-9 w-24 shrink-0"
+              />
+              <div className="flex items-center gap-1.5 flex-1 flex-wrap">
+                {COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setBoard({
+                      ...board,
+                      markers: board.markers.map((m) => (m.id === selectedMarkerId ? { ...m, color: c } : m)),
+                    })}
+                    className={`w-7 h-7 rounded-full border-2 shrink-0 ${isActiveColor(c) ? 'border-primary' : 'border-transparent'}`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+              <Button
+                size="sm" variant="ghost" className="text-destructive hover:text-destructive shrink-0"
+                onClick={() => {
+                  setBoard({ ...board, markers: board.markers.filter((m) => m.id !== selectedMarkerId) });
+                  setSelectedMarkerId(null);
+                }}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          );
+        })()}
 
         {/* Animation frames (TacticalPad-style sequences) */}
         <div className="flex flex-wrap items-center gap-2">

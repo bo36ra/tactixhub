@@ -8,6 +8,11 @@ export interface BoardMarker {
   y: number; // 0..100 (percent of pitch height)
   label: string;
   side: 'us' | 'them' | 'ball';
+  // Overrides the side's default color when set — lets a coach split
+  // markers into a third (or more) group for training-game scenarios
+  // (e.g. splitting the squad into 3 teams) without needing a rigid
+  // third "side" value; any marker can be recolored individually.
+  color?: string;
 }
 export interface BoardArrow { x1: number; y1: number; x2: number; y2: number }
 // Same shape as an arrow, but rendered as a plain zone-divider line (no
