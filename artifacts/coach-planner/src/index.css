@@ -302,3 +302,22 @@ input[type='time']::-webkit-calendar-picker-indicator {
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+
+/* Each petal of the CloverLoader pulses in sequence — scale grows from
+   the shared center (origin already at 0,0 via the SVG path) then
+   settles back, staggered per-petal via animation-delay in the
+   component so the pulse visibly travels around the flower. */
+@keyframes clover-petal-pulse {
+  0%, 100% { transform: scale(0.82); opacity: 0.55; }
+  50% { transform: scale(1); opacity: 1; }
+}
+.clover-petal {
+  transform-origin: 0px 0px;
+  animation: clover-petal-pulse 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .clover-petal {
+    animation: none;
+    opacity: 1;
+  }
+}

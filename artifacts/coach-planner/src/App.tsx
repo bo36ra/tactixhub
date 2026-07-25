@@ -52,6 +52,7 @@ import { OnboardingCarousel } from '@/components/onboarding';
 import { ApiKeepAlive } from '@/components/api-keep-alive';
 
 import { lazy, Suspense } from 'react';
+import { CloverLoader } from '@/components/clover-loader';
 
 // Each page loads as its own small chunk on first visit instead of all
 // pages being bundled into one large file the browser must download before
@@ -175,7 +176,7 @@ function ClerkQueryClientCacheInvalidator() {
 function PageLoadingFallback() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      <CloverLoader size={56} />
     </div>
   );
 }
