@@ -1,4 +1,6 @@
 import React from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { PullToRefresh } from '@/components/pull-to-refresh';
 import { AppLayout } from '@/components/layout';
 import { ProPage } from '@/lib/feature-gate';
 import { StickyHeader, PageTitle } from '@/components/page-header';
@@ -538,6 +540,7 @@ function CalculatorTab({ unit }: { unit: WeightUnit }) {
 
 export default function Gym() {
   const { t } = useLanguage();
+  const queryClient = useQueryClient();
   const { activeTeamId } = useTeam();
   const { unit, setUnit, toDisplay, toKg } = useWeightUnit();
   if (!activeTeamId) return null;
@@ -545,6 +548,7 @@ export default function Gym() {
   return (
     <ProPage>
       <AppLayout>
+      <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
         <div className="space-y-4">
           <StickyHeader>
             <div className="flex items-center justify-between gap-2">
@@ -584,7 +588,8 @@ export default function Gym() {
             <TabsContent value="calc"><CalculatorTab unit={unit} /></TabsContent>
           </Tabs>
         </div>
-      </AppLayout>
+      </PullToRefresh>
+    </AppLayout>
     </ProPage>
   );
 }

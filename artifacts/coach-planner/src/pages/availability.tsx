@@ -1,4 +1,6 @@
 import React from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { PullToRefresh } from '@/components/pull-to-refresh';
 import { PageTitle } from '@/components/page-header';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
@@ -32,6 +34,7 @@ const TYPE_COLORS: Record<string, string> = {
 // perspective they're gone on their own, no manual cleanup needed.
 export function AvailabilityPage() {
   const { t, isRtl, lang } = useLanguage();
+  const queryClient = useQueryClient();
   const { activeTeamId } = useTeam();
   const tid = activeTeamId ?? 0;
   const enabled = !!activeTeamId;
@@ -89,6 +92,7 @@ export function AvailabilityPage() {
 
   return (
     <AppLayout>
+      <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <PageTitle>{t('avail.title')}</PageTitle>
@@ -224,6 +228,7 @@ export function AvailabilityPage() {
           onOpenChange={(o) => !o && setDeleteId(null)}
         />
       </div>
+    </PullToRefresh>
     </AppLayout>
   );
 }

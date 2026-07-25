@@ -1,4 +1,6 @@
 import React from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { PullToRefresh } from '@/components/pull-to-refresh';
 import { AppLayout } from '@/components/layout';
 import { ProPage } from '@/lib/feature-gate';
 import { FeatureHint } from '@/components/feature-hint';
@@ -162,6 +164,7 @@ function ExerciseEditor({
 
 export function ExerciseLibraryPage() {
   const { t } = useLanguage();
+  const queryClient = useQueryClient();
   const { activeTeamId } = useTeam();
   const tid = activeTeamId ?? 0;
   const { toast } = useToast();
@@ -182,6 +185,7 @@ export function ExerciseLibraryPage() {
   return (
     <ProPage>
       <AppLayout>
+      <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <BookOpen className="w-6 h-6 text-primary" />
@@ -270,7 +274,8 @@ export function ExerciseLibraryPage() {
         {(creating || editing) && (
           <ExerciseEditor teamId={tid} exercise={editing} onClose={() => { setCreating(false); setEditing(null); }} />
         )}
-      </AppLayout>
+      </PullToRefresh>
+    </AppLayout>
     </ProPage>
   );
 }

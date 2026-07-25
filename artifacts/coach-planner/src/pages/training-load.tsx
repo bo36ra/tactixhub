@@ -1,4 +1,6 @@
 import React from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { PullToRefresh } from '@/components/pull-to-refresh';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { FeatureHint } from '@/components/feature-hint';
 import { TermHelp } from '@/components/term-help';
@@ -554,11 +556,13 @@ function SquadTab({ teamId }: { teamId: number }) {
 
 export function TrainingLoadPage() {
   const { t, lang } = useLanguage();
+  const queryClient = useQueryClient();
   const { activeTeamId } = useTeam();
   if (!activeTeamId) return <NoTeamState />;
 
   return (
     <AppLayout>
+      <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Activity className="w-6 h-6 text-primary" />
@@ -578,6 +582,7 @@ export function TrainingLoadPage() {
           <TabsContent value="dashboard"><DashboardTab teamId={activeTeamId} /></TabsContent>
         </Tabs>
       </div>
+    </PullToRefresh>
     </AppLayout>
   );
 }

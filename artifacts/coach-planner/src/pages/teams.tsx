@@ -1,4 +1,5 @@
 import React from 'react';
+import { PullToRefresh } from '@/components/pull-to-refresh';
 import { AppLayout } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
@@ -93,6 +94,7 @@ export function Teams() {
 
   return (
     <AppLayout>
+      <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
       <div className="space-y-6 max-w-3xl">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -239,6 +241,7 @@ export function Teams() {
           })}
         </div>
       </div>
+    </PullToRefresh>
     </AppLayout>
   );
 }

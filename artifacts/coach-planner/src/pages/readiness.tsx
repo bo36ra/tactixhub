@@ -1,4 +1,6 @@
 import React from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { PullToRefresh } from '@/components/pull-to-refresh';
 import { PageTitle } from '@/components/page-header';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
@@ -35,6 +37,7 @@ const VERDICT_META: Record<Verdict, { icon: typeof CheckCircle2; pill: string }>
 
 export function Readiness() {
   const { t, lang } = useLanguage();
+  const queryClient = useQueryClient();
   const { activeTeamId } = useTeam();
   const tid = activeTeamId ?? 0;
   const enabled = !!activeTeamId;
@@ -143,6 +146,7 @@ export function Readiness() {
 
   return (
     <AppLayout>
+      <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
       <div className="space-y-8">
         <PageTitle>{t('ready.title')}</PageTitle>
 
@@ -208,6 +212,7 @@ export function Readiness() {
           })
         )}
       </div>
+    </PullToRefresh>
     </AppLayout>
   );
 }

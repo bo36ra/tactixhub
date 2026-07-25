@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { PullToRefresh } from '@/components/pull-to-refresh';
 import { StickyHeader, PageTitle } from '@/components/page-header';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
@@ -44,6 +46,7 @@ const ALL_ATTENDANCE_STATUSES = [
 
 export function Reports() {
   const { t, isRtl, lang } = useLanguage();
+  const queryClient = useQueryClient();
   const { activeTeamId } = useTeam();
   const [tab, setTab] = React.useState<TabId>('games');
 
@@ -249,6 +252,7 @@ export function Reports() {
 
   return (
     <AppLayout>
+      <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
       <div className="space-y-6">
         <StickyHeader><PageTitle>{t('nav.reports')}</PageTitle></StickyHeader>
 
@@ -845,6 +849,7 @@ export function Reports() {
           </DialogContent>
         </Dialog>
       </div>
+    </PullToRefresh>
     </AppLayout>
   );
 }

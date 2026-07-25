@@ -1,4 +1,5 @@
 import React from 'react';
+import { PullToRefresh } from '@/components/pull-to-refresh';
 import { StickyHeader, PageTitle } from '@/components/page-header';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -110,6 +111,7 @@ export function Notes() {
 
   return (
     <AppLayout>
+      <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
       <div className="space-y-8 max-w-3xl">
         <StickyHeader><PageTitle>{t('notes.title')}</PageTitle></StickyHeader>
 
@@ -254,6 +256,7 @@ export function Notes() {
           onOpenChange={(o) => !o && setDeleteId(null)}
         />
       </div>
+    </PullToRefresh>
     </AppLayout>
   );
 }

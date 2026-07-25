@@ -1,4 +1,5 @@
 import React from 'react';
+import { PullToRefresh } from '@/components/pull-to-refresh';
 import { PageTitle } from '@/components/page-header';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
@@ -75,6 +76,7 @@ export function Cards() {
 
   return (
     <AppLayout>
+      <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <PageTitle>{t('nav.cards')}</PageTitle>
@@ -242,6 +244,7 @@ export function Cards() {
           </div>
         </div>
       </div>
+    </PullToRefresh>
     </AppLayout>
   );
 }

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { PullToRefresh } from '@/components/pull-to-refresh';
 import { PageTitle } from '@/components/page-header';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useToast } from '@/hooks/use-toast';
@@ -76,6 +77,7 @@ export function PlayingTime() {
 
   return (
     <AppLayout>
+      <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <PageTitle>{t('nav.playingTime')}</PageTitle>
@@ -189,6 +191,7 @@ export function PlayingTime() {
           </div>
         </div>
       </div>
+    </PullToRefresh>
     </AppLayout>
   );
 }
