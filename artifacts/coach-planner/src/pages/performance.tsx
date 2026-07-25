@@ -78,7 +78,10 @@ function RatingsTab({ teamId, t }: { teamId: number; t: (k: string) => string })
                   {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                     <button key={n}
                       onClick={() => save.mutate({ playerId: p.id, rating: n },
-                        { onSuccess: () => toast({ title: t('tactics.saved') }) })}
+                        {
+                          onSuccess: () => toast({ title: t('tactics.saved') }),
+                          onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
+                        })}
                       className={`w-7 h-7 rounded text-xs font-bold border transition-colors ${
                         r?.rating === n
                           ? 'bg-primary text-primary-foreground border-primary'
@@ -118,7 +121,10 @@ function InjuriesTab({ teamId, t }: { teamId: number; t: (k: string) => string }
       return;
     }
     create.mutate({ ...form, playerId: parseInt(form.playerId) },
-      { onSuccess: () => { toast({ title: t('tactics.saved') }); setForm(null); } });
+      {
+        onSuccess: () => { toast({ title: t('tactics.saved') }); setForm(null); },
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
+      });
   };
 
   return (
@@ -162,7 +168,7 @@ function InjuriesTab({ teamId, t }: { teamId: number; t: (k: string) => string }
           <div key={inj.id} className="border border-border rounded-lg p-3 bg-card space-y-1">
             <div className="flex items-center justify-between">
               <span className="font-semibold">{inj.playerName}</span>
-              <Button size="icon" variant="ghost" onClick={() => del.mutate(inj.id)}>
+              <Button size="icon" variant="ghost" onClick={() => del.mutate(inj.id, { onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }) })}>
                 <Trash2 className="w-4 h-4 text-destructive" />
               </Button>
             </div>
@@ -171,7 +177,7 @@ function InjuriesTab({ teamId, t }: { teamId: number; t: (k: string) => string }
             <div className="flex gap-1">
               {(['out', 'recovering', 'recovered'] as const).map((st) => (
                 <button key={st}
-                  onClick={() => update.mutate({ id: inj.id, status: st })}
+                  onClick={() => update.mutate({ id: inj.id, status: st }, { onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }) })}
                   className={`rounded px-2 py-0.5 text-xs ${inj.status === st ? STATUS_STYLE[st] : 'text-muted-foreground'}`}>
                   {t(`perf.status.${st}`)}
                 </button>

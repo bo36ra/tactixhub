@@ -283,7 +283,7 @@ function OneRepMaxTab({ teamId, unit, toDisplay, toKg }: { teamId: number } & Un
                   </button>
                   <button
                     type="button"
-                    onClick={() => del.mutate(entry.id)}
+                    onClick={() => del.mutate(entry.id, { onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }) })}
                     className="text-destructive/60 hover:text-destructive active:text-destructive p-2 shrink-0"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -417,7 +417,7 @@ function TrainingLogTab({ teamId, unit, toKg, toDisplay }: { teamId: number } & 
                       <span className="font-bold text-sm" dir="ltr">{toDisplay(e.weightKg)}{unit}{e.reps > 1 ? ` × ${e.reps}` : ''}</span>
                       <button
                         type="button"
-                        onClick={() => del.mutate(e.id)}
+                        onClick={() => del.mutate(e.id, { onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }) })}
                         className="text-destructive/60 hover:text-destructive active:text-destructive p-1"
                       >
                         <Trash2 className="w-3.5 h-3.5" />

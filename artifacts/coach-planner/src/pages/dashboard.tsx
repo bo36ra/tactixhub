@@ -15,6 +15,7 @@ import { Users, Swords, Target, ShieldAlert, Dumbbell, Check, CalendarDays, Cale
 import { format } from 'date-fns';
 import { Link } from 'wouter';
 import { focusLabel } from '@/pages/trainings';
+import { useToast } from '@/hooks/use-toast';
 
 function CreateTeamModal() {
   const { t } = useLanguage();
@@ -22,6 +23,7 @@ function CreateTeamModal() {
   const [name, setName] = React.useState('');
   const [open, setOpen] = React.useState(false);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +33,8 @@ function CreateTeamModal() {
         queryClient.invalidateQueries({ queryKey: getListTeamsQueryKey() });
         setOpen(false);
         setName('');
-      }
+      },
+      onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
     });
   };
 

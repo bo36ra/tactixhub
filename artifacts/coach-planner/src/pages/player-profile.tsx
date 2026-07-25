@@ -122,6 +122,7 @@ export function PlayerProfile() {
           queryClient.invalidateQueries({ queryKey: getGetPlayerTimelineQueryKey(playerId) });
           queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(activeTeamId) });
         },
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
       },
     );
   };
@@ -329,7 +330,7 @@ export function PlayerProfile() {
                     ...(avForm.endDate && { endDate: avForm.endDate }),
                     ...(avForm.note.trim() && { note: avForm.note.trim() }),
                   },
-                  { onSuccess: () => setAvForm({ type: 'travel', startDate: '', endDate: '', note: '' }) },
+                  { onSuccess: () => setAvForm({ type: 'travel', startDate: '', endDate: '', note: '' }), onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }) },
                 )
               }
             >
@@ -404,7 +405,11 @@ export function PlayerProfile() {
           open={avDeleteId !== null}
           title={t('avail.deleteConfirm')}
           onConfirm={() => {
-            if (avDeleteId !== null) deleteAvailability.mutate(avDeleteId);
+            if (avDeleteId !== null) {
+              deleteAvailability.mutate(avDeleteId, {
+                onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
+              });
+            }
             setAvDeleteId(null);
           }}
           onOpenChange={(o) => !o && setAvDeleteId(null)}

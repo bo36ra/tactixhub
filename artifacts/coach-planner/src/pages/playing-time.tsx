@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { PageTitle } from '@/components/page-header';
 import { AppLayout, NoTeamState } from '@/components/layout';
+import { useToast } from '@/hooks/use-toast';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
@@ -18,6 +19,7 @@ import { format } from 'date-fns';
 
 export function PlayingTime() {
   const { t, isRtl, lang } = useLanguage();
+  const { toast } = useToast();
   const { activeTeamId } = useTeam();
   const queryClient = useQueryClient();
   const [open, setOpen] = React.useState(false);
@@ -65,7 +67,8 @@ export function PlayingTime() {
         const initial: Record<number, string> = {};
         players?.forEach(p => initial[p.id] = '');
         setMinutesMap(initial);
-      }
+      },
+      onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
     });
   };
 

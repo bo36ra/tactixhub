@@ -86,6 +86,7 @@ export function Teams() {
           queryClient.invalidateQueries({ queryKey: getListTeamsQueryKey() });
           if (activeTeamId === teamId) setActiveTeamId(null);
         },
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
       },
     );
   };

@@ -78,7 +78,8 @@ export function Goals() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListGoalsQueryKey(activeTeamId!) });
         queryClient.invalidateQueries({ queryKey: getGetTopScorersQueryKey(activeTeamId!) });
-      }
+      },
+      onError: showApiError,
     });
   };
 

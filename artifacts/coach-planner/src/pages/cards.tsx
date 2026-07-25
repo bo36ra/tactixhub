@@ -15,11 +15,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useQueryClient } from '@tanstack/react-query';
 import { Trash2, Plus } from 'lucide-react';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 export function Cards() {
   const { t, isRtl, lang } = useLanguage();
   const { activeTeamId } = useTeam();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [open, setOpen] = React.useState(false);
 
   const [formData, setFormData] = React.useState({
@@ -54,7 +56,8 @@ export function Cards() {
         queryClient.invalidateQueries({ queryKey: getGetCardsSummaryQueryKey(activeTeamId) });
         setOpen(false);
         setFormData(prev => ({ ...prev, minute: '' }));
-      }
+      },
+      onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
     });
   };
 
@@ -63,7 +66,8 @@ export function Cards() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListCardsQueryKey(activeTeamId!) });
         queryClient.invalidateQueries({ queryKey: getGetCardsSummaryQueryKey(activeTeamId!) });
-      }
+      },
+      onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
     });
   };
 

@@ -83,7 +83,10 @@ export function AdminPage() {
                       onClick={() =>
                         decide.mutate(
                           { id: r.id, decision: 'approve' },
-                          { onSuccess: () => toast({ title: t('admin.approve') }) },
+                          {
+                            onSuccess: () => toast({ title: t('admin.approve') }),
+                            onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
+                          },
                         )
                       }
                     >
@@ -97,7 +100,10 @@ export function AdminPage() {
                       onClick={() =>
                         decide.mutate(
                           { id: r.id, decision: 'reject' },
-                          { onSuccess: () => toast({ title: t('admin.reject') }) },
+                          {
+                            onSuccess: () => toast({ title: t('admin.reject') }),
+                            onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
+                          },
                         )
                       }
                     >
@@ -131,7 +137,10 @@ export function AdminPage() {
                   onValueChange={(v) =>
                     updateTier.mutate(
                       { teamId: team.id, tier: v as 'free' | 'pro' },
-                      { onSuccess: () => toast({ title: t('tactics.saved') }) },
+                      {
+                        onSuccess: () => toast({ title: t('tactics.saved') }),
+                        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
+                      },
                     )
                   }
                 >

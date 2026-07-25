@@ -530,7 +530,10 @@ function BoardsTab({
     }
     save.mutate(
       { id: editing.id, name: editing.name.trim(), kind, matchId: editing.matchId, data: board },
-      { onSuccess: () => { toast({ title: t('tactics.saved') }); setEditing(null); } },
+      {
+        onSuccess: () => { toast({ title: t('tactics.saved') }); setEditing(null); },
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
+      },
     );
   };
 
@@ -795,7 +798,7 @@ function BoardsTab({
                   ? ` · ${(matches ?? []).find((m) => m.id === tc.matchId)?.opponent}` : ''}
               </div>
             </button>
-            <Button size="icon" variant="ghost" onClick={() => del.mutate(tc.id)}>
+            <Button size="icon" variant="ghost" onClick={() => del.mutate(tc.id, { onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }) })}>
               <Trash2 className="w-4 h-4 text-destructive" />
             </Button>
           </div>
@@ -819,7 +822,10 @@ function OpponentsTab({ teamId }: { teamId: number }) {
       toast({ variant: 'destructive', title: t('tactics.opponentRequired') });
       return;
     }
-    save.mutate(form, { onSuccess: () => { toast({ title: t('tactics.saved') }); setForm(null); } });
+    save.mutate(form, {
+      onSuccess: () => { toast({ title: t('tactics.saved') }); setForm(null); },
+      onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
+    });
   };
 
   if (form) {
@@ -860,7 +866,7 @@ function OpponentsTab({ teamId }: { teamId: number }) {
                 setForm({ id: n.id, opponent: n.opponent, strengths: n.strengths ?? '', weaknesses: n.weaknesses ?? '', plan: n.plan ?? '' })}>
                 {n.opponent}
               </button>
-              <Button size="icon" variant="ghost" onClick={() => del.mutate(n.id)}>
+              <Button size="icon" variant="ghost" onClick={() => del.mutate(n.id, { onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }) })}>
                 <Trash2 className="w-4 h-4 text-destructive" />
               </Button>
             </div>

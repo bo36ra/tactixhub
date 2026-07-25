@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRoute, Link } from 'wouter';
 import { AppLayout, NoTeamState } from '@/components/layout';
+import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
 import { JerseyNumber } from '@/components/jersey-number';
@@ -21,6 +22,7 @@ import { ArrowRight, ArrowLeft, Star, Check } from 'lucide-react';
 
 export function Lineup() {
   const { t, isRtl, lang } = useLanguage();
+  const { toast } = useToast();
   const { activeTeamId } = useTeam();
   const queryClient = useQueryClient();
   const [, params] = useRoute('/matches/:matchId/lineup');
@@ -96,6 +98,7 @@ export function Lineup() {
           queryClient.invalidateQueries({ queryKey: getGetLineupQueryKey(matchId) });
           setTimeout(() => setSaved(false), 2000);
         },
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
       },
     );
   };

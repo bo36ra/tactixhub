@@ -122,14 +122,17 @@ export function Staff() {
   const handleRoleChange = (memberId: number, role: TeamMemberInputRole) => {
     updateMember.mutate(
       { teamId: activeTeamId!, memberId, data: { role } },
-      { onSuccess: invalidate },
+      { onSuccess: invalidate, onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }) },
     );
   };
 
   const handleRemove = (memberId: number) => setRemoveId(memberId);
   const confirmRemove = () => {
     if (removeId === null) return;
-    removeMember.mutate({ teamId: activeTeamId!, memberId: removeId }, { onSuccess: invalidate });
+    removeMember.mutate(
+      { teamId: activeTeamId!, memberId: removeId },
+      { onSuccess: invalidate, onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }) },
+    );
     setRemoveId(null);
   };
 

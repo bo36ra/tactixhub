@@ -67,6 +67,7 @@ export function Notes() {
           setTitle('');
           setContent('');
         },
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
       },
     );
   };
@@ -86,6 +87,7 @@ export function Notes() {
           invalidate();
           setEditingId(null);
         },
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
       },
     );
   };
@@ -93,14 +95,14 @@ export function Notes() {
   const togglePin = (note: Note) => {
     updateNote.mutate(
       { teamId: activeTeamId!, noteId: note.id, data: { pinned: !note.pinned } },
-      { onSuccess: invalidate },
+      { onSuccess: invalidate, onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }) },
     );
   };
 
   const handleDelete = (noteId: number) => setDeleteId(noteId);
   const confirmDelete = () => {
     if (deleteId === null) return;
-    deleteNote.mutate({ teamId: activeTeamId!, noteId: deleteId }, { onSuccess: invalidate });
+    deleteNote.mutate({ teamId: activeTeamId!, noteId: deleteId }, { onSuccess: invalidate, onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }) });
     setDeleteId(null);
   };
 

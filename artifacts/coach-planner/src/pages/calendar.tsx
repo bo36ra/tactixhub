@@ -227,7 +227,10 @@ export function CalendarPage() {
                 onClick={() =>
                   saveMonthPlan.mutate(
                     { month: monthKey, goal: goalDraft, notes: notesDraft },
-                    { onSuccess: () => toast({ title: t('tactics.saved') }) },
+                    {
+                      onSuccess: () => toast({ title: t('tactics.saved') }),
+                      onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
+                    },
                   )
                 }
               >
@@ -584,7 +587,7 @@ export function CalendarPage() {
                       <button
                         type="button"
                         className="text-destructive/60 hover:text-destructive active:text-destructive shrink-0"
-                        onClick={() => deleteTraining.mutate(tr.id)}
+                        onClick={() => deleteTraining.mutate(tr.id, { onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }) })}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

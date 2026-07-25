@@ -116,7 +116,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
         drills: form.drills || undefined,
         notes: form.notes || undefined,
       },
-      { onSuccess: () => { toast({ title: t('tactics.saved') }); setForm(null); } },
+      { onSuccess: () => { toast({ title: t('tactics.saved') }); setForm(null); }, onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }) },
     );
   };
 
@@ -238,7 +238,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
             <div key={tr.id} className="border border-border rounded-lg p-3 bg-card space-y-1">
               <div className="flex items-center justify-between">
                 <span className="font-semibold">{tr.date}{tr.time ? ` · ${tr.time}` : ''}</span>
-                <Button size="icon" variant="ghost" onClick={() => del.mutate(tr.id)}>
+                <Button size="icon" variant="ghost" onClick={() => del.mutate(tr.id, { onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }) })}>
                   <Trash2 className="w-4 h-4 text-destructive" />
                 </Button>
               </div>

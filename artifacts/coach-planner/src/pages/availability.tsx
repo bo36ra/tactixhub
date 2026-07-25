@@ -214,7 +214,11 @@ export function AvailabilityPage() {
           open={deleteId !== null}
           title={t('avail.deleteConfirm')}
           onConfirm={() => {
-            if (deleteId !== null) deleteAvailability.mutate(deleteId);
+            if (deleteId !== null) {
+              deleteAvailability.mutate(deleteId, {
+                onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
+              });
+            }
             setDeleteId(null);
           }}
           onOpenChange={(o) => !o && setDeleteId(null)}
