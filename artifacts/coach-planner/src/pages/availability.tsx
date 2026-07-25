@@ -193,7 +193,7 @@ export function AvailabilityPage() {
                         toast({
                           title: t('common.saveFailed'),
                           description: err instanceof Error ? err.message : undefined,
-                          variant: 'destructive' as any,
+                          variant: 'destructive',
                         }),
                       onSuccess: () => {
                         toast({ title: t('tactics.saved') });

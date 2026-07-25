@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
-import { useListMatches } from '@workspace/api-client-react';
+import { useListMatches, getListMatchesQueryKey } from '@workspace/api-client-react';
 import {
   useTactics, useSaveTactic, useDeleteTactic,
   useOpponentNotes, useSaveOpponentNote, useDeleteOpponentNote,
@@ -367,7 +367,7 @@ function BoardsTab({
 }) {
   const { t } = useLanguage();
   const { data: tactics, isLoading } = useTactics(teamId);
-  const { data: matches } = useListMatches(teamId, { query: { enabled: kind === 'match_plan' } } as any);
+  const { data: matches } = useListMatches(teamId, { query: { enabled: kind === 'match_plan', queryKey: getListMatchesQueryKey(teamId) } });
   const save = useSaveTactic(teamId);
   const del = useDeleteTactic(teamId);
 
@@ -792,7 +792,7 @@ function BoardsTab({
               <div className="text-xs text-muted-foreground">
                 {new Date(tc.createdAt).toLocaleDateString()}
                 {tc.matchId && (matches ?? []).find((m: any) => m.id === tc.matchId)
-                  ? ` · ${(matches as any[]).find((m: any) => m.id === tc.matchId)?.opponent}` : ''}
+                  ? ` · ${(matches ?? []).find((m) => m.id === tc.matchId)?.opponent}` : ''}
               </div>
             </button>
             <Button size="icon" variant="ghost" onClick={() => del.mutate(tc.id)}>
@@ -881,7 +881,7 @@ function AllTab({
 }) {
   const { t } = useLanguage();
   const { data: tactics, isLoading } = useTactics(teamId);
-  const { data: matches } = useListMatches(teamId, { query: { enabled: true } } as any);
+  const { data: matches } = useListMatches(teamId, { query: { enabled: true, queryKey: getListMatchesQueryKey(teamId) } });
 
   const sorted = React.useMemo(
     () => [...(tactics ?? [])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
@@ -914,7 +914,7 @@ function AllTab({
           <div className="text-xs text-muted-foreground mt-1">
             {new Date(tc.createdAt).toLocaleDateString()}
             {tc.matchId && (matches ?? []).find((m: any) => m.id === tc.matchId)
-              ? ` · ${(matches as any[]).find((m: any) => m.id === tc.matchId)?.opponent}` : ''}
+              ? ` · ${(matches ?? []).find((m) => m.id === tc.matchId)?.opponent}` : ''}
           </div>
         </button>
       ))}

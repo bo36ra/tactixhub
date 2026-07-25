@@ -129,7 +129,7 @@ export function CalendarPage() {
   // A fully past month can't receive planned sessions
   const monthInPast = eom(month) < new Date(new Date().toDateString());
   const showError = (err: unknown) =>
-    toast({ title: err instanceof Error ? err.message : 'Error', variant: 'destructive' as any });
+    toast({ title: err instanceof Error ? err.message : 'Error', variant: 'destructive' });
 
   const eventsByDay = React.useMemo(() => {
     const map = new Map<string, { kind: 'match' | 'training'; label: string; sub?: string; planned?: boolean }[]>();
@@ -529,7 +529,7 @@ export function CalendarPage() {
                           setEditMatchId(m.id);
                           setEditTrainingId(null);
                           setDayOpponent(m.opponent);
-                          setDayMatchType(m.type as any);
+                          setDayMatchType(m.type as MatchInputType);
                           setDayScoreUs(String(m.ourGoals));
                           setDayScoreThem(String(m.theirGoals));
                         }}
@@ -677,7 +677,7 @@ export function CalendarPage() {
                             matchId: editMatchId,
                             data: {
                               opponent: dayOpponent.trim(),
-                              type: dayMatchType as any,
+                              type: dayMatchType,
                               ourGoals: Math.max(0, Number(dayScoreUs) || 0),
                               theirGoals: Math.max(0, Number(dayScoreThem) || 0),
                             },

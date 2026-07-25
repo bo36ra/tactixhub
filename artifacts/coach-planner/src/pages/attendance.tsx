@@ -10,7 +10,7 @@ import { useUndoableDelete } from '@/lib/undoable-delete';
 import { useNameFilter, NameFilterInput } from '@/components/name-filter';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useListPlayers, useCreateAttendance, useDeleteAttendanceDay, useGetAttendanceSummary, useListAttendance, getGetAttendanceSummaryQueryKey, getListAttendanceQueryKey, getListPlayersQueryKey } from '@workspace/api-client-react';
-import { AttendanceInputSessionType } from '@workspace/api-client-react';
+import { AttendanceInputSessionType, type AttendanceInputRecordsItemStatus } from '@workspace/api-client-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -53,7 +53,7 @@ export function Attendance() {
   const [sessionType, setSessionType] = React.useState<AttendanceInputSessionType>('training');
   const { toast } = useToast();
   const showApiError = (err: unknown) =>
-    toast({ title: t('common.saveFailed'), description: err instanceof Error ? err.message : undefined, variant: 'destructive' as any });
+    toast({ title: t('common.saveFailed'), description: err instanceof Error ? err.message : undefined, variant: 'destructive' });
   const [records, setRecords] = React.useState<Record<number, string>>({});
   const [notes, setNotes] = React.useState<Record<number, string>>({});
 
@@ -133,7 +133,7 @@ export function Attendance() {
     
     const entries = Object.entries(records).map(([playerId, status]) => ({
       playerId: Number(playerId),
-      status: status as any,
+      status: status as AttendanceInputRecordsItemStatus,
       ...(notes[Number(playerId)]?.trim() && { note: notes[Number(playerId)].trim() }),
     }));
 

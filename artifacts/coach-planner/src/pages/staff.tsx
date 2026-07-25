@@ -101,7 +101,7 @@ export function Staff() {
           toast({
             title: t('common.saveFailed'),
             description: err instanceof Error ? err.message : undefined,
-            variant: 'destructive' as any,
+            variant: 'destructive',
           }),
         onSuccess: (r) => {
           invalidate();

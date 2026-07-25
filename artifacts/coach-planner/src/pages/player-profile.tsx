@@ -2,7 +2,7 @@ import React from 'react';
 import { useRoute, Link, Redirect } from 'wouter';
 import { AppLayout } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
-import { useGetPlayerTimeline, getGetPlayerTimelineQueryKey, useUpdatePlayer, useListPlayers, getListPlayersQueryKey } from '@workspace/api-client-react';
+import { useGetPlayerTimeline, getGetPlayerTimelineQueryKey, useUpdatePlayer, useListPlayers, getListPlayersQueryKey, type PlayerUpdatePosition, type PlayerUpdateStatus } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTeam } from '@/lib/team-context';
 import { compressImageFile } from '@/lib/image';
@@ -77,11 +77,11 @@ export function PlayerProfile() {
           name: editForm.name.trim(),
           nameAlt: editForm.nameAlt.trim() || null,
           jerseyNumber: Number(editForm.jerseyNumber),
-          position: editForm.position as any,
+          position: editForm.position as PlayerUpdatePosition,
           ...(editForm.birthYear && { birthYear: Number(editForm.birthYear) }),
           nationality: editForm.nationality.trim() || undefined,
           phone: editForm.phone.trim(),
-          status: editForm.status as any,
+          status: editForm.status as PlayerUpdateStatus,
         },
       },
       {
@@ -89,7 +89,7 @@ export function PlayerProfile() {
           toast({
             title: t('common.saveFailed'),
             description: err instanceof Error ? err.message : undefined,
-            variant: 'destructive' as any,
+            variant: 'destructive',
           }),
         onSuccess: () => {
           toast({ title: t('tactics.saved') });

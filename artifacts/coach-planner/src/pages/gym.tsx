@@ -62,7 +62,7 @@ function BodyWeightTab({ teamId, unit, toDisplay, toKg }: { teamId: number } & U
       { date, entries: parsed },
       {
         onSuccess: (saved) => toast({ title: t('rpe.savedCount').replace('{n}', String(saved.length)) }),
-        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' as any }),
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
       },
     );
   };
@@ -144,7 +144,7 @@ function OneRepMaxTab({ teamId, unit, toDisplay, toKg }: { teamId: number } & Un
 
   const handleSave = () => {
     if (!resolvedLift) {
-      toast({ title: t('train.required'), variant: 'destructive' as any });
+      toast({ title: t('train.required'), variant: 'destructive' });
       return;
     }
     const entries = Object.entries(rows)
@@ -155,7 +155,7 @@ function OneRepMaxTab({ teamId, unit, toDisplay, toKg }: { teamId: number } & Un
       { lift: resolvedLift, date, entries },
       {
         onSuccess: (saved) => toast({ title: t('rpe.savedCount').replace('{n}', String(saved.length)) }),
-        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' as any }),
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
       },
     );
   };
@@ -364,7 +364,7 @@ function TrainingLogTab({ teamId, unit, toKg, toDisplay }: { teamId: number } & 
   const handleAdd = () => {
     const w = parseFloat(newWeight);
     if (!playerId || !resolvedNewLift || !Number.isFinite(w) || w <= 0) {
-      toast({ title: t('train.required'), variant: 'destructive' as any });
+      toast({ title: t('train.required'), variant: 'destructive' });
       return;
     }
     addExercise.mutate(
@@ -375,7 +375,7 @@ function TrainingLogTab({ teamId, unit, toKg, toDisplay }: { teamId: number } & 
           setNewWeight('');
           setNewReps('1');
         },
-        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' as any }),
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
       },
     );
   };

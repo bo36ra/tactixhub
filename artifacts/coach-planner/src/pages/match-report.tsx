@@ -24,12 +24,12 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
   const [matchId, setMatchId] = useState<number | null>(null);
   const { data: ratings } = useRatings(teamId, matchId);
 
-  const m: any = (matches ?? []).find((x: any) => x.id === matchId);
-  const pName = (id: number | null) =>
-    (players ?? []).find((p: any) => p.id === id)?.name ?? '—';
-  const mGoals = ((goals ?? []) as any[]).filter((g) => g.matchId === matchId);
-  const mCards = ((cards ?? []) as any[]).filter((c) => c.matchId === matchId);
-  const mMinutes = ((minutes ?? []) as any[]).filter((x) => x.matchId === matchId && x.minutes > 0);
+  const m = (matches ?? []).find((x) => x.id === matchId);
+  const pName = (id: number | null | undefined) =>
+    (players ?? []).find((p) => p.id === id)?.name ?? '—';
+  const mGoals = (goals ?? []).filter((g) => g.matchId === matchId);
+  const mCards = (cards ?? []).filter((c) => c.matchId === matchId);
+  const mMinutes = (minutes ?? []).filter((x) => x.matchId === matchId && x.minutes > 0);
   const best = (ratings ?? []).slice().sort((a, b) => b.rating - a.rating)[0];
 
   return (
@@ -51,7 +51,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
           <Select value={matchId ? String(matchId) : ''} onValueChange={(v) => setMatchId(parseInt(v))}>
             <SelectTrigger className="max-w-72"><SelectValue placeholder={t('perf.pickMatch')} /></SelectTrigger>
             <SelectContent>
-              {(matches ?? []).map((x: any) => (
+              {(matches ?? []).map((x) => (
                 <SelectItem key={x.id} value={String(x.id)}>{x.opponent} — {x.date}</SelectItem>
               ))}
             </SelectContent>
@@ -78,7 +78,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
                 <h3 className="font-bold mb-1">⚽ {t('nav.goals')}</h3>
                 {mGoals.map((g, i) => (
                   <p key={i} className="text-sm">
-                    {g.minute}' — {g.type === 'for' ? pName(g.scorerPlayerId) : t('report.conceded')} ({g.method})
+                    {g.minute}' — {g.type === 'scored' ? pName(g.scorerPlayerId) : t('report.conceded')} ({g.method})
                   </p>
                 ))}
               </section>

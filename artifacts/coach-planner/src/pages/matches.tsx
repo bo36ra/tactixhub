@@ -28,7 +28,7 @@ export function Matches() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const showApiError = (err: unknown) =>
-    toast({ title: t('common.saveFailed'), description: err instanceof Error ? err.message : undefined, variant: 'destructive' as any });
+    toast({ title: t('common.saveFailed'), description: err instanceof Error ? err.message : undefined, variant: 'destructive' });
   const [open, setOpen] = React.useState(false);
   const [planMatchId, setPlanMatchId] = React.useState<number | null>(null);
 
@@ -91,7 +91,7 @@ export function Matches() {
           },
           onError: (err: unknown) => {
             removeFromPending(matchId);
-            toast({ title: t('common.saveFailed'), description: err instanceof Error ? err.message : undefined, variant: 'destructive' as any });
+            toast({ title: t('common.saveFailed'), description: err instanceof Error ? err.message : undefined, variant: 'destructive' });
           },
         });
       },

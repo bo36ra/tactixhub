@@ -37,7 +37,7 @@ export function Players() {
     toast({
       title: t('common.saveFailed'),
       description: err instanceof Error ? err.message : undefined,
-      variant: 'destructive' as any,
+      variant: 'destructive',
     });
 
   const Req = () => <span className="text-destructive ms-0.5">*</span>;

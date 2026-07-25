@@ -66,7 +66,7 @@ export function Teams() {
             setOpen(false);
             return;
           }
-          toast({ title: t('common.saveFailed'), variant: 'destructive' as any });
+          toast({ title: t('common.saveFailed'), variant: 'destructive' });
         },
         onSuccess: (team) => {
           queryClient.invalidateQueries({ queryKey: getListTeamsQueryKey() });

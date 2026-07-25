@@ -57,7 +57,7 @@ function ExerciseEditor({
       const compressed = await compressImageFile(file, 700);
       setForm((f) => ({ ...f, image: compressed }));
     } catch {
-      toast({ title: t('common.saveFailed'), variant: 'destructive' as any });
+      toast({ title: t('common.saveFailed'), variant: 'destructive' });
     }
   };
 
@@ -75,7 +75,7 @@ function ExerciseEditor({
       image: form.image,
     };
     const onSuccess = () => { toast({ title: t('tactics.saved') }); onClose(); };
-    const onError = () => toast({ title: t('common.saveFailed'), variant: 'destructive' as any });
+    const onError = () => toast({ title: t('common.saveFailed'), variant: 'destructive' });
     if (exercise) update.mutate({ id: exercise.id, ...payload }, { onSuccess, onError });
     else create.mutate(payload, { onSuccess, onError });
   };

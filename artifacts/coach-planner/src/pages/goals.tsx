@@ -28,7 +28,7 @@ export function Goals() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const showApiError = (err: unknown) =>
-    toast({ title: t('common.saveFailed'), description: err instanceof Error ? err.message : undefined, variant: 'destructive' as any });
+    toast({ title: t('common.saveFailed'), description: err instanceof Error ? err.message : undefined, variant: 'destructive' });
   const [open, setOpen] = React.useState(false);
 
   const [formData, setFormData] = React.useState({

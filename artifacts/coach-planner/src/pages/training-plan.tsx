@@ -107,7 +107,7 @@ export function TrainingPlanPage() {
         objectiveOffense: b.objectiveOffense, objectiveDefense: b.objectiveDefense,
         space: b.space, playersFormat: b.playersFormat, minutes: b.minutes, explanation: b.explanation, image: b.image,
       },
-      { onSuccess: () => toast({ title: t('library.savedToGallery') }), onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' as any }) },
+      { onSuccess: () => toast({ title: t('library.savedToGallery') }), onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }) },
     );
   };
   const removeBlock = (i: number) => {
@@ -139,7 +139,7 @@ export function TrainingPlanPage() {
       const compressed = await compressImageFile(file, 700);
       updateBlock(i, { image: compressed });
     } catch {
-      toast({ title: t('common.saveFailed'), variant: 'destructive' as any });
+      toast({ title: t('common.saveFailed'), variant: 'destructive' });
     }
   };
 
@@ -160,10 +160,10 @@ export function TrainingPlanPage() {
         planNumber: header.planNumber.trim() || null,
       },
       {
-        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' as any }),
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
         onSuccess: () => {
           saveBlocks.mutate(blocks, {
-            onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' as any }),
+            onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
             onSuccess: () => {
               toast({ title: t('tactics.saved') });
               setDirty(false);

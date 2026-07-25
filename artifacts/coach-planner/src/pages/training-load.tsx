@@ -65,7 +65,7 @@ function WellnessTab({ teamId }: { teamId: number }) {
           toast({ title: t('rpe.savedCount').replace('{n}', String(saved.length)) });
           setRows({});
         },
-        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' as any }),
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
       },
     );
   };
@@ -138,7 +138,7 @@ function LogTab({ teamId }: { teamId: number }) {
           toast({ title: t('rpe.savedCount').replace('{n}', String(saved.length)) });
           setRows({});
         },
-        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' as any }),
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
       },
     );
   };
