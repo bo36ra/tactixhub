@@ -17,6 +17,7 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
+import { PITCH_GRADIENT } from '@/lib/chart-theme';
 import { Trash2, Undo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus, Maximize, Minimize, Move as MoveIcon, ArrowUpRight } from 'lucide-react';
 
 // ---------------------------------------------------------------- board
@@ -278,7 +279,7 @@ function TacticBoard({
       viewBox="0 0 100 140"
       className={`mx-auto rounded-xl border border-border select-none ${isFullscreen ? 'w-full h-[calc(100vh-9rem)] max-w-none' : 'w-full max-w-md'}`}
       preserveAspectRatio="xMidYMid meet"
-      style={{ touchAction: 'none', background: 'linear-gradient(180deg, #1e7a3d 0%, #24923f 50%, #1e7a3d 100%)' }}
+      style={{ touchAction: 'none', background: PITCH_GRADIENT }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

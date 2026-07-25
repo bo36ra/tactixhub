@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
 import { JerseyNumber } from '@/components/jersey-number';
+import { PITCH_GRADIENT } from '@/lib/chart-theme';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   useListPlayers,
@@ -140,7 +141,7 @@ export function Lineup() {
             className="relative w-full rounded-xl overflow-hidden border"
             style={{
               aspectRatio: '3 / 4',
-              background: 'linear-gradient(180deg, #1e7a3d 0%, #24923f 50%, #1e7a3d 100%)',
+              background: PITCH_GRADIENT,
             }}
           >
             {/* pitch markings */}

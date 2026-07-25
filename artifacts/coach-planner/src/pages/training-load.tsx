@@ -15,6 +15,7 @@ import {
   computeSnapshot, weeklyLoadSeries, monotonyStrainSeries, THRESHOLDS, STATUS_COLORS, sessionLoad,
   wellnessScore, readinessScore, ACWR_SWEET_SPOT, ACWR_DANGER, forecastNextWeek,
 } from '@/lib/rpe-calc';
+import { CHART_COLORS } from '@/lib/chart-theme';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -321,13 +322,13 @@ function DashboardTab({ teamId }: { teamId: number }) {
         <div className="h-40">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={series} margin={{ top: 4, right: 8, left: -22, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#332F27" vertical={false} />
-              <XAxis dataKey="weekStart" tick={{ fontSize: 10, fill: '#9C9483' }} tickFormatter={(v) => format(new Date(v), 'MM/dd')} />
-              <YAxis tick={{ fontSize: 10, fill: '#9C9483' }} />
-              <Tooltip contentStyle={{ background: '#221F1A', border: '1px solid #332F27', fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} vertical={false} />
+              <XAxis dataKey="weekStart" tick={{ fontSize: 10, fill: CHART_COLORS.axisText }} tickFormatter={(v) => format(new Date(v), 'MM/dd')} />
+              <YAxis tick={{ fontSize: 10, fill: CHART_COLORS.axisText }} />
+              <Tooltip contentStyle={{ background: CHART_COLORS.tooltipBg, border: `1px solid ${CHART_COLORS.tooltipBorder}`, fontSize: 12 }} />
               <Bar dataKey="load" radius={[4, 4, 0, 0]}>
                 {series.map((s, i) => (
-                  <Cell key={i} fill={s.load > THRESHOLDS.weeklyLoad ? STATUS_COLORS.high : '#E8B64C'} />
+                  <Cell key={i} fill={s.load > THRESHOLDS.weeklyLoad ? STATUS_COLORS.high : CHART_COLORS.accent} />
                 ))}
               </Bar>
             </BarChart>
@@ -340,14 +341,14 @@ function DashboardTab({ teamId }: { teamId: number }) {
         <div className="h-40">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={trendSeries} margin={{ top: 4, right: 8, left: -22, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#332F27" vertical={false} />
-              <XAxis dataKey="weekStart" tick={{ fontSize: 10, fill: '#9C9483' }} tickFormatter={(v) => format(new Date(v), 'MM/dd')} />
-              <YAxis yAxisId="left" tick={{ fontSize: 10, fill: '#9C9483' }} />
-              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: '#9C9483' }} />
-              <Tooltip contentStyle={{ background: '#221F1A', border: '1px solid #332F27', fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} vertical={false} />
+              <XAxis dataKey="weekStart" tick={{ fontSize: 10, fill: CHART_COLORS.axisText }} tickFormatter={(v) => format(new Date(v), 'MM/dd')} />
+              <YAxis yAxisId="left" tick={{ fontSize: 10, fill: CHART_COLORS.axisText }} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: CHART_COLORS.axisText }} />
+              <Tooltip contentStyle={{ background: CHART_COLORS.tooltipBg, border: `1px solid ${CHART_COLORS.tooltipBorder}`, fontSize: 12 }} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Line yAxisId="left" type="monotone" dataKey="monotony" stroke="#E8B64C" name={t('rpe.monotony')} dot={false} strokeWidth={2} />
-              <Line yAxisId="right" type="monotone" dataKey="strain" stroke="#5BA8D9" name={t('rpe.strain')} dot={false} strokeWidth={2} />
+              <Line yAxisId="left" type="monotone" dataKey="monotony" stroke={CHART_COLORS.accent} name={t('rpe.monotony')} dot={false} strokeWidth={2} />
+              <Line yAxisId="right" type="monotone" dataKey="strain" stroke={CHART_COLORS.secondary} name={t('rpe.strain')} dot={false} strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -498,11 +499,11 @@ function SquadTab({ teamId }: { teamId: number }) {
               <div className="h-52">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} margin={{ top: 4, right: 8, left: -22, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#332F27" vertical={false} />
-                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#9C9483' }} />
-                    <YAxis tick={{ fontSize: 10, fill: '#9C9483' }} />
-                    <Tooltip contentStyle={{ background: '#221F1A', border: '1px solid #332F27', fontSize: 12 }} />
-                    <ReferenceLine y={THRESHOLDS.weeklyLoad} stroke="#D96B5B" strokeDasharray="4 4" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: CHART_COLORS.axisText }} />
+                    <YAxis tick={{ fontSize: 10, fill: CHART_COLORS.axisText }} />
+                    <Tooltip contentStyle={{ background: CHART_COLORS.tooltipBg, border: `1px solid ${CHART_COLORS.tooltipBorder}`, fontSize: 12 }} />
+                    <ReferenceLine y={THRESHOLDS.weeklyLoad} stroke={CHART_COLORS.danger} strokeDasharray="4 4" />
                     <Bar dataKey="load" radius={[4, 4, 0, 0]}>
                       {chartData.map((d, i) => (
                         <Cell key={i} fill={STATUS_COLORS[d.status as keyof typeof STATUS_COLORS]} />

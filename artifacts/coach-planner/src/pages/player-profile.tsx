@@ -8,6 +8,7 @@ import { useTeam } from '@/lib/team-context';
 import { compressImageFile } from '@/lib/image';
 import { playerName } from '@/lib/player-name';
 import { PlayerAvatar } from '@/components/player-avatar';
+import { CHART_COLORS } from '@/lib/chart-theme';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { usePlayerRatings, useAvailability, useCreateAvailability, useDeleteAvailability } from '@/lib/dev-api';
@@ -432,10 +433,10 @@ export function PlayerProfile() {
                   <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.45)' }} interval="preserveStartEnd" />
                   <YAxis domain={[0, 10]} tickCount={6} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.45)' }} />
                   <Tooltip
-                    contentStyle={{ background: '#221f1b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
+                    contentStyle={{ background: CHART_COLORS.tooltipBg, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
                     labelStyle={{ color: 'rgba(255,255,255,0.7)' }}
                   />
-                  <Line type="monotone" dataKey="rating" stroke="#e8b64c" strokeWidth={2} dot={{ r: 3, fill: '#e8b64c' }} />
+                  <Line type="monotone" dataKey="rating" stroke={CHART_COLORS.accent} strokeWidth={2} dot={{ r: 3, fill: CHART_COLORS.accent }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
+import { CHART_COLORS } from '@/lib/chart-theme';
 import { Dumbbell, Plus, Trash2, Save, BookOpen } from 'lucide-react';
 
 export const FOCUS_KEYS = [
@@ -140,10 +141,10 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
                   <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.45)' }} />
                   <Tooltip
                     cursor={{ fill: 'rgba(255,255,255,0.04)' }}
-                    contentStyle={{ background: '#221f1b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
+                    contentStyle={{ background: CHART_COLORS.tooltipBg, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
                     formatter={(value: number, _name, item) => [`${value} · ${item?.payload?.sessions} ${t('train.sessions')}`, t('train.loadTitle')]}
                   />
-                  <Bar dataKey="load" fill="#e8b64c" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="load" fill={CHART_COLORS.accent} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
