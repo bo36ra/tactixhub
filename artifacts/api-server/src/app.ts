@@ -52,4 +52,16 @@ app.use(
 
 app.use("/api", router);
 
+// Last-resort safety net: Express 5 forwards unhandled errors from
+// async route handlers here automatically (no try/catch needed for
+// this to trigger), so any route that's missing its own error
+// handling still gets a clean JSON response instead of Express's
+// default HTML error page with a stack trace leaked to the client.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: any, req: any, res: any, _next: any) => {
+  req.log?.error({ err }, "Unhandled error");
+  if (res.headersSent) return;
+  res.status(500).json({ error: "Something went wrong. Please try again." });
+});
+
 export default app;
