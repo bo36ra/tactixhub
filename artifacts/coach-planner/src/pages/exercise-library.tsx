@@ -2,6 +2,7 @@ import React from 'react';
 import { AppLayout } from '@/components/layout';
 import { ProPage } from '@/lib/feature-gate';
 import { FeatureHint } from '@/components/feature-hint';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
 import {
@@ -164,7 +165,7 @@ export function ExerciseLibraryPage() {
   const { activeTeamId } = useTeam();
   const tid = activeTeamId ?? 0;
   const { toast } = useToast();
-  const { data: exercises } = useExerciseLibrary(tid);
+  const { data: exercises, isLoading } = useExerciseLibrary(tid);
   const deleteExercise = useDeleteLibraryExercise(tid);
 
   const [search, setSearch] = React.useState('');
@@ -213,7 +214,19 @@ export function ExerciseLibraryPage() {
             </Button>
           </div>
 
-          {(exercises ?? []).length === 0 ? (
+          {isLoading ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="bg-card border rounded-xl overflow-hidden">
+                  <Skeleton className="w-full aspect-video rounded-none" />
+                  <div className="p-3 space-y-1.5">
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (exercises ?? []).length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-12">{t('library.empty')}</p>
           ) : filtered.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-12">{t('library.noResults')}</p>

@@ -8,6 +8,7 @@ import { useTeam } from '@/lib/team-context';
 import { compressImageFile } from '@/lib/image';
 import { playerName } from '@/lib/player-name';
 import { PlayerAvatar } from '@/components/player-avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { usePlayerRatings, useAvailability, useCreateAvailability, useDeleteAvailability } from '@/lib/dev-api';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
@@ -27,7 +28,7 @@ export function PlayerProfile() {
   const [, params] = useRoute('/players/:playerId');
   const playerId = params?.playerId ? Number(params.playerId) : undefined;
 
-  const { data } = useGetPlayerTimeline(playerId!, {
+  const { data, isLoading } = useGetPlayerTimeline(playerId!, {
     query: { enabled: !!playerId, queryKey: getGetPlayerTimelineQueryKey(playerId!) },
   });
   const { activeTeamId } = useTeam();
@@ -182,6 +183,16 @@ export function PlayerProfile() {
           <BackIcon className="w-3.5 h-3.5" />
           {t('profile.back')}
         </Link>
+
+        {isLoading && (
+          <div className="flex items-center gap-4">
+            <Skeleton className="w-20 h-20 rounded-full shrink-0" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-5 w-1/2" />
+              <Skeleton className="h-3.5 w-1/3" />
+            </div>
+          </div>
+        )}
 
         {player && (
           <div className="flex items-center gap-4">

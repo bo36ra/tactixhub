@@ -1,6 +1,7 @@
 import React from 'react';
 import { StickyHeader, PageTitle } from '@/components/page-header';
 import { AppLayout, NoTeamState } from '@/components/layout';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { useUser } from '@clerk/react';
@@ -37,7 +38,7 @@ export function Notes() {
   const [deleteId, setDeleteId] = React.useState<number | null>(null);
   const { toast } = useToast();
 
-  const { data: notes } = useListNotes(activeTeamId!, {
+  const { data: notes, isLoading } = useListNotes(activeTeamId!, {
     query: { enabled: !!activeTeamId, queryKey: getListNotesQueryKey(activeTeamId!) },
   });
   const { data: members } = useListTeamMembers(activeTeamId!, {
@@ -134,7 +135,17 @@ export function Notes() {
         </form>
 
         {/* Notes list */}
-        {!notes || notes.length === 0 ? (
+        {isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-xl border p-4 space-y-2">
+                <Skeleton className="h-3.5 w-1/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            ))}
+          </div>
+        ) : !notes || notes.length === 0 ? (
           <p className="text-muted-foreground text-sm">{t('notes.empty')}</p>
         ) : (
           <div className="space-y-3">

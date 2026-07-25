@@ -1,6 +1,7 @@
 import React from 'react';
 import { useRoute, Link } from 'wouter';
 import { AppLayout } from '@/components/layout';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
 import {
@@ -176,7 +177,11 @@ export function TrainingPlanPage() {
   if (!training) {
     return (
       <AppLayout>
-        <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+        <div className="space-y-4">
+          <Skeleton className="h-7 w-1/3" />
+          <Skeleton className="h-32 rounded-xl" />
+          <Skeleton className="h-48 rounded-xl" />
+        </div>
       </AppLayout>
     );
   }

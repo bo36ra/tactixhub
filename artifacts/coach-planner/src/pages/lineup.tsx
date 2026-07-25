@@ -4,6 +4,7 @@ import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
 import { JerseyNumber } from '@/components/jersey-number';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   useListPlayers,
   useGetLineup,
@@ -31,7 +32,7 @@ export function Lineup() {
   const [captainSlot, setCaptainSlot] = useState<number | undefined>(undefined);
   const [saved, setSaved] = useState(false);
 
-  const { data: players } = useListPlayers(activeTeamId!, {
+  const { data: players, isLoading } = useListPlayers(activeTeamId!, {
     query: { enabled: !!activeTeamId, queryKey: getListPlayersQueryKey(activeTeamId!) },
   });
 
@@ -209,12 +210,13 @@ export function Lineup() {
             <div>
               <p className="text-sm font-semibold mb-2">{t('lineup.bench')} ({benchPlayers.length})</p>
               <div className="flex flex-wrap gap-1.5">
+                {isLoading && [1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-6 w-16 rounded-full" />)}
                 {benchPlayers.map((p) => (
                   <span key={p.id} className="text-xs bg-card border rounded-full px-2.5 py-1 text-muted-foreground">
                     <JerseyNumber n={p.jerseyNumber} className="" /> {playerName(p, lang)}
                   </span>
                 ))}
-                {benchPlayers.length === 0 && (
+                {!isLoading && benchPlayers.length === 0 && (
                   <span className="text-xs text-muted-foreground">—</span>
                 )}
               </div>

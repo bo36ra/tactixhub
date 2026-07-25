@@ -11,6 +11,7 @@ import {
 } from '@workspace/api-client-react';
 import { GoalInputType, GoalInputMethod } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -39,7 +40,7 @@ export function Goals() {
     note: ''
   });
 
-  const { data: goals } = useListGoals(activeTeamId!, { query: { enabled: !!activeTeamId, queryKey: getListGoalsQueryKey(activeTeamId!) } });
+  const { data: goals, isLoading } = useListGoals(activeTeamId!, { query: { enabled: !!activeTeamId, queryKey: getListGoalsQueryKey(activeTeamId!) } });
   const { data: topScorers } = useGetTopScorers(activeTeamId!, { query: { enabled: !!activeTeamId, queryKey: getGetTopScorersQueryKey(activeTeamId!) } });
   const { data: matches } = useListMatches(activeTeamId!, { query: { enabled: !!activeTeamId, queryKey: getListMatchesQueryKey(activeTeamId!) } });
   const { data: players } = useListPlayers(activeTeamId!, { query: { enabled: !!activeTeamId, queryKey: getListPlayersQueryKey(activeTeamId!) } });
@@ -201,6 +202,11 @@ export function Goals() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
+                  {isLoading && [1, 2, 3].map((i) => (
+                    <tr key={i}>
+                      <td className="px-4 py-3" colSpan={4}><Skeleton className="h-4 w-full" /></td>
+                    </tr>
+                  ))}
                   {topScorers?.map((scorer, i) => (
                     <tr key={scorer.playerId} className="hover:bg-muted/50">
                       <td className="px-4 py-3 text-muted-foreground font-medium">{i + 1}</td>
@@ -238,6 +244,11 @@ export function Goals() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
+                  {isLoading && [1, 2, 3].map((i) => (
+                    <tr key={i}>
+                      <td className="px-4 py-3" colSpan={5}><Skeleton className="h-4 w-full" /></td>
+                    </tr>
+                  ))}
                   {goals?.map((goal) => {
                     const match = matchMap[goal.matchId];
                     const isScored = goal.type === 'scored';

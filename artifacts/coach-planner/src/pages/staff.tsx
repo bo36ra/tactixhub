@@ -1,6 +1,7 @@
 import React from 'react';
 import { PageTitle } from '@/components/page-header';
 import { AppLayout, NoTeamState } from '@/components/layout';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { useUser } from '@clerk/react';
@@ -64,7 +65,7 @@ export function Staff() {
     role: TeamMemberInputRole.assistant as TeamMemberInputRole,
   });
 
-  const { data: members } = useListTeamMembers(activeTeamId!, {
+  const { data: members, isLoading } = useListTeamMembers(activeTeamId!, {
     query: { enabled: !!activeTeamId, queryKey: getListTeamMembersQueryKey(activeTeamId!) },
   });
   const addMember = useAddTeamMember();
@@ -213,7 +214,19 @@ export function Staff() {
           )}
         </div>
 
-        {!members || members.length === 0 ? (
+        {isLoading ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-card border rounded-xl p-4 flex items-center gap-3">
+                <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : !members || members.length === 0 ? (
           <p className="text-muted-foreground text-sm">{t('staff.empty')}</p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

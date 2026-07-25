@@ -5,6 +5,7 @@ import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
 import { NameFilterInput } from '@/components/name-filter';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   useListPlayers,
   getListPlayersQueryKey,
@@ -38,7 +39,7 @@ export function Readiness() {
   const tid = activeTeamId ?? 0;
   const enabled = !!activeTeamId;
 
-  const { data: players } = useListPlayers(tid, { query: { enabled, queryKey: getListPlayersQueryKey(tid) } });
+  const { data: players, isLoading } = useListPlayers(tid, { query: { enabled, queryKey: getListPlayersQueryKey(tid) } });
   const { data: injuries } = useInjuries(tid);
   const { data: availability } = useAvailability(tid);
   const { data: cardsSummary } = useGetCardsSummary(tid, { query: { enabled, queryKey: getGetCardsSummaryQueryKey(tid) } });
@@ -165,7 +166,11 @@ export function Readiness() {
 
         <NameFilterInput value={nameQuery} onChange={setNameQuery} />
 
-        {rows.length === 0 ? (
+        {isLoading ? (
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
+          </div>
+        ) : rows.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('ready.empty')}</p>
         ) : (
           sections.map(({ verdict, label }) => {

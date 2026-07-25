@@ -7,6 +7,7 @@ import { playerName } from '@/lib/player-name';
 import { useListCards, useCreateCard, useDeleteCard, useGetCardsSummary, useListMatches, useListPlayers, getListCardsQueryKey, getGetCardsSummaryQueryKey, getListMatchesQueryKey, getListPlayersQueryKey } from '@workspace/api-client-react';
 import { CardInputCardType } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -28,7 +29,7 @@ export function Cards() {
     minute: ''
   });
 
-  const { data: cards } = useListCards(activeTeamId!, { query: { enabled: !!activeTeamId, queryKey: getListCardsQueryKey(activeTeamId!) } });
+  const { data: cards, isLoading } = useListCards(activeTeamId!, { query: { enabled: !!activeTeamId, queryKey: getListCardsQueryKey(activeTeamId!) } });
   const { data: summary } = useGetCardsSummary(activeTeamId!, { query: { enabled: !!activeTeamId, queryKey: getGetCardsSummaryQueryKey(activeTeamId!) } });
   const { data: matches } = useListMatches(activeTeamId!, { query: { enabled: !!activeTeamId, queryKey: getListMatchesQueryKey(activeTeamId!) } });
   const { data: players } = useListPlayers(activeTeamId!, { query: { enabled: !!activeTeamId, queryKey: getListPlayersQueryKey(activeTeamId!) } });
@@ -152,6 +153,11 @@ export function Cards() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
+                  {isLoading && [1, 2, 3].map((i) => (
+                    <tr key={i}>
+                      <td className="px-4 py-3" colSpan={4}><Skeleton className="h-4 w-full" /></td>
+                    </tr>
+                  ))}
                   {summary?.map((row) => {
                     const statusClass = 
                       row.status === 'suspended' ? 'pill-red' : 
@@ -197,6 +203,11 @@ export function Cards() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
+                  {isLoading && [1, 2, 3].map((i) => (
+                    <tr key={i}>
+                      <td className="px-4 py-3" colSpan={4}><Skeleton className="h-4 w-full" /></td>
+                    </tr>
+                  ))}
                   {cards?.map((card) => {
                     const isYellow = card.cardType === 'yellow';
                     return (

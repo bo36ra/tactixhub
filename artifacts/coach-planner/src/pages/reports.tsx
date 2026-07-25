@@ -26,6 +26,7 @@ import { FileBarChart2, User, CalendarDays, ChevronLeft, ChevronRight, GitCompar
 import { STATUS_STYLES } from '@/pages/attendance';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { usePlayerRatings } from '@/lib/dev-api';
 import { PlayerAvatar } from '@/components/player-avatar';
@@ -49,7 +50,7 @@ export function Reports() {
   const enabled = !!activeTeamId;
   const tid = activeTeamId!;
 
-  const { data: matches } = useListMatches(tid, { query: { enabled, queryKey: getListMatchesQueryKey(tid) } });
+  const { data: matches, isLoading } = useListMatches(tid, { query: { enabled, queryKey: getListMatchesQueryKey(tid) } });
   const { data: players } = useListPlayers(tid, { query: { enabled, queryKey: getListPlayersQueryKey(tid) } });
   const { data: timeSummary } = useGetPlayingTimeSummary(tid, { query: { enabled, queryKey: getGetPlayingTimeSummaryQueryKey(tid) } });
   const { data: scorers } = useGetTopScorers(tid, { query: { enabled, queryKey: getGetTopScorersQueryKey(tid) } });
@@ -301,6 +302,11 @@ export function Reports() {
                     </tr>
                   </thead>
                   <tbody className="divide-y">
+                    {isLoading && [1, 2, 3].map((i) => (
+                      <tr key={i}>
+                        <td className="px-5 py-3.5" colSpan={5}><Skeleton className="h-4 w-full" /></td>
+                      </tr>
+                    ))}
                     {matches?.map((m) => {
                       const result =
                         m.ourGoals > m.theirGoals ? 'win' : m.ourGoals < m.theirGoals ? 'loss' : 'draw';

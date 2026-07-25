@@ -8,6 +8,7 @@ import { JerseyNumber } from '@/components/jersey-number';
 import { useListPlayers, getListPlayersQueryKey } from '@workspace/api-client-react';
 import { useAvailability, useCreateAvailability, useDeleteAvailability } from '@/lib/dev-api';
 import { PlayerAvatar } from '@/components/player-avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,7 +38,7 @@ export function AvailabilityPage() {
   const { toast } = useToast();
 
   const { data: players } = useListPlayers(tid, { query: { enabled, queryKey: getListPlayersQueryKey(tid) } });
-  const { data: availability } = useAvailability(tid);
+  const { data: availability, isLoading } = useAvailability(tid);
   const createAvailability = useCreateAvailability(tid);
   const deleteAvailability = useDeleteAvailability(tid);
 
@@ -96,7 +97,19 @@ export function AvailabilityPage() {
           </Button>
         </div>
 
-        {ongoing.length === 0 && upcoming.length === 0 ? (
+        {isLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-3 rounded-xl bg-card border border-border/60 px-3 py-2.5">
+                <Skeleton className="w-9 h-9 rounded-full shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-3.5 w-1/3" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : ongoing.length === 0 && upcoming.length === 0 ? (
           <div className="bg-card border rounded-xl p-8 text-center">
             <Plane className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">{t('avail.empty')}</p>
