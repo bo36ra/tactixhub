@@ -176,7 +176,7 @@ function ClerkQueryClientCacheInvalidator() {
 function PageLoadingFallback() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <CloverLoader size={180} />
+      <CloverLoader size={56} />
     </div>
   );
 }

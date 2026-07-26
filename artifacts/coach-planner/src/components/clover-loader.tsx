@@ -2,17 +2,11 @@
 // image the coach shared, redrawn as clean vector shapes (the source
 // was a heavily textured photo/art piece, not a clean logo, so it
 // couldn't be traced pixel-for-pixel into something crisp enough to
-// read well at small sizes).
-//
-// The first version staggered each petal's pulse independently, which
-// meant the full flower silhouette was never actually visible at any
-// single moment (petals were always at different scales) — at a glance
-// it just read as a shapeless blob rather than a recognizable clover.
-// This version keeps the whole shape intact and just breathes/rotates
-// together, so it's always legible as "the clover," not a random blob.
+// read well at small sizes). Petals pulse in sequence around the
+// center rather than a plain spinning ring.
 export function CloverLoader({ size = 48 }: { size?: number }) {
   return (
-    <svg viewBox="-100 -100 200 200" width={size} height={size} className="clover-loader">
+    <svg viewBox="-100 -100 200 200" width={size} height={size}>
       <defs>
         <path
           id="clover-petal"
@@ -20,8 +14,14 @@ export function CloverLoader({ size = 48 }: { size?: number }) {
         />
       </defs>
       <g fill="hsl(var(--primary))">
-        {[0, 60, 120, 180, 240, 300].map((deg) => (
-          <use key={deg} href="#clover-petal" transform={`rotate(${deg})`} />
+        {[0, 60, 120, 180, 240, 300].map((deg, i) => (
+          <g key={deg} transform={`rotate(${deg})`}>
+            <use
+              href="#clover-petal"
+              className="clover-petal"
+              style={{ animationDelay: `${i * 0.12}s` }}
+            />
+          </g>
         ))}
         <circle r="9" />
       </g>
