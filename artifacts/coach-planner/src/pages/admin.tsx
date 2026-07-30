@@ -124,12 +124,19 @@ export function AdminPage() {
           <div className="space-y-2">
             {(teams ?? []).map((team) => (
               <div key={team.id} className="flex items-center gap-3 rounded-xl bg-card border border-border/60 px-3 py-2.5">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{team.name}</p>
-                  {team.tier === 'pro' && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/15 text-primary shrink-0">
-                      {t('feature.proBadge')}
-                    </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold truncate">{team.name}</p>
+                    {team.tier === 'pro' && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/15 text-primary shrink-0">
+                        {t('feature.proBadge')}
+                      </span>
+                    )}
+                  </div>
+                  {(team.ageGroup || team.season) && (
+                    <p className="text-xs text-muted-foreground truncate">
+                      {[team.ageGroup, team.season].filter(Boolean).join(' · ')}
+                    </p>
                   )}
                 </div>
                 <Select

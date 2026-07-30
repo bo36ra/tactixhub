@@ -198,7 +198,7 @@ export function useDecideAccessRequest() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-access-requests'] }),
   });
 }
-export interface AdminTeamRow { id: number; name: string; userId: string; tier: string; createdAt: string }
+export interface AdminTeamRow { id: number; name: string; ageGroup: string | null; season: string | null; userId: string; tier: string; createdAt: string }
 export function useAdminTeams() {
   return useQuery({
     queryKey: ['admin-teams'],
