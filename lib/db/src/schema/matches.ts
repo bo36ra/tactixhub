@@ -12,6 +12,13 @@ export const matchesTable = pgTable("matches", {
   formation: text("formation").notNull().default("4-3-3"),
   ourGoals: integer("our_goals").notNull().default(0),
   theirGoals: integer("their_goals").notNull().default(0),
+  // A link to match footage (YouTube, Google Drive, or Dropbox) rather
+  // than the file itself — the file storage layer here caps uploads at
+  // 1MB (sized for compressed player photos), miles short of even a
+  // short video clip, and a dedicated file-storage service is a much
+  // bigger undertaking than this needs. Linking out to wherever the
+  // coach already keeps the footage is the practical path.
+  videoUrl: text("video_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

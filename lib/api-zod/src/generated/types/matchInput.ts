@@ -16,4 +16,5 @@ export interface MatchInput {
   ourGoals: number;
   /** @minimum 0 */
   theirGoals: number;
+  videoUrl?: string;
 }

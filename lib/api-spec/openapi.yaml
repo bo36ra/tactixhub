@@ -1192,6 +1192,9 @@ components:
           type: integer
         theirGoals:
           type: integer
+        videoUrl:
+          type: string
+          nullable: true
         createdAt:
           type: string
 
@@ -1310,6 +1313,8 @@ components:
         theirGoals:
           type: integer
           minimum: 0
+        videoUrl:
+          type: string
 
     MatchInput:
       type: object
@@ -1329,6 +1334,8 @@ components:
         theirGoals:
           type: integer
           minimum: 0
+        videoUrl:
+          type: string
 
     Attendance:
       type: object

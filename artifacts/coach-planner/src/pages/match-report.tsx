@@ -2,11 +2,15 @@ import React, { useState } from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
-import { useListMatches, useListPlayers, useListGoals, useListCards, useListPlayingTime } from '@workspace/api-client-react';
+import { useListMatches, useListPlayers, useListGoals, useListCards, useListPlayingTime, useUpdateMatch, getListMatchesQueryKey } from '@workspace/api-client-react';
 import { useRatings } from '@/lib/dev-api';
+import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { FileText, Printer } from 'lucide-react';
+import { VideoEmbed } from '@/components/video-embed';
+import { FileText, Printer, Video, Pencil, X, Check } from 'lucide-react';
 
 export default function MatchReport() {
   const { t } = useLanguage();
@@ -23,6 +27,11 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
   const { data: minutes } = useListPlayingTime(teamId);
   const [matchId, setMatchId] = useState<number | null>(null);
   const { data: ratings } = useRatings(teamId, matchId);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const updateMatch = useUpdateMatch();
+  const [editingVideo, setEditingVideo] = useState(false);
+  const [videoDraft, setVideoDraft] = useState('');
 
   const m = (matches ?? []).find((x) => x.id === matchId);
   const pName = (id: number | null | undefined) =>
@@ -31,6 +40,20 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
   const mCards = (cards ?? []).filter((c) => c.matchId === matchId);
   const mMinutes = (minutes ?? []).filter((x) => x.matchId === matchId && x.minutes > 0);
   const best = (ratings ?? []).slice().sort((a, b) => b.rating - a.rating)[0];
+
+  const saveVideoUrl = () => {
+    if (!matchId) return;
+    updateMatch.mutate(
+      { teamId, matchId, data: { videoUrl: videoDraft } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(teamId) });
+          setEditingVideo(false);
+        },
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
+      },
+    );
+  };
 
   return (
     <AppLayout>
@@ -72,6 +95,45 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
                 <p className="text-sm">⭐ {t('report.motm')}: <b>{pName(best.playerId)}</b> ({best.rating}/10)</p>
               )}
             </div>
+
+            {(m.videoUrl || editingVideo) && (
+              <section className="print:hidden">
+                <h3 className="font-bold mb-1.5 flex items-center gap-1.5">🎥 {t('match.videoTitle')}</h3>
+                {editingVideo ? (
+                  <div className="flex gap-2">
+                    <Input
+                      value={videoDraft}
+                      onChange={(e) => setVideoDraft(e.target.value)}
+                      placeholder={t('match.videoPlaceholder')}
+                      dir="ltr"
+                      className="flex-1"
+                    />
+                    <Button size="icon" onClick={saveVideoUrl} disabled={updateMatch.isPending}><Check className="w-4 h-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => setEditingVideo(false)}><X className="w-4 h-4" /></Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {m.videoUrl && <VideoEmbed url={m.videoUrl} />}
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                      onClick={() => { setVideoDraft(m.videoUrl ?? ''); setEditingVideo(true); }}
+                    >
+                      <Pencil className="w-3 h-3" /> {t('match.editVideoLink')}
+                    </button>
+                  </div>
+                )}
+              </section>
+            )}
+            {!m.videoUrl && !editingVideo && (
+              <button
+                type="button"
+                className="print:hidden flex items-center gap-1.5 text-sm text-primary hover:underline"
+                onClick={() => { setVideoDraft(''); setEditingVideo(true); }}
+              >
+                <Video className="w-4 h-4" /> {t('match.addVideoLink')}
+              </button>
+            )}
 
             {mGoals.length > 0 && (
               <section>

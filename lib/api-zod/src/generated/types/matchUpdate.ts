@@ -16,4 +16,5 @@ export interface MatchUpdate {
   ourGoals?: number;
   /** @minimum 0 */
   theirGoals?: number;
+  videoUrl?: string;
 }

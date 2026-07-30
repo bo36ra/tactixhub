@@ -239,6 +239,7 @@ export const ListMatchesResponseItem = zod.object({
   "formation": zod.string().optional(),
   "ourGoals": zod.number(),
   "theirGoals": zod.number(),
+  "videoUrl": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const ListMatchesResponse = zod.array(ListMatchesResponseItem)
@@ -263,7 +264,8 @@ export const CreateMatchBody = zod.object({
   "date": zod.string(),
   "type": zod.enum(['league', 'friendly', 'cup']),
   "ourGoals": zod.number().min(createMatchBodyOurGoalsMin),
-  "theirGoals": zod.number().min(createMatchBodyTheirGoalsMin)
+  "theirGoals": zod.number().min(createMatchBodyTheirGoalsMin),
+  "videoUrl": zod.string().optional()
 })
 
 export const CreateMatchResponse = zod.object({
@@ -275,6 +277,7 @@ export const CreateMatchResponse = zod.object({
   "formation": zod.string().optional(),
   "ourGoals": zod.number(),
   "theirGoals": zod.number(),
+  "videoUrl": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -299,7 +302,8 @@ export const UpdateMatchBody = zod.object({
   "date": zod.string().optional(),
   "type": zod.enum(['league', 'friendly', 'cup']).optional(),
   "ourGoals": zod.number().min(updateMatchBodyOurGoalsMin).optional(),
-  "theirGoals": zod.number().min(updateMatchBodyTheirGoalsMin).optional()
+  "theirGoals": zod.number().min(updateMatchBodyTheirGoalsMin).optional(),
+  "videoUrl": zod.string().optional()
 })
 
 export const UpdateMatchResponse = zod.object({
@@ -311,6 +315,7 @@ export const UpdateMatchResponse = zod.object({
   "formation": zod.string().optional(),
   "ourGoals": zod.number(),
   "theirGoals": zod.number(),
+  "videoUrl": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -786,6 +791,7 @@ export const GetDashboardResponse = zod.object({
   "formation": zod.string().optional(),
   "ourGoals": zod.number(),
   "theirGoals": zod.number(),
+  "videoUrl": zod.string().nullish(),
   "createdAt": zod.string()
 })),
   "topScorers": zod.array(zod.object({
@@ -821,6 +827,7 @@ export const GetDashboardResponse = zod.object({
   "formation": zod.string().optional(),
   "ourGoals": zod.number(),
   "theirGoals": zod.number(),
+  "videoUrl": zod.string().nullish(),
   "createdAt": zod.string()
 })),
   "attendanceMarked": zod.boolean()

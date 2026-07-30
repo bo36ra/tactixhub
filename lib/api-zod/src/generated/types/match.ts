@@ -16,5 +16,6 @@ export interface Match {
   formation?: string;
   ourGoals: number;
   theirGoals: number;
+  videoUrl?: string | null;
   createdAt: string;
 }

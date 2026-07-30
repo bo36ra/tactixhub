@@ -163,6 +163,7 @@ export interface Match {
   formation?: string;
   ourGoals: number;
   theirGoals: number;
+  videoUrl?: string | null;
   createdAt: string;
 }
 
@@ -246,6 +247,7 @@ export interface MatchUpdate {
   ourGoals?: number;
   /** @minimum 0 */
   theirGoals?: number;
+  videoUrl?: string;
 }
 
 export type MatchInputType = typeof MatchInputType[keyof typeof MatchInputType];
@@ -266,6 +268,7 @@ export interface MatchInput {
   ourGoals: number;
   /** @minimum 0 */
   theirGoals: number;
+  videoUrl?: string;
 }
 
 export type AttendanceSessionType = typeof AttendanceSessionType[keyof typeof AttendanceSessionType];

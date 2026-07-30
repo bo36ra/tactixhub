@@ -40,7 +40,7 @@ router.post("/teams/:teamId/matches", requireAuth, async (req, res) => {
     res.status(403).json({ error: "Forbidden" });
     return;
   }
-  const { opponent, date, type, ourGoals, theirGoals } = req.body;
+  const { opponent, date, type, ourGoals, theirGoals, videoUrl } = req.body;
   if (!opponent || !date || !type) {
     res.status(400).json({ error: "opponent, date, and type are required" });
     return;
@@ -55,6 +55,7 @@ router.post("/teams/:teamId/matches", requireAuth, async (req, res) => {
         type,
         ourGoals: ourGoals ?? 0,
         theirGoals: theirGoals ?? 0,
+        ...(typeof videoUrl === "string" && videoUrl.trim() && { videoUrl: videoUrl.trim().slice(0, 2000) }),
       })
       .returning();
     res.status(201).json(mapMatch(match));
@@ -70,7 +71,7 @@ router.patch("/teams/:teamId/matches/:matchId", requireAuth, async (req, res) =>
   const userId = (req as any).userId as string;
   const teamId = parseInt(req.params.teamId as string);
   const matchId = parseInt(req.params.matchId as string);
-  const { opponent, date, type, ourGoals, theirGoals } = req.body ?? {};
+  const { opponent, date, type, ourGoals, theirGoals, videoUrl } = req.body ?? {};
   if (!(await verifyTeamOwnership(userId, teamId))) {
     res.status(403).json({ error: "Forbidden" });
     return;
@@ -84,6 +85,7 @@ router.patch("/teams/:teamId/matches/:matchId", requireAuth, async (req, res) =>
         ...(["league", "friendly", "cup"].includes(type) && { type }),
         ...(Number.isInteger(ourGoals) && ourGoals >= 0 && { ourGoals }),
         ...(Number.isInteger(theirGoals) && theirGoals >= 0 && { theirGoals }),
+        ...(typeof videoUrl === "string" && { videoUrl: videoUrl.trim() ? videoUrl.trim().slice(0, 2000) : null }),
       })
       .where(and(eq(matchesTable.id, matchId), eq(matchesTable.teamId, teamId)))
       .returning();
@@ -127,6 +129,7 @@ function mapMatch(m: typeof matchesTable.$inferSelect) {
     formation: m.formation,
     ourGoals: m.ourGoals,
     theirGoals: m.theirGoals,
+    videoUrl: m.videoUrl,
     createdAt: m.createdAt.toISOString(),
   };
 }

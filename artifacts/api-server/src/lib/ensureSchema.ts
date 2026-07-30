@@ -324,6 +324,7 @@ const STATEMENTS = [
       SELECT 1 FROM "team_members" m
       WHERE m."team_id" = t."id" AND m."user_id" = t."user_id"
     )`,
+  `ALTER TABLE "matches" ADD COLUMN IF NOT EXISTS "video_url" text`,
 ];
 
 export async function ensureSchema(): Promise<void> {
