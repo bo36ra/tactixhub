@@ -325,6 +325,17 @@ const STATEMENTS = [
       WHERE m."team_id" = t."id" AND m."user_id" = t."user_id"
     )`,
   `ALTER TABLE "matches" ADD COLUMN IF NOT EXISTS "video_url" text`,
+  `CREATE TABLE IF NOT EXISTS "library_documents" (
+    "id" serial PRIMARY KEY,
+    "user_id" text NOT NULL,
+    "title" text NOT NULL,
+    "description" text,
+    "category" text,
+    "file_name" text NOT NULL,
+    "file_size" integer NOT NULL,
+    "file_data" text NOT NULL,
+    "created_at" timestamp DEFAULT now() NOT NULL
+  )`,
 ];
 
 export async function ensureSchema(): Promise<void> {

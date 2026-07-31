@@ -34,7 +34,8 @@ import {
   CalendarDays,
   Plane,
   ShieldCheck,
-  Search
+  Search,
+  Library
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -92,6 +93,7 @@ function SidebarContent() {
         { href: '/teams', label: t('nav.teams'), icon: Layers },
         { href: '/staff', label: t('nav.staff'), icon: UserCog },
         { href: '/notes', label: t('nav.notes'), icon: StickyNote },
+        { href: '/library', label: t('nav.library'), icon: Library },
         { href: '/reports', label: t('nav.reports'), icon: BarChart2 },
         { href: '/tactics', label: t('nav.tactics'), icon: ClipboardList },
         { href: '/trainings', label: t('nav.trainings'), icon: Dumbbell },

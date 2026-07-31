@@ -1011,6 +1011,76 @@ export const DeleteNoteResponse = zod.void()
 
 
 /**
+ * @summary List the current user's library documents (metadata only, no file data)
+ */
+export const ListLibraryDocumentsResponseItem = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "category": zod.string().nullish(),
+  "fileName": zod.string(),
+  "fileSize": zod.number(),
+  "createdAt": zod.string()
+})
+export const ListLibraryDocumentsResponse = zod.array(ListLibraryDocumentsResponseItem)
+
+
+/**
+ * @summary Upload a document to the personal library
+ */
+
+
+
+export const CreateLibraryDocumentBody = zod.object({
+  "title": zod.string().min(1),
+  "description": zod.string().optional(),
+  "category": zod.string().optional(),
+  "fileName": zod.string(),
+  "fileData": zod.string()
+})
+
+export const CreateLibraryDocumentResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "category": zod.string().nullish(),
+  "fileName": zod.string(),
+  "fileSize": zod.number(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Fetch a single library document, including its file data
+ */
+export const GetLibraryDocumentParams = zod.object({
+  "documentId": zod.coerce.number()
+})
+
+export const GetLibraryDocumentResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "category": zod.string().nullish(),
+  "fileName": zod.string(),
+  "fileSize": zod.number(),
+  "createdAt": zod.string()
+}).and(zod.object({
+  "fileData": zod.string()
+}))
+
+
+/**
+ * @summary Delete a library document
+ */
+export const DeleteLibraryDocumentParams = zod.object({
+  "documentId": zod.coerce.number()
+})
+
+export const DeleteLibraryDocumentResponse = zod.unknown()
+
+
+/**
  * @summary List the current user's notifications (newest first)
  */
 export const ListNotificationsResponseItem = zod.object({

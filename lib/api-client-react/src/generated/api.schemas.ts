@@ -688,6 +688,31 @@ export interface NoteUpdate {
   pinned?: boolean;
 }
 
+export interface LibraryDocument {
+  id: number;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  category?: string | null;
+  fileName: string;
+  fileSize: number;
+  createdAt: string;
+}
+
+export type LibraryDocumentDetail = LibraryDocument & {
+  fileData: string;
+};
+
+export interface LibraryDocumentInput {
+  /** @minLength 1 */
+  title: string;
+  description?: string;
+  category?: string;
+  fileName: string;
+  fileData: string;
+}
+
 export interface AppNotification {
   id: number;
   /** @nullable */

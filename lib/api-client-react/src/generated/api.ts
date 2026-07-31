@@ -35,6 +35,9 @@ import type {
   Goal,
   GoalInput,
   HealthStatus,
+  LibraryDocument,
+  LibraryDocumentDetail,
+  LibraryDocumentInput,
   Lineup,
   Match,
   MatchInput,
@@ -3226,6 +3229,300 @@ export const useDeleteNote = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDeleteNoteMutationOptions(options));
+    }
+
+export const getListLibraryDocumentsUrl = () => {
+
+
+
+
+  return `/api/library/documents`
+}
+
+/**
+ * @summary List the current user's library documents (metadata only, no file data)
+ */
+export const listLibraryDocuments = async ( options?: RequestInit): Promise<LibraryDocument[]> => {
+
+  return customFetch<LibraryDocument[]>(getListLibraryDocumentsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListLibraryDocumentsQueryKey = () => {
+    return [
+    `/api/library/documents`
+    ] as const;
+    }
+
+
+export const getListLibraryDocumentsQueryOptions = <TData = Awaited<ReturnType<typeof listLibraryDocuments>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLibraryDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListLibraryDocumentsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listLibraryDocuments>>> = ({ signal }) => listLibraryDocuments({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listLibraryDocuments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListLibraryDocumentsQueryResult = NonNullable<Awaited<ReturnType<typeof listLibraryDocuments>>>
+export type ListLibraryDocumentsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List the current user's library documents (metadata only, no file data)
+ */
+
+export function useListLibraryDocuments<TData = Awaited<ReturnType<typeof listLibraryDocuments>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLibraryDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListLibraryDocumentsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateLibraryDocumentUrl = () => {
+
+
+
+
+  return `/api/library/documents`
+}
+
+/**
+ * @summary Upload a document to the personal library
+ */
+export const createLibraryDocument = async (libraryDocumentInput: LibraryDocumentInput, options?: RequestInit): Promise<LibraryDocument> => {
+
+  return customFetch<LibraryDocument>(getCreateLibraryDocumentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(libraryDocumentInput)
+  }
+);}
+
+
+
+
+export const getCreateLibraryDocumentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLibraryDocument>>, TError,{data: BodyType<LibraryDocumentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createLibraryDocument>>, TError,{data: BodyType<LibraryDocumentInput>}, TContext> => {
+
+const mutationKey = ['createLibraryDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createLibraryDocument>>, {data: BodyType<LibraryDocumentInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createLibraryDocument(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateLibraryDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof createLibraryDocument>>>
+    export type CreateLibraryDocumentMutationBody = BodyType<LibraryDocumentInput>
+    export type CreateLibraryDocumentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Upload a document to the personal library
+ */
+export const useCreateLibraryDocument = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLibraryDocument>>, TError,{data: BodyType<LibraryDocumentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createLibraryDocument>>,
+        TError,
+        {data: BodyType<LibraryDocumentInput>},
+        TContext
+      > => {
+      return useMutation(getCreateLibraryDocumentMutationOptions(options));
+    }
+
+export const getGetLibraryDocumentUrl = (documentId: number,) => {
+
+
+
+
+  return `/api/library/documents/${documentId}`
+}
+
+/**
+ * @summary Fetch a single library document, including its file data
+ */
+export const getLibraryDocument = async (documentId: number, options?: RequestInit): Promise<LibraryDocumentDetail> => {
+
+  return customFetch<LibraryDocumentDetail>(getGetLibraryDocumentUrl(documentId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLibraryDocumentQueryKey = (documentId: number,) => {
+    return [
+    `/api/library/documents/${documentId}`
+    ] as const;
+    }
+
+
+export const getGetLibraryDocumentQueryOptions = <TData = Awaited<ReturnType<typeof getLibraryDocument>>, TError = ErrorType<unknown>>(documentId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLibraryDocument>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLibraryDocumentQueryKey(documentId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLibraryDocument>>> = ({ signal }) => getLibraryDocument(documentId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: documentId !== null && documentId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLibraryDocument>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLibraryDocumentQueryResult = NonNullable<Awaited<ReturnType<typeof getLibraryDocument>>>
+export type GetLibraryDocumentQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Fetch a single library document, including its file data
+ */
+
+export function useGetLibraryDocument<TData = Awaited<ReturnType<typeof getLibraryDocument>>, TError = ErrorType<unknown>>(
+ documentId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLibraryDocument>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLibraryDocumentQueryOptions(documentId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDeleteLibraryDocumentUrl = (documentId: number,) => {
+
+
+
+
+  return `/api/library/documents/${documentId}`
+}
+
+/**
+ * @summary Delete a library document
+ */
+export const deleteLibraryDocument = async (documentId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteLibraryDocumentUrl(documentId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteLibraryDocumentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLibraryDocument>>, TError,{documentId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteLibraryDocument>>, TError,{documentId: number}, TContext> => {
+
+const mutationKey = ['deleteLibraryDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteLibraryDocument>>, {documentId: number}> = (props) => {
+          const {documentId} = props ?? {};
+
+          return  deleteLibraryDocument(documentId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteLibraryDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteLibraryDocument>>>
+
+    export type DeleteLibraryDocumentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete a library document
+ */
+export const useDeleteLibraryDocument = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLibraryDocument>>, TError,{documentId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteLibraryDocument>>,
+        TError,
+        {documentId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteLibraryDocumentMutationOptions(options));
     }
 
 export const getListNotificationsUrl = () => {

@@ -82,6 +82,7 @@ const TrainingPlanPage = lazy(() => import('@/pages/training-plan'));
 const AdminPage = lazy(() => import('@/pages/admin'));
 const TrainingLoadPage = lazy(() => import('@/pages/training-load'));
 const GymPage = lazy(() => import('@/pages/gym'));
+const LibraryPage = lazy(() => import('@/pages/library'));
 const ExerciseLibraryPage = lazy(() => import('@/pages/exercise-library'));
 const Notes = lazy(() => import('@/pages/notes'));
 const NotFound = lazy(() => import('@/pages/not-found'));
@@ -289,6 +290,7 @@ function ClerkProviderWithRoutes() {
                 <Route path="/admin"><ProtectedRoute component={AdminPage} /></Route>
                 <Route path="/training-load"><ProRoute component={TrainingLoadPage} /></Route>
                 <Route path="/gym"><ProRoute component={GymPage} /></Route>
+                <Route path="/library"><ProtectedRoute component={LibraryPage} /></Route>
                 <Route path="/exercise-library"><ProRoute component={ExerciseLibraryPage} /></Route>
                 <Route path="/notes"><ProtectedRoute component={Notes} /></Route>
                 <Route path="/reports"><ProtectedRoute component={Reports} /></Route>
