@@ -37,8 +37,10 @@ app.use(
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 app.use(cors({ credentials: true, origin: true }));
-// 1mb so player photos (compressed data URLs, ~30-80kb each) fit.
-app.use(express.json({ limit: "1mb" }));
+// 30mb covers a 20MB library PDF (the app's largest upload) once base64
+// encoding (~33% overhead) and JSON structure are accounted for; still
+// comfortably above what player photos or anything else here needs.
+app.use(express.json({ limit: "30mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use(

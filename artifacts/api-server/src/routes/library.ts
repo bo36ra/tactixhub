@@ -1,5 +1,5 @@
 import { dbErrorMessage } from "../lib/dbError";
-import { Router, json } from "express";
+import { Router } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import { db, libraryDocumentsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
@@ -11,12 +11,6 @@ const router = Router();
 // owning account should ever see or touch these rows.
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20MB — generous for a reference PDF, short of where storing it inline becomes a real problem
-// Base64 adds ~33% overhead, plus JSON/title/description overhead —
-// give the body parser enough headroom for a 20MB file specifically on
-// this route, without raising the 1MB global default used everywhere
-// else (sized for compressed player photos, and no other route needs
-// more than that).
-const uploadBodyParser = json({ limit: "28mb" });
 
 function mapDoc(d: typeof libraryDocumentsTable.$inferSelect, includeData: boolean) {
   return {
@@ -68,7 +62,7 @@ router.get("/library/documents/:id", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/library/documents", requireAuth, uploadBodyParser, async (req, res) => {
+router.post("/library/documents", requireAuth, async (req, res) => {
   const userId = (req as any).userId as string;
   const { title, description, category, fileName, fileData } = req.body ?? {};
   if (!title || typeof title !== "string" || !title.trim()) {
