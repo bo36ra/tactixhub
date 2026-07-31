@@ -339,8 +339,27 @@ const STATEMENTS = [
 ];
 
 export async function ensureSchema(): Promise<void> {
+  // Each statement runs independently: previously, one failing statement
+  // (for any reason — a transient connection hiccup, a genuinely bad
+  // statement, anything) stopped the loop entirely, silently leaving
+  // every statement AFTER it — including any migration added since —
+  // never applied. Isolating each statement means a single failure only
+  // ever blocks that one column/table, not everything that comes after
+  // it in this ever-growing list, and it's still safe to retry: every
+  // statement here is idempotent (IF NOT EXISTS / ADD COLUMN IF NOT
+  // EXISTS), so re-running an already-applied one is a no-op.
+  let failures = 0;
   for (const statement of STATEMENTS) {
-    await db.execute(sql.raw(statement));
+    try {
+      await db.execute(sql.raw(statement));
+    } catch (err) {
+      failures += 1;
+      logger.error({ err, statement: statement.slice(0, 120) }, "Schema statement failed — continuing with the rest");
+    }
   }
-  logger.info("Database schema ensured (all tables exist)");
+  if (failures > 0) {
+    logger.warn({ failures }, "Database schema ensured with some statements failing — see errors above");
+  } else {
+    logger.info("Database schema ensured (all tables exist)");
+  }
 }
