@@ -101,6 +101,7 @@ export function Players() {
 
   const undoableDelete = useUndoableDelete();
   const [pendingDeleteIds, setPendingDeleteIds] = React.useState<Set<number>>(new Set());
+  const [confirmDeleteId, setConfirmDeleteId] = React.useState<number | null>(null);
   const removeFromPending = (playerId: number) =>
     setPendingDeleteIds((prev) => {
       const next = new Set(prev);
@@ -303,7 +304,7 @@ export function Players() {
               return (
                 <SwipeToDelete
                   key={player.id}
-                  onDelete={() => handleDelete(player.id)}
+                  onDelete={() => setConfirmDeleteId(player.id)}
                 >
                   <div className="bg-card border rounded-xl p-4 flex items-center gap-3">
                     <Link href={`/players/${player.id}`} className="flex items-center gap-3 flex-1 min-w-0">
@@ -324,6 +325,24 @@ export function Players() {
             })}
           </div>
         )}
+
+        <AlertDialog open={confirmDeleteId !== null} onOpenChange={(open) => !open && setConfirmDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('common.confirm')}</AlertDialogTitle>
+              <AlertDialogDescription>{t('player.deleteConfirm')}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => { if (confirmDeleteId !== null) handleDelete(confirmDeleteId); setConfirmDeleteId(null); }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {t('common.delete')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Desktop: table */}
         {filteredPlayers.length > 0 && (
