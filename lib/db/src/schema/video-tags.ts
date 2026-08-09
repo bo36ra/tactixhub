@@ -16,6 +16,15 @@ export const matchVideoTagsTable = pgTable("match_video_tags", {
   label: text("label").notNull(),
   category: text("category"), // attacking, defensive, set_piece, individual, general
   playerId: integer("player_id").references(() => playersTable.id, { onDelete: "set null" }),
+  // Arrows drawn over the video for this moment — a JSON array of
+  // {x1,y1,x2,y2} points as 0-100 percentages of the video's width/
+  // height, not pixel coordinates, so they still line up correctly
+  // regardless of what size the video actually renders at (phone vs
+  // desktop, fullscreen or not). This is an overlay, not an edit of
+  // the video itself — reading actual pixels out of an embedded
+  // YouTube iframe isn't possible (cross-origin), so drawings are
+  // stored and redrawn independently of the video underneath them.
+  drawingData: text("drawing_data"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

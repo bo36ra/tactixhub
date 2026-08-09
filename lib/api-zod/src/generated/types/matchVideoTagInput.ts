@@ -13,4 +13,5 @@ export interface MatchVideoTagInput {
   label: string;
   category?: string;
   playerId?: number;
+  drawingData?: string;
 }

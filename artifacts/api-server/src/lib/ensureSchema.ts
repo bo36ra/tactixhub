@@ -345,6 +345,7 @@ const STATEMENTS = [
     "player_id" integer REFERENCES "players"("id") ON DELETE SET NULL,
     "created_at" timestamp DEFAULT now() NOT NULL
   )`,
+  `ALTER TABLE "match_video_tags" ADD COLUMN IF NOT EXISTS "drawing_data" text`,
 ];
 
 export async function ensureSchema(): Promise<void> {

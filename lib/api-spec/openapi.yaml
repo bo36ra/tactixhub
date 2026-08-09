@@ -1721,6 +1721,8 @@ components:
           type: ["string", "null"]
         playerId:
           type: ["integer", "null"]
+        drawingData:
+          type: ["string", "null"]
         createdAt:
           type: string
 
@@ -1738,6 +1740,8 @@ components:
           type: string
         playerId:
           type: integer
+        drawingData:
+          type: string
 
     PlayingTime:
       type: object

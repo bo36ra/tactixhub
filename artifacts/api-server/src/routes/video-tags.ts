@@ -17,6 +17,7 @@ function mapTag(t: typeof matchVideoTagsTable.$inferSelect) {
     label: t.label,
     category: t.category,
     playerId: t.playerId,
+    drawingData: t.drawingData,
     createdAt: t.createdAt.toISOString(),
   };
 }
@@ -50,7 +51,7 @@ router.post("/teams/:teamId/matches/:matchId/video-tags", requireAuth, async (re
     res.status(403).json({ error: "Forbidden" });
     return;
   }
-  const { timestampSeconds, label, category, playerId } = req.body ?? {};
+  const { timestampSeconds, label, category, playerId, drawingData } = req.body ?? {};
   if (!Number.isInteger(timestampSeconds) || timestampSeconds < 0) {
     res.status(400).json({ error: "timestampSeconds must be a non-negative integer" });
     return;
@@ -79,6 +80,7 @@ router.post("/teams/:teamId/matches/:matchId/video-tags", requireAuth, async (re
         label: label.trim().slice(0, 200),
         category: typeof category === "string" ? category.trim().slice(0, 100) || null : null,
         playerId: Number.isInteger(playerId) ? playerId : null,
+        drawingData: typeof drawingData === "string" && drawingData.trim() ? drawingData.slice(0, 20000) : null,
       })
       .returning();
     res.status(201).json(mapTag(row));

@@ -309,6 +309,13 @@ const en: Translations = {
   "match.tagCat.set_piece": "Set piece",
   "match.tagCat.individual": "Individual",
   "match.tagCat.general": "General",
+  "match.tagPlayer": "Player",
+  "match.tagNoPlayer": "No specific player",
+  "match.tagAllMoments": "All moments",
+  "match.drawArrows": "Draw arrows",
+  "match.clearDrawing": "Clear",
+  "match.drawHint": "Drag on the video to draw an arrow. Add more, then save the moment below.",
+
 
 
   "nav.trainings": "Trainings",
@@ -1083,6 +1090,13 @@ const ar: Translations = {
   "match.tagCat.set_piece": "كرة ثابتة",
   "match.tagCat.individual": "فردي",
   "match.tagCat.general": "عام",
+  "match.tagPlayer": "اللاعب",
+  "match.tagNoPlayer": "بدون لاعب محدد",
+  "match.tagAllMoments": "كل اللحظات",
+  "match.drawArrows": "ارسم أسهم",
+  "match.clearDrawing": "مسح",
+  "match.drawHint": "اسحب فوق الفيديو عشان ترسم سهم. تقدر تضيف أكثر من سهم، وبعدين احفظ اللحظة تحت.",
+
 
 
   "nav.trainings": "التدريبات",

@@ -15,5 +15,7 @@ export interface MatchVideoTag {
   category?: string | null;
   /** @nullable */
   playerId?: number | null;
+  /** @nullable */
+  drawingData?: string | null;
   createdAt: string;
 }

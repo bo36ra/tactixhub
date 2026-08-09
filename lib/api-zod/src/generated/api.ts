@@ -708,6 +708,7 @@ export const ListMatchVideoTagsResponseItem = zod.object({
   "label": zod.string(),
   "category": zod.string().nullish(),
   "playerId": zod.number().nullish(),
+  "drawingData": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const ListMatchVideoTagsResponse = zod.array(ListMatchVideoTagsResponseItem)
@@ -730,7 +731,8 @@ export const CreateMatchVideoTagBody = zod.object({
   "timestampSeconds": zod.number().min(createMatchVideoTagBodyTimestampSecondsMin),
   "label": zod.string().min(1),
   "category": zod.string().optional(),
-  "playerId": zod.number().optional()
+  "playerId": zod.number().optional(),
+  "drawingData": zod.string().optional()
 })
 
 export const CreateMatchVideoTagResponse = zod.object({
@@ -740,6 +742,7 @@ export const CreateMatchVideoTagResponse = zod.object({
   "label": zod.string(),
   "category": zod.string().nullish(),
   "playerId": zod.number().nullish(),
+  "drawingData": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
