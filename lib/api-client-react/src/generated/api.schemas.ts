@@ -555,6 +555,34 @@ export interface MatchVideoTagInput {
   drawingData?: string;
 }
 
+export interface MatchHighlightClip {
+  id: number;
+  matchId: number;
+  title: string;
+  /** @nullable */
+  category?: string | null;
+  /** @nullable */
+  playerId?: number | null;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  createdAt: string;
+}
+
+export type MatchHighlightClipDetail = MatchHighlightClip & {
+  fileData: string;
+};
+
+export interface MatchHighlightClipInput {
+  /** @minLength 1 */
+  title: string;
+  category?: string;
+  playerId?: number;
+  fileName: string;
+  mimeType: string;
+  fileData: string;
+}
+
 export interface PlayingTime {
   id: number;
   teamId: number;

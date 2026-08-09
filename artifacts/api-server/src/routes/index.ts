@@ -22,6 +22,7 @@ import searchRouter from "./search";
 import gymRouter from "./gym";
 import libraryRouter from "./library";
 import videoTagsRouter from "./video-tags";
+import highlightClipsRouter from "./highlight-clips";
 
 const router: IRouter = Router();
 
@@ -48,5 +49,6 @@ router.use(searchRouter);
 router.use(gymRouter);
 router.use(libraryRouter);
 router.use(videoTagsRouter);
+router.use(highlightClipsRouter);
 
 export default router;

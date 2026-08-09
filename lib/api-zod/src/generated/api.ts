@@ -760,6 +760,97 @@ export const DeleteMatchVideoTagResponse = zod.unknown()
 
 
 /**
+ * @summary List highlight clips for a match (metadata only, no file data)
+ */
+export const ListMatchHighlightClipsParams = zod.object({
+  "teamId": zod.coerce.number(),
+  "matchId": zod.coerce.number()
+})
+
+export const ListMatchHighlightClipsResponseItem = zod.object({
+  "id": zod.number(),
+  "matchId": zod.number(),
+  "title": zod.string(),
+  "category": zod.string().nullish(),
+  "playerId": zod.number().nullish(),
+  "fileName": zod.string(),
+  "fileSize": zod.number(),
+  "mimeType": zod.string(),
+  "createdAt": zod.string()
+})
+export const ListMatchHighlightClipsResponse = zod.array(ListMatchHighlightClipsResponseItem)
+
+
+/**
+ * @summary Upload a highlight clip to a match
+ */
+export const CreateMatchHighlightClipParams = zod.object({
+  "teamId": zod.coerce.number(),
+  "matchId": zod.coerce.number()
+})
+
+
+
+
+export const CreateMatchHighlightClipBody = zod.object({
+  "title": zod.string().min(1),
+  "category": zod.string().optional(),
+  "playerId": zod.number().optional(),
+  "fileName": zod.string(),
+  "mimeType": zod.string(),
+  "fileData": zod.string()
+})
+
+export const CreateMatchHighlightClipResponse = zod.object({
+  "id": zod.number(),
+  "matchId": zod.number(),
+  "title": zod.string(),
+  "category": zod.string().nullish(),
+  "playerId": zod.number().nullish(),
+  "fileName": zod.string(),
+  "fileSize": zod.number(),
+  "mimeType": zod.string(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Fetch a single highlight clip, including its file data
+ */
+export const GetMatchHighlightClipParams = zod.object({
+  "teamId": zod.coerce.number(),
+  "matchId": zod.coerce.number(),
+  "clipId": zod.coerce.number()
+})
+
+export const GetMatchHighlightClipResponse = zod.object({
+  "id": zod.number(),
+  "matchId": zod.number(),
+  "title": zod.string(),
+  "category": zod.string().nullish(),
+  "playerId": zod.number().nullish(),
+  "fileName": zod.string(),
+  "fileSize": zod.number(),
+  "mimeType": zod.string(),
+  "createdAt": zod.string()
+}).and(zod.object({
+  "fileData": zod.string()
+}))
+
+
+/**
+ * @summary Delete a highlight clip
+ */
+export const DeleteMatchHighlightClipParams = zod.object({
+  "teamId": zod.coerce.number(),
+  "matchId": zod.coerce.number(),
+  "clipId": zod.coerce.number()
+})
+
+export const DeleteMatchHighlightClipResponse = zod.unknown()
+
+
+/**
  * @summary List playing time records for a team
  */
 export const ListPlayingTimeParams = zod.object({

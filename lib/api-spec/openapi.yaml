@@ -776,6 +776,114 @@ paths:
         "200":
           description: Deleted
 
+  # Short uploaded highlight clips — a full match stays a video link,
+  # this is for a few-seconds-to-a-minute clip stored directly
+  /teams/{teamId}/matches/{matchId}/highlight-clips:
+    get:
+      operationId: listMatchHighlightClips
+      tags: [highlight-clips]
+      summary: List highlight clips for a match (metadata only, no file data)
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of highlight clips
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MatchHighlightClip"
+    post:
+      operationId: createMatchHighlightClip
+      tags: [highlight-clips]
+      summary: Upload a highlight clip to a match
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchHighlightClipInput"
+      responses:
+        "201":
+          description: Created highlight clip
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchHighlightClip"
+
+  /teams/{teamId}/matches/{matchId}/highlight-clips/{clipId}:
+    get:
+      operationId: getMatchHighlightClip
+      tags: [highlight-clips]
+      summary: Fetch a single highlight clip, including its file data
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: clipId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Highlight clip with file data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchHighlightClipDetail"
+    delete:
+      operationId: deleteMatchHighlightClip
+      tags: [highlight-clips]
+      summary: Delete a highlight clip
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: clipId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+
   # Playing Time
   /teams/{teamId}/playing-time:
     get:
@@ -1741,6 +1849,56 @@ components:
         playerId:
           type: integer
         drawingData:
+          type: string
+
+    MatchHighlightClip:
+      type: object
+      required: [id, matchId, title, fileName, fileSize, mimeType, createdAt]
+      properties:
+        id:
+          type: integer
+        matchId:
+          type: integer
+        title:
+          type: string
+        category:
+          type: ["string", "null"]
+        playerId:
+          type: ["integer", "null"]
+        fileName:
+          type: string
+        fileSize:
+          type: integer
+        mimeType:
+          type: string
+        createdAt:
+          type: string
+
+    MatchHighlightClipDetail:
+      allOf:
+        - $ref: "#/components/schemas/MatchHighlightClip"
+        - type: object
+          required: [fileData]
+          properties:
+            fileData:
+              type: string
+
+    MatchHighlightClipInput:
+      type: object
+      required: [title, fileName, mimeType, fileData]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        category:
+          type: string
+        playerId:
+          type: integer
+        fileName:
+          type: string
+        mimeType:
+          type: string
+        fileData:
           type: string
 
     PlayingTime:

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { VideoWithTags } from '@/components/video-with-tags';
+import { HighlightClips } from '@/components/highlight-clips';
 import { FileText, Printer, Video, Pencil, X, Check } from 'lucide-react';
 
 export default function MatchReport() {
@@ -134,6 +135,10 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
                 <Video className="w-4 h-4" /> {t('match.addVideoLink')}
               </button>
             )}
+
+            <section className="print:hidden">
+              <HighlightClips teamId={teamId} matchId={m.id} />
+            </section>
 
             {mGoals.length > 0 && (
               <section>

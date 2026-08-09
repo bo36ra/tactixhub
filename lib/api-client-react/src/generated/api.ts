@@ -40,6 +40,9 @@ import type {
   LibraryDocumentInput,
   Lineup,
   Match,
+  MatchHighlightClip,
+  MatchHighlightClipDetail,
+  MatchHighlightClipInput,
   MatchInput,
   MatchUpdate,
   MatchVideoTag,
@@ -2560,6 +2563,322 @@ export const useDeleteMatchVideoTag = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDeleteMatchVideoTagMutationOptions(options));
+    }
+
+export const getListMatchHighlightClipsUrl = (teamId: number,
+    matchId: number,) => {
+
+
+
+
+  return `/api/teams/${teamId}/matches/${matchId}/highlight-clips`
+}
+
+/**
+ * @summary List highlight clips for a match (metadata only, no file data)
+ */
+export const listMatchHighlightClips = async (teamId: number,
+    matchId: number, options?: RequestInit): Promise<MatchHighlightClip[]> => {
+
+  return customFetch<MatchHighlightClip[]>(getListMatchHighlightClipsUrl(teamId,matchId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMatchHighlightClipsQueryKey = (teamId: number,
+    matchId: number,) => {
+    return [
+    `/api/teams/${teamId}/matches/${matchId}/highlight-clips`
+    ] as const;
+    }
+
+
+export const getListMatchHighlightClipsQueryOptions = <TData = Awaited<ReturnType<typeof listMatchHighlightClips>>, TError = ErrorType<unknown>>(teamId: number,
+    matchId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMatchHighlightClips>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMatchHighlightClipsQueryKey(teamId,matchId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMatchHighlightClips>>> = ({ signal }) => listMatchHighlightClips(teamId,matchId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: teamId !== null && teamId !== undefined && matchId !== null && matchId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMatchHighlightClips>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMatchHighlightClipsQueryResult = NonNullable<Awaited<ReturnType<typeof listMatchHighlightClips>>>
+export type ListMatchHighlightClipsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List highlight clips for a match (metadata only, no file data)
+ */
+
+export function useListMatchHighlightClips<TData = Awaited<ReturnType<typeof listMatchHighlightClips>>, TError = ErrorType<unknown>>(
+ teamId: number,
+    matchId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMatchHighlightClips>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMatchHighlightClipsQueryOptions(teamId,matchId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateMatchHighlightClipUrl = (teamId: number,
+    matchId: number,) => {
+
+
+
+
+  return `/api/teams/${teamId}/matches/${matchId}/highlight-clips`
+}
+
+/**
+ * @summary Upload a highlight clip to a match
+ */
+export const createMatchHighlightClip = async (teamId: number,
+    matchId: number,
+    matchHighlightClipInput: MatchHighlightClipInput, options?: RequestInit): Promise<MatchHighlightClip> => {
+
+  return customFetch<MatchHighlightClip>(getCreateMatchHighlightClipUrl(teamId,matchId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(matchHighlightClipInput)
+  }
+);}
+
+
+
+
+export const getCreateMatchHighlightClipMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMatchHighlightClip>>, TError,{teamId: number;matchId: number;data: BodyType<MatchHighlightClipInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createMatchHighlightClip>>, TError,{teamId: number;matchId: number;data: BodyType<MatchHighlightClipInput>}, TContext> => {
+
+const mutationKey = ['createMatchHighlightClip'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createMatchHighlightClip>>, {teamId: number;matchId: number;data: BodyType<MatchHighlightClipInput>}> = (props) => {
+          const {teamId,matchId,data} = props ?? {};
+
+          return  createMatchHighlightClip(teamId,matchId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateMatchHighlightClipMutationResult = NonNullable<Awaited<ReturnType<typeof createMatchHighlightClip>>>
+    export type CreateMatchHighlightClipMutationBody = BodyType<MatchHighlightClipInput>
+    export type CreateMatchHighlightClipMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Upload a highlight clip to a match
+ */
+export const useCreateMatchHighlightClip = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMatchHighlightClip>>, TError,{teamId: number;matchId: number;data: BodyType<MatchHighlightClipInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createMatchHighlightClip>>,
+        TError,
+        {teamId: number;matchId: number;data: BodyType<MatchHighlightClipInput>},
+        TContext
+      > => {
+      return useMutation(getCreateMatchHighlightClipMutationOptions(options));
+    }
+
+export const getGetMatchHighlightClipUrl = (teamId: number,
+    matchId: number,
+    clipId: number,) => {
+
+
+
+
+  return `/api/teams/${teamId}/matches/${matchId}/highlight-clips/${clipId}`
+}
+
+/**
+ * @summary Fetch a single highlight clip, including its file data
+ */
+export const getMatchHighlightClip = async (teamId: number,
+    matchId: number,
+    clipId: number, options?: RequestInit): Promise<MatchHighlightClipDetail> => {
+
+  return customFetch<MatchHighlightClipDetail>(getGetMatchHighlightClipUrl(teamId,matchId,clipId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMatchHighlightClipQueryKey = (teamId: number,
+    matchId: number,
+    clipId: number,) => {
+    return [
+    `/api/teams/${teamId}/matches/${matchId}/highlight-clips/${clipId}`
+    ] as const;
+    }
+
+
+export const getGetMatchHighlightClipQueryOptions = <TData = Awaited<ReturnType<typeof getMatchHighlightClip>>, TError = ErrorType<unknown>>(teamId: number,
+    matchId: number,
+    clipId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMatchHighlightClip>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMatchHighlightClipQueryKey(teamId,matchId,clipId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMatchHighlightClip>>> = ({ signal }) => getMatchHighlightClip(teamId,matchId,clipId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: teamId !== null && teamId !== undefined && matchId !== null && matchId !== undefined && clipId !== null && clipId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMatchHighlightClip>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMatchHighlightClipQueryResult = NonNullable<Awaited<ReturnType<typeof getMatchHighlightClip>>>
+export type GetMatchHighlightClipQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Fetch a single highlight clip, including its file data
+ */
+
+export function useGetMatchHighlightClip<TData = Awaited<ReturnType<typeof getMatchHighlightClip>>, TError = ErrorType<unknown>>(
+ teamId: number,
+    matchId: number,
+    clipId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMatchHighlightClip>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMatchHighlightClipQueryOptions(teamId,matchId,clipId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDeleteMatchHighlightClipUrl = (teamId: number,
+    matchId: number,
+    clipId: number,) => {
+
+
+
+
+  return `/api/teams/${teamId}/matches/${matchId}/highlight-clips/${clipId}`
+}
+
+/**
+ * @summary Delete a highlight clip
+ */
+export const deleteMatchHighlightClip = async (teamId: number,
+    matchId: number,
+    clipId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteMatchHighlightClipUrl(teamId,matchId,clipId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteMatchHighlightClipMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMatchHighlightClip>>, TError,{teamId: number;matchId: number;clipId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteMatchHighlightClip>>, TError,{teamId: number;matchId: number;clipId: number}, TContext> => {
+
+const mutationKey = ['deleteMatchHighlightClip'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteMatchHighlightClip>>, {teamId: number;matchId: number;clipId: number}> = (props) => {
+          const {teamId,matchId,clipId} = props ?? {};
+
+          return  deleteMatchHighlightClip(teamId,matchId,clipId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteMatchHighlightClipMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMatchHighlightClip>>>
+
+    export type DeleteMatchHighlightClipMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete a highlight clip
+ */
+export const useDeleteMatchHighlightClip = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMatchHighlightClip>>, TError,{teamId: number;matchId: number;clipId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteMatchHighlightClip>>,
+        TError,
+        {teamId: number;matchId: number;clipId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteMatchHighlightClipMutationOptions(options));
     }
 
 export const getListPlayingTimeUrl = (teamId: number,) => {

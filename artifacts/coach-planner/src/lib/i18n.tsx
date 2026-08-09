@@ -315,6 +315,11 @@ const en: Translations = {
   "match.drawArrows": "Draw arrows",
   "match.clearDrawing": "Clear",
   "match.drawHint": "Drag on the video to draw an arrow. Add more, then save the moment below.",
+  "match.highlightClips": "Highlight clips",
+  "match.uploadClip": "Upload clip",
+  "match.clipTooLarge": "Clip too large (max 50MB — short clips only, use a video link for the full match)",
+  "match.clipMaxSize": "Short clips up to 50MB — for the full match, use a video link instead",
+
 
 
 
@@ -1096,6 +1101,11 @@ const ar: Translations = {
   "match.drawArrows": "ارسم أسهم",
   "match.clearDrawing": "مسح",
   "match.drawHint": "اسحب فوق الفيديو عشان ترسم سهم. تقدر تضيف أكثر من سهم، وبعدين احفظ اللحظة تحت.",
+  "match.highlightClips": "اللقطات المرفوعة",
+  "match.uploadClip": "رفع لقطة",
+  "match.clipTooLarge": "اللقطة كبيرة جداً (الحد الأقصى 50 ميجابايت — لقطات قصيرة بس، للمباراة كاملة استخدم رابط فيديو)",
+  "match.clipMaxSize": "لقطات قصيرة لين 50 ميجابايت — للمباراة كاملة استخدم رابط فيديو بدلها",
+
 
 
 

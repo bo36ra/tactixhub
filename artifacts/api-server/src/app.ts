@@ -37,10 +37,15 @@ app.use(
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 app.use(cors({ credentials: true, origin: true }));
-// 30mb covers a 20MB library PDF (the app's largest upload) once base64
-// encoding (~33% overhead) and JSON structure are accounted for; still
-// comfortably above what player photos or anything else here needs.
-app.use(express.json({ limit: "30mb" }));
+// 75mb covers a 50MB highlight clip (the largest upload the app
+// supports — short highlight clips only, never a full match, which
+// stays a link) once base64 encoding (~33% overhead) and JSON
+// structure are accounted for. Kept as ONE global limit rather than a
+// second route-specific parser stacked on top of this one — two
+// express.json() calls on the same request previously broke every
+// library upload, since the first one to run already consumes the
+// request body stream.
+app.use(express.json({ limit: "75mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use(
