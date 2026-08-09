@@ -20,3 +20,4 @@ export * from "./wellness";
 export * from "./exercise-library";
 export * from "./gym";
 export * from "./library";
+export * from "./video-tags";

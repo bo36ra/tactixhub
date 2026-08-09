@@ -9,6 +9,10 @@ export interface ParsedVideoLink {
   // be converted into a direct-playable file link this way; other
   // kinds don't have an equivalent.
   directUrl?: string;
+  // Raw YouTube video ID — the IFrame API's Player constructor takes
+  // an ID, not a URL, so this is needed alongside embedUrl whenever
+  // programmatic control (seeking to a tagged timestamp) is needed.
+  youtubeId?: string;
 }
 
 // Coaches paste whatever share link their video host gives them —
@@ -28,7 +32,7 @@ export function parseVideoLink(url: string): ParsedVideoLink {
     /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{6,})/
   );
   if (ytMatch) {
-    return { kind: 'youtube', embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}` };
+    return { kind: 'youtube', embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}`, youtubeId: ytMatch[1] };
   }
 
   const driveMatch = trimmed.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);

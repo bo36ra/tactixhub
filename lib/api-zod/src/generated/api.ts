@@ -694,6 +694,69 @@ export const GetCardsSummaryResponse = zod.array(GetCardsSummaryResponseItem)
 
 
 /**
+ * @summary List timestamped video tags for a match, ordered by time
+ */
+export const ListMatchVideoTagsParams = zod.object({
+  "teamId": zod.coerce.number(),
+  "matchId": zod.coerce.number()
+})
+
+export const ListMatchVideoTagsResponseItem = zod.object({
+  "id": zod.number(),
+  "matchId": zod.number(),
+  "timestampSeconds": zod.number(),
+  "label": zod.string(),
+  "category": zod.string().nullish(),
+  "playerId": zod.number().nullish(),
+  "createdAt": zod.string()
+})
+export const ListMatchVideoTagsResponse = zod.array(ListMatchVideoTagsResponseItem)
+
+
+/**
+ * @summary Add a timestamped tag to a match's video
+ */
+export const CreateMatchVideoTagParams = zod.object({
+  "teamId": zod.coerce.number(),
+  "matchId": zod.coerce.number()
+})
+
+export const createMatchVideoTagBodyTimestampSecondsMin = 0;
+
+
+
+
+export const CreateMatchVideoTagBody = zod.object({
+  "timestampSeconds": zod.number().min(createMatchVideoTagBodyTimestampSecondsMin),
+  "label": zod.string().min(1),
+  "category": zod.string().optional(),
+  "playerId": zod.number().optional()
+})
+
+export const CreateMatchVideoTagResponse = zod.object({
+  "id": zod.number(),
+  "matchId": zod.number(),
+  "timestampSeconds": zod.number(),
+  "label": zod.string(),
+  "category": zod.string().nullish(),
+  "playerId": zod.number().nullish(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Delete a video tag
+ */
+export const DeleteMatchVideoTagParams = zod.object({
+  "teamId": zod.coerce.number(),
+  "matchId": zod.coerce.number(),
+  "tagId": zod.coerce.number()
+})
+
+export const DeleteMatchVideoTagResponse = zod.unknown()
+
+
+/**
  * @summary List playing time records for a team
  */
 export const ListPlayingTimeParams = zod.object({

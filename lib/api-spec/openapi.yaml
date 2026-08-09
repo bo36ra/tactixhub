@@ -696,6 +696,86 @@ paths:
                 items:
                   $ref: "#/components/schemas/CardSummary"
 
+  # Manually-tagged moments within a match's video — not automatic tracking
+  /teams/{teamId}/matches/{matchId}/video-tags:
+    get:
+      operationId: listMatchVideoTags
+      tags: [video-tags]
+      summary: List timestamped video tags for a match, ordered by time
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of video tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MatchVideoTag"
+    post:
+      operationId: createMatchVideoTag
+      tags: [video-tags]
+      summary: Add a timestamped tag to a match's video
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchVideoTagInput"
+      responses:
+        "201":
+          description: Created video tag
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchVideoTag"
+
+  /teams/{teamId}/matches/{matchId}/video-tags/{tagId}:
+    delete:
+      operationId: deleteMatchVideoTag
+      tags: [video-tags]
+      summary: Delete a video tag
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: tagId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+
   # Playing Time
   /teams/{teamId}/playing-time:
     get:
@@ -1624,6 +1704,40 @@ components:
         status:
           type: string
           enum: [clean, caution, warning, suspended]
+
+    MatchVideoTag:
+      type: object
+      required: [id, matchId, timestampSeconds, label, createdAt]
+      properties:
+        id:
+          type: integer
+        matchId:
+          type: integer
+        timestampSeconds:
+          type: integer
+        label:
+          type: string
+        category:
+          type: ["string", "null"]
+        playerId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+
+    MatchVideoTagInput:
+      type: object
+      required: [timestampSeconds, label]
+      properties:
+        timestampSeconds:
+          type: integer
+          minimum: 0
+        label:
+          type: string
+          minLength: 1
+        category:
+          type: string
+        playerId:
+          type: integer
 
     PlayingTime:
       type: object

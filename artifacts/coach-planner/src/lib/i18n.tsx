@@ -301,6 +301,15 @@ const en: Translations = {
   "match.editVideoLink": "Edit link",
   "match.videoPlaceholder": "Paste a YouTube, Google Drive, or Dropbox link",
   "match.openVideoLink": "Open video",
+  "match.tagMoment": "Tag a moment",
+  "match.captureTime": "Capture time",
+  "match.tagLabelPlaceholder": "What happened at this moment?",
+  "match.tagCat.attacking": "Attacking",
+  "match.tagCat.defensive": "Defensive",
+  "match.tagCat.set_piece": "Set piece",
+  "match.tagCat.individual": "Individual",
+  "match.tagCat.general": "General",
+
 
   "nav.trainings": "Trainings",
   "nav.performance": "Performance",
@@ -1066,6 +1075,15 @@ const ar: Translations = {
   "match.editVideoLink": "تعديل الرابط",
   "match.videoPlaceholder": "الصق رابط يوتيوب أو جوجل درايف أو دروب بوكس",
   "match.openVideoLink": "فتح الفيديو",
+  "match.tagMoment": "علّم لحظة",
+  "match.captureTime": "التقط الوقت",
+  "match.tagLabelPlaceholder": "شنو صار بهذي اللحظة؟",
+  "match.tagCat.attacking": "هجومي",
+  "match.tagCat.defensive": "دفاعي",
+  "match.tagCat.set_piece": "كرة ثابتة",
+  "match.tagCat.individual": "فردي",
+  "match.tagCat.general": "عام",
+
 
   "nav.trainings": "التدريبات",
   "nav.performance": "الأداء",

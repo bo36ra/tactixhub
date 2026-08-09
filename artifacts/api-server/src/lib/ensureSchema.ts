@@ -336,6 +336,15 @@ const STATEMENTS = [
     "file_data" text NOT NULL,
     "created_at" timestamp DEFAULT now() NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS "match_video_tags" (
+    "id" serial PRIMARY KEY,
+    "match_id" integer NOT NULL REFERENCES "matches"("id") ON DELETE CASCADE,
+    "timestamp_seconds" integer NOT NULL,
+    "label" text NOT NULL,
+    "category" text,
+    "player_id" integer REFERENCES "players"("id") ON DELETE SET NULL,
+    "created_at" timestamp DEFAULT now() NOT NULL
+  )`,
 ];
 
 export async function ensureSchema(): Promise<void> {

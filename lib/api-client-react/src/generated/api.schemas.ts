@@ -531,6 +531,27 @@ export interface CardSummary {
   status: CardSummaryStatus;
 }
 
+export interface MatchVideoTag {
+  id: number;
+  matchId: number;
+  timestampSeconds: number;
+  label: string;
+  /** @nullable */
+  category?: string | null;
+  /** @nullable */
+  playerId?: number | null;
+  createdAt: string;
+}
+
+export interface MatchVideoTagInput {
+  /** @minimum 0 */
+  timestampSeconds: number;
+  /** @minLength 1 */
+  label: string;
+  category?: string;
+  playerId?: number;
+}
+
 export interface PlayingTime {
   id: number;
   teamId: number;

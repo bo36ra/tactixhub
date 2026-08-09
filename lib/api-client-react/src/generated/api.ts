@@ -42,6 +42,8 @@ import type {
   Match,
   MatchInput,
   MatchUpdate,
+  MatchVideoTag,
+  MatchVideoTagInput,
   Note,
   NoteInput,
   NoteUpdate,
@@ -2330,6 +2332,235 @@ export function useGetCardsSummary<TData = Awaited<ReturnType<typeof getCardsSum
 
 
 
+
+export const getListMatchVideoTagsUrl = (teamId: number,
+    matchId: number,) => {
+
+
+
+
+  return `/api/teams/${teamId}/matches/${matchId}/video-tags`
+}
+
+/**
+ * @summary List timestamped video tags for a match, ordered by time
+ */
+export const listMatchVideoTags = async (teamId: number,
+    matchId: number, options?: RequestInit): Promise<MatchVideoTag[]> => {
+
+  return customFetch<MatchVideoTag[]>(getListMatchVideoTagsUrl(teamId,matchId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMatchVideoTagsQueryKey = (teamId: number,
+    matchId: number,) => {
+    return [
+    `/api/teams/${teamId}/matches/${matchId}/video-tags`
+    ] as const;
+    }
+
+
+export const getListMatchVideoTagsQueryOptions = <TData = Awaited<ReturnType<typeof listMatchVideoTags>>, TError = ErrorType<unknown>>(teamId: number,
+    matchId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMatchVideoTags>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMatchVideoTagsQueryKey(teamId,matchId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMatchVideoTags>>> = ({ signal }) => listMatchVideoTags(teamId,matchId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: teamId !== null && teamId !== undefined && matchId !== null && matchId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMatchVideoTags>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMatchVideoTagsQueryResult = NonNullable<Awaited<ReturnType<typeof listMatchVideoTags>>>
+export type ListMatchVideoTagsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List timestamped video tags for a match, ordered by time
+ */
+
+export function useListMatchVideoTags<TData = Awaited<ReturnType<typeof listMatchVideoTags>>, TError = ErrorType<unknown>>(
+ teamId: number,
+    matchId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMatchVideoTags>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMatchVideoTagsQueryOptions(teamId,matchId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateMatchVideoTagUrl = (teamId: number,
+    matchId: number,) => {
+
+
+
+
+  return `/api/teams/${teamId}/matches/${matchId}/video-tags`
+}
+
+/**
+ * @summary Add a timestamped tag to a match's video
+ */
+export const createMatchVideoTag = async (teamId: number,
+    matchId: number,
+    matchVideoTagInput: MatchVideoTagInput, options?: RequestInit): Promise<MatchVideoTag> => {
+
+  return customFetch<MatchVideoTag>(getCreateMatchVideoTagUrl(teamId,matchId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(matchVideoTagInput)
+  }
+);}
+
+
+
+
+export const getCreateMatchVideoTagMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMatchVideoTag>>, TError,{teamId: number;matchId: number;data: BodyType<MatchVideoTagInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createMatchVideoTag>>, TError,{teamId: number;matchId: number;data: BodyType<MatchVideoTagInput>}, TContext> => {
+
+const mutationKey = ['createMatchVideoTag'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createMatchVideoTag>>, {teamId: number;matchId: number;data: BodyType<MatchVideoTagInput>}> = (props) => {
+          const {teamId,matchId,data} = props ?? {};
+
+          return  createMatchVideoTag(teamId,matchId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateMatchVideoTagMutationResult = NonNullable<Awaited<ReturnType<typeof createMatchVideoTag>>>
+    export type CreateMatchVideoTagMutationBody = BodyType<MatchVideoTagInput>
+    export type CreateMatchVideoTagMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Add a timestamped tag to a match's video
+ */
+export const useCreateMatchVideoTag = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMatchVideoTag>>, TError,{teamId: number;matchId: number;data: BodyType<MatchVideoTagInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createMatchVideoTag>>,
+        TError,
+        {teamId: number;matchId: number;data: BodyType<MatchVideoTagInput>},
+        TContext
+      > => {
+      return useMutation(getCreateMatchVideoTagMutationOptions(options));
+    }
+
+export const getDeleteMatchVideoTagUrl = (teamId: number,
+    matchId: number,
+    tagId: number,) => {
+
+
+
+
+  return `/api/teams/${teamId}/matches/${matchId}/video-tags/${tagId}`
+}
+
+/**
+ * @summary Delete a video tag
+ */
+export const deleteMatchVideoTag = async (teamId: number,
+    matchId: number,
+    tagId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteMatchVideoTagUrl(teamId,matchId,tagId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteMatchVideoTagMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMatchVideoTag>>, TError,{teamId: number;matchId: number;tagId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteMatchVideoTag>>, TError,{teamId: number;matchId: number;tagId: number}, TContext> => {
+
+const mutationKey = ['deleteMatchVideoTag'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteMatchVideoTag>>, {teamId: number;matchId: number;tagId: number}> = (props) => {
+          const {teamId,matchId,tagId} = props ?? {};
+
+          return  deleteMatchVideoTag(teamId,matchId,tagId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteMatchVideoTagMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMatchVideoTag>>>
+
+    export type DeleteMatchVideoTagMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete a video tag
+ */
+export const useDeleteMatchVideoTag = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMatchVideoTag>>, TError,{teamId: number;matchId: number;tagId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteMatchVideoTag>>,
+        TError,
+        {teamId: number;matchId: number;tagId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteMatchVideoTagMutationOptions(options));
+    }
 
 export const getListPlayingTimeUrl = (teamId: number,) => {
 

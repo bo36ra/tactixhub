@@ -21,6 +21,7 @@ import exerciseLibraryRouter from "./exercise-library";
 import searchRouter from "./search";
 import gymRouter from "./gym";
 import libraryRouter from "./library";
+import videoTagsRouter from "./video-tags";
 
 const router: IRouter = Router();
 
@@ -46,5 +47,6 @@ router.use(exerciseLibraryRouter);
 router.use(searchRouter);
 router.use(gymRouter);
 router.use(libraryRouter);
+router.use(videoTagsRouter);
 
 export default router;

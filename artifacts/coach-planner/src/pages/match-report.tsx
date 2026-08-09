@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { VideoEmbed } from '@/components/video-embed';
+import { VideoWithTags } from '@/components/video-with-tags';
 import { FileText, Printer, Video, Pencil, X, Check } from 'lucide-react';
 
 export default function MatchReport() {
@@ -113,7 +113,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {m.videoUrl && <VideoEmbed url={m.videoUrl} />}
+                    {m.videoUrl && <VideoWithTags url={m.videoUrl} teamId={teamId} matchId={m.id} />}
                     <button
                       type="button"
                       className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
