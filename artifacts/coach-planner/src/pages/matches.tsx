@@ -17,9 +17,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQueryClient } from '@tanstack/react-query';
-import { Trash2, Plus, Pencil, Calendar, LayoutGrid, ClipboardList, Share2 } from 'lucide-react';
+import { Trash2, Plus, Pencil, Calendar, LayoutGrid, ClipboardList, Share2, Target } from 'lucide-react';
 import { format } from 'date-fns';
 import { MatchPlanDialog } from '@/components/match-plan-dialog';
+import { MatchGoalsDialog } from '@/components/match-goals-dialog';
 import { useToast } from '@/hooks/use-toast';
 
 export function Matches() {
@@ -32,6 +33,7 @@ export function Matches() {
   const [open, setOpen] = React.useState(false);
   const [editingMatchId, setEditingMatchId] = React.useState<number | null>(null);
   const [planMatchId, setPlanMatchId] = React.useState<number | null>(null);
+  const [goalsMatchId, setGoalsMatchId] = React.useState<number | null>(null);
 
   const [formData, setFormData] = React.useState({
     opponent: '',
@@ -269,6 +271,10 @@ export function Matches() {
                         {t('match.lineup')}
                       </Button>
                     </Link>
+                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setGoalsMatchId(match.id)}>
+                      <Target className="w-3.5 h-3.5" />
+                      {t('goal.matchGoals')}
+                    </Button>
                     <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setPlanMatchId(match.id)}>
                       <ClipboardList className="w-3.5 h-3.5" />
                       {t('plan.open')}
@@ -303,6 +309,15 @@ export function Matches() {
             allMatches={matches}
             open={planMatchId !== null}
             onOpenChange={(o) => !o && setPlanMatchId(null)}
+          />
+        )}
+
+        {goalsMatchId !== null && activeTeamId && matches && (
+          <MatchGoalsDialog
+            teamId={activeTeamId}
+            match={matches.find((m) => m.id === goalsMatchId)!}
+            open={goalsMatchId !== null}
+            onOpenChange={(o) => !o && setGoalsMatchId(null)}
           />
         )}
       </div>

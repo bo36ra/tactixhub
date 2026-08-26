@@ -1699,6 +1699,10 @@ components:
           type: ["integer", "null"]
         scorerName:
           type: ["string", "null"]
+        assistPlayerId:
+          type: ["integer", "null"]
+        assistName:
+          type: ["string", "null"]
         minute:
           type: integer
         method:
@@ -1722,6 +1726,8 @@ components:
           type: string
           enum: [scored, conceded]
         scorerPlayerId:
+          type: integer
+        assistPlayerId:
           type: integer
         minute:
           type: integer
@@ -1748,6 +1754,8 @@ components:
         position:
           type: string
         goalsScored:
+          type: integer
+        assistsMade:
           type: integer
         goalsConceded:
           type: integer

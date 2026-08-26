@@ -12,5 +12,6 @@ export interface ScorerSummary {
   jerseyNumber: number;
   position: string;
   goalsScored: number;
+  assistsMade?: number;
   goalsConceded: number;
 }

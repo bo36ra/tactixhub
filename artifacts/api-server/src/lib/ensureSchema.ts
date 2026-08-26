@@ -358,6 +358,7 @@ const STATEMENTS = [
     "file_data" text NOT NULL,
     "created_at" timestamp DEFAULT now() NOT NULL
   )`,
+  `ALTER TABLE "goals" ADD COLUMN IF NOT EXISTS "assist_player_id" integer REFERENCES "players"("id") ON DELETE SET NULL`,
 ];
 
 export async function ensureSchema(): Promise<void> {

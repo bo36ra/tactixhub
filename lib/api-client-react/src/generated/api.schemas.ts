@@ -398,6 +398,10 @@ export interface Goal {
   scorerPlayerId?: number | null;
   /** @nullable */
   scorerName?: string | null;
+  /** @nullable */
+  assistPlayerId?: number | null;
+  /** @nullable */
+  assistName?: string | null;
   minute: number;
   method: GoalMethod;
   period?: GoalPeriod;
@@ -440,6 +444,7 @@ export interface GoalInput {
   matchId: number;
   type: GoalInputType;
   scorerPlayerId?: number;
+  assistPlayerId?: number;
   /** @minimum 0 */
   minute: number;
   method: GoalInputMethod;
@@ -453,6 +458,7 @@ export interface ScorerSummary {
   jerseyNumber: number;
   position: string;
   goalsScored: number;
+  assistsMade?: number;
   goalsConceded: number;
 }
 

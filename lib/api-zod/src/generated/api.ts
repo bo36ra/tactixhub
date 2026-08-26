@@ -537,6 +537,8 @@ export const ListGoalsResponseItem = zod.object({
   "type": zod.enum(['scored', 'conceded']),
   "scorerPlayerId": zod.number().nullish(),
   "scorerName": zod.string().nullish(),
+  "assistPlayerId": zod.number().nullish(),
+  "assistName": zod.string().nullish(),
   "minute": zod.number(),
   "method": zod.enum(['open_play', 'free_kick', 'header', 'counter_attack', 'cross', 'penalty', 'own_goal']),
   "period": zod.enum(['first_half', 'second_half', 'extra_time']).optional(),
@@ -561,6 +563,7 @@ export const CreateGoalBody = zod.object({
   "matchId": zod.number(),
   "type": zod.enum(['scored', 'conceded']),
   "scorerPlayerId": zod.number().optional(),
+  "assistPlayerId": zod.number().optional(),
   "minute": zod.number().min(createGoalBodyMinuteMin),
   "method": zod.enum(['open_play', 'free_kick', 'header', 'counter_attack', 'cross', 'penalty', 'own_goal']),
   "period": zod.enum(['first_half', 'second_half', 'extra_time']).optional(),
@@ -574,6 +577,8 @@ export const CreateGoalResponse = zod.object({
   "type": zod.enum(['scored', 'conceded']),
   "scorerPlayerId": zod.number().nullish(),
   "scorerName": zod.string().nullish(),
+  "assistPlayerId": zod.number().nullish(),
+  "assistName": zod.string().nullish(),
   "minute": zod.number(),
   "method": zod.enum(['open_play', 'free_kick', 'header', 'counter_attack', 'cross', 'penalty', 'own_goal']),
   "period": zod.enum(['first_half', 'second_half', 'extra_time']).optional(),
@@ -606,6 +611,7 @@ export const GetTopScorersResponseItem = zod.object({
   "jerseyNumber": zod.number(),
   "position": zod.string(),
   "goalsScored": zod.number(),
+  "assistsMade": zod.number().optional(),
   "goalsConceded": zod.number()
 })
 export const GetTopScorersResponse = zod.array(GetTopScorersResponseItem)
@@ -957,6 +963,7 @@ export const GetDashboardResponse = zod.object({
   "jerseyNumber": zod.number(),
   "position": zod.string(),
   "goalsScored": zod.number(),
+  "assistsMade": zod.number().optional(),
   "goalsConceded": zod.number()
 })),
   "cardWarnings": zod.array(zod.object({

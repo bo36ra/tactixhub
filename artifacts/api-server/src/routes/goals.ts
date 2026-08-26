@@ -1,6 +1,7 @@
 import { dbErrorMessage } from "../lib/dbError";
 import { Router } from "express";
 import { eq, and, desc } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db, goalsTable, playersTable, teamsTable, matchesTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { verifyTeamAccess } from "../lib/teamAccess";
@@ -20,16 +21,20 @@ router.get("/teams/:teamId/goals", requireAuth, async (req, res) => {
     return;
   }
   try {
+    const scorers = playersTable;
+    const assisters = alias(playersTable, "assisters");
     const goals = await db
       .select({
         goal: goalsTable,
-        scorerName: playersTable.name,
+        scorerName: scorers.name,
+        assistName: assisters.name,
       })
       .from(goalsTable)
-      .leftJoin(playersTable, eq(goalsTable.scorerPlayerId, playersTable.id))
+      .leftJoin(scorers, eq(goalsTable.scorerPlayerId, scorers.id))
+      .leftJoin(assisters, eq(goalsTable.assistPlayerId, assisters.id))
       .where(eq(goalsTable.teamId, teamId))
       .orderBy(desc(goalsTable.createdAt));
-    res.json(goals.map(({ goal, scorerName }) => mapGoal(goal, scorerName)));
+    res.json(goals.map(({ goal, scorerName, assistName }) => mapGoal(goal, scorerName, assistName)));
   } catch (err) {
     req.log.error({ err }, "Failed to list goals");
     res.status(500).json({ error: dbErrorMessage(err) });
@@ -44,7 +49,7 @@ router.post("/teams/:teamId/goals", requireAuth, async (req, res) => {
     res.status(403).json({ error: "Forbidden" });
     return;
   }
-  const { matchId, type, scorerPlayerId, minute, method, period, note } = req.body;
+  const { matchId, type, scorerPlayerId, assistPlayerId, minute, method, period, note } = req.body;
   if (!matchId || !type || minute === undefined || !method) {
     res.status(400).json({ error: "matchId, type, minute, and method are required" });
     return;
@@ -78,6 +83,7 @@ router.post("/teams/:teamId/goals", requireAuth, async (req, res) => {
         matchId,
         type,
         scorerPlayerId: scorerPlayerId || null,
+        assistPlayerId: assistPlayerId || null,
         minute,
         method,
         period: period || null,
@@ -93,7 +99,15 @@ router.post("/teams/:teamId/goals", requireAuth, async (req, res) => {
         .where(eq(playersTable.id, goal.scorerPlayerId));
       scorerName = player?.name || null;
     }
-    res.status(201).json(mapGoal(goal, scorerName));
+    let assistName: string | null = null;
+    if (goal.assistPlayerId) {
+      const [player] = await db
+        .select()
+        .from(playersTable)
+        .where(eq(playersTable.id, goal.assistPlayerId));
+      assistName = player?.name || null;
+    }
+    res.status(201).json(mapGoal(goal, scorerName, assistName));
   } catch (err) {
     req.log.error({ err }, "Failed to create goal");
     res.status(500).json({ error: dbErrorMessage(err) });
@@ -143,6 +157,9 @@ router.get("/teams/:teamId/goals/scorers", requireAuth, async (req, res) => {
       const goalsScored = goals.filter(
         (g) => g.type === "scored" && g.scorerPlayerId === p.id,
       ).length;
+      const assistsMade = goals.filter(
+        (g) => g.type === "scored" && g.assistPlayerId === p.id,
+      ).length;
       const goalsConceded = p.position === "goalkeeper"
         ? goals.filter((g) => g.type === "conceded").length
         : 0;
@@ -152,6 +169,7 @@ router.get("/teams/:teamId/goals/scorers", requireAuth, async (req, res) => {
         jerseyNumber: p.jerseyNumber,
         position: p.position,
         goalsScored,
+        assistsMade,
         goalsConceded,
       };
     });
@@ -164,7 +182,7 @@ router.get("/teams/:teamId/goals/scorers", requireAuth, async (req, res) => {
   }
 });
 
-function mapGoal(g: typeof goalsTable.$inferSelect, scorerName: string | null | undefined) {
+function mapGoal(g: typeof goalsTable.$inferSelect, scorerName: string | null | undefined, assistName?: string | null | undefined) {
   return {
     id: g.id,
     teamId: g.teamId,
@@ -172,6 +190,8 @@ function mapGoal(g: typeof goalsTable.$inferSelect, scorerName: string | null | 
     type: g.type,
     scorerPlayerId: g.scorerPlayerId,
     scorerName: scorerName || null,
+    assistPlayerId: g.assistPlayerId,
+    assistName: assistName || null,
     minute: g.minute,
     method: g.method,
     period: g.period || null,

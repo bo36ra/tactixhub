@@ -18,6 +18,10 @@ export interface Goal {
   scorerPlayerId?: number | null;
   /** @nullable */
   scorerName?: string | null;
+  /** @nullable */
+  assistPlayerId?: number | null;
+  /** @nullable */
+  assistName?: string | null;
   minute: number;
   method: GoalMethod;
   period?: GoalPeriod;

@@ -11,6 +11,7 @@ export const goalsTable = pgTable("goals", {
   matchId: integer("match_id").notNull().references(() => matchesTable.id, { onDelete: "cascade" }),
   type: text("type").notNull(), // scored, conceded
   scorerPlayerId: integer("scorer_player_id").references(() => playersTable.id, { onDelete: "set null" }),
+  assistPlayerId: integer("assist_player_id").references(() => playersTable.id, { onDelete: "set null" }),
   minute: integer("minute").notNull(),
   method: text("method").notNull(), // open_play, free_kick, header, counter_attack, cross, penalty, own_goal
   period: text("period"), // first_half, second_half, extra_time (nullable, derived from minute)

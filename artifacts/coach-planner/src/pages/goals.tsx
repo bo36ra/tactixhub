@@ -36,6 +36,7 @@ export function Goals() {
     type: 'scored' as GoalInputType,
     matchId: '',
     scorerPlayerId: 'none',
+    assistPlayerId: 'none',
     minute: '',
     method: 'open_play' as GoalInputMethod,
     note: ''
@@ -58,6 +59,7 @@ export function Goals() {
         matchId: parseInt(formData.matchId, 10),
         type: formData.type,
         scorerPlayerId: formData.type === 'scored' && formData.scorerPlayerId !== 'none' ? parseInt(formData.scorerPlayerId, 10) : undefined,
+        assistPlayerId: formData.type === 'scored' && formData.assistPlayerId !== 'none' ? parseInt(formData.assistPlayerId, 10) : undefined,
         minute: parseInt(formData.minute, 10),
         method: formData.method,
         ...(formData.note.trim() && { note: formData.note.trim() })
@@ -69,7 +71,7 @@ export function Goals() {
         queryClient.invalidateQueries({ queryKey: getListGoalsQueryKey(activeTeamId) });
         queryClient.invalidateQueries({ queryKey: getGetTopScorersQueryKey(activeTeamId) });
         setOpen(false);
-        setFormData(prev => ({ ...prev, minute: '', scorerPlayerId: 'none', note: '' }));
+        setFormData(prev => ({ ...prev, minute: '', scorerPlayerId: 'none', assistPlayerId: 'none', note: '' }));
       }
     });
   };
@@ -153,6 +155,23 @@ export function Goals() {
                   </div>
                 )}
 
+                {formData.type === 'scored' && (
+                  <div className="space-y-2">
+                    <Label>{t('goal.assist')}</Label>
+                    <Select value={formData.assistPlayerId} onValueChange={v => setFormData({...formData, assistPlayerId: v})}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">{t('goal.noAssist')}</SelectItem>
+                        {players?.filter(p => p.id.toString() !== formData.scorerPlayerId).map(p => (
+                          <SelectItem key={p.id} value={p.id.toString()}>
+                            {p.jerseyNumber} - {playerName(p, lang)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>{t('goal.minute')}</Label>
@@ -201,13 +220,14 @@ export function Goals() {
                     <th className="px-4 py-3 w-12">#</th>
                     <th className="px-4 py-3">{t('common.name')}</th>
                     <th className="px-4 py-3 text-center">{t('stat.goalsScored')}</th>
+                    <th className="px-4 py-3 text-center">{t('goal.assists')}</th>
                     <th className="px-4 py-3 text-center">{t('goals.conceded')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {isLoading && [1, 2, 3].map((i) => (
                     <tr key={i}>
-                      <td className="px-4 py-3" colSpan={4}><Skeleton className="h-4 w-full" /></td>
+                      <td className="px-4 py-3" colSpan={5}><Skeleton className="h-4 w-full" /></td>
                     </tr>
                   ))}
                   {topScorers?.map((scorer, i) => (
@@ -215,6 +235,7 @@ export function Goals() {
                       <td className="px-4 py-3 text-muted-foreground font-medium">{i + 1}</td>
                       <td className="px-4 py-3 font-semibold">{scorer.playerName}</td>
                       <td className="px-4 py-3 text-center font-bold">{scorer.goalsScored}</td>
+                      <td className="px-4 py-3 text-center text-muted-foreground">{scorer.assistsMade}</td>
                       <td className="px-4 py-3 text-center text-muted-foreground">
                         {scorer.position === 'goalkeeper' ? scorer.goalsConceded : '-'}
                       </td>
@@ -222,7 +243,7 @@ export function Goals() {
                   ))}
                   {topScorers?.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                      <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                         {t('common.noData')}
                       </td>
                     </tr>
@@ -267,6 +288,9 @@ export function Goals() {
                         <td className="px-4 py-3 font-medium">{match?.opponent}</td>
                         <td className="px-4 py-3">
                           {isScored ? <span className="font-semibold">{goal.scorerName || '-'}</span> : <span className="text-muted-foreground">{t(`goal.${goal.method}`)}</span>}
+                          {isScored && goal.assistName && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{t('goal.assistedBy')} {goal.assistName}</p>
+                          )}
                           {goal.note && (
                             <p className="text-xs text-muted-foreground mt-1 max-w-64 whitespace-pre-wrap">{goal.note}</p>
                           )}

@@ -13,6 +13,7 @@ export interface GoalInput {
   matchId: number;
   type: GoalInputType;
   scorerPlayerId?: number;
+  assistPlayerId?: number;
   /** @minimum 0 */
   minute: number;
   method: GoalInputMethod;
