@@ -8,7 +8,7 @@ import { nativeShare } from '@/lib/native';
 import { useUndoableDelete } from '@/lib/undoable-delete';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
-import { useListMatches, useCreateMatch, useDeleteMatch, getListMatchesQueryKey } from '@workspace/api-client-react';
+import { useListMatches, useCreateMatch, useUpdateMatch, useDeleteMatch, getListMatchesQueryKey } from '@workspace/api-client-react';
 import { MatchInputType } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQueryClient } from '@tanstack/react-query';
-import { Trash2, Plus, Calendar, LayoutGrid, ClipboardList, Share2 } from 'lucide-react';
+import { Trash2, Plus, Pencil, Calendar, LayoutGrid, ClipboardList, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { MatchPlanDialog } from '@/components/match-plan-dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +30,7 @@ export function Matches() {
   const showApiError = (err: unknown) =>
     toast({ title: t('common.saveFailed'), description: err instanceof Error ? err.message : undefined, variant: 'destructive' });
   const [open, setOpen] = React.useState(false);
+  const [editingMatchId, setEditingMatchId] = React.useState<number | null>(null);
   const [planMatchId, setPlanMatchId] = React.useState<number | null>(null);
 
   const [formData, setFormData] = React.useState({
@@ -45,27 +46,64 @@ export function Matches() {
   });
 
   const createMatch = useCreateMatch();
+  const updateMatch = useUpdateMatch();
   const deleteMatch = useDeleteMatch();
+
+  const resetForm = () => setFormData({ opponent: '', date: format(new Date(), 'yyyy-MM-dd'), type: 'league', ourGoals: '0', theirGoals: '0' });
+
+  const openAdd = () => {
+    setEditingMatchId(null);
+    resetForm();
+    setOpen(true);
+  };
+
+  const openEdit = (match: NonNullable<typeof matches>[number]) => {
+    setEditingMatchId(match.id);
+    setFormData({
+      opponent: match.opponent,
+      date: match.date,
+      type: match.type,
+      ourGoals: String(match.ourGoals),
+      theirGoals: String(match.theirGoals),
+    });
+    setOpen(true);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeTeamId) return;
+    const data = {
+      opponent: formData.opponent,
+      date: formData.date,
+      type: formData.type,
+      ourGoals: parseInt(formData.ourGoals, 10),
+      theirGoals: parseInt(formData.theirGoals, 10),
+    };
+    if (editingMatchId !== null) {
+      updateMatch.mutate({
+        teamId: activeTeamId, matchId: editingMatchId, data,
+      }, {
+        onError: showApiError,
+        onSuccess: () => {
+          toast({ title: t('match.saved') });
+          queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(activeTeamId) });
+          setOpen(false);
+          setEditingMatchId(null);
+          resetForm();
+        },
+      });
+      return;
+    }
     createMatch.mutate({
       teamId: activeTeamId,
-      data: {
-        opponent: formData.opponent,
-        date: formData.date,
-        type: formData.type,
-        ourGoals: parseInt(formData.ourGoals, 10),
-        theirGoals: parseInt(formData.theirGoals, 10)
-      }
+      data,
     }, {
       onError: showApiError,
       onSuccess: () => {
         toast({ title: t('match.saved') });
         queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(activeTeamId) });
         setOpen(false);
-        setFormData({ opponent: '', date: format(new Date(), 'yyyy-MM-dd'), type: 'league', ourGoals: '0', theirGoals: '0' });
+        resetForm();
       }
     });
   };
@@ -108,13 +146,13 @@ export function Matches() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <PageTitle>{t('nav.matches')}</PageTitle>
           
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditingMatchId(null); }}>
             <DialogTrigger asChild>
-              <Button className="gap-2"><Plus className="w-4 h-4" /> {t('match.add')}</Button>
+              <Button className="gap-2" onClick={openAdd}><Plus className="w-4 h-4" /> {t('match.add')}</Button>
             </DialogTrigger>
             <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-h-[85vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>{t('match.add')}</DialogTitle>
+                <DialogTitle>{editingMatchId !== null ? t('match.edit') : t('match.add')}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
@@ -150,7 +188,7 @@ export function Matches() {
                 </div>
                 <div className="flex justify-end gap-2 pt-4">
                   <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
-                  <Button type="submit" disabled={createMatch.isPending}>{t('common.save')}</Button>
+                  <Button type="submit" disabled={createMatch.isPending || updateMatch.isPending}>{t('common.save')}</Button>
                 </div>
               </form>
             </DialogContent>
@@ -184,25 +222,33 @@ export function Matches() {
                     </div>
                     <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t(`match.${match.type}`)}</p>
                   </div>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/60 hover:text-destructive active:text-destructive -mt-1 -mr-2">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{t('common.confirm')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('match.deleteConfirm')}</AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(match.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                          {t('common.delete')}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <div className="flex items-center -mt-1 -mr-2">
+                    <Button
+                      variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      onClick={() => openEdit(match)}
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/60 hover:text-destructive active:text-destructive">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>{t('common.confirm')}</AlertDialogTitle>
+                          <AlertDialogDescription>{t('match.deleteConfirm')}</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(match.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            {t('common.delete')}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
                 <div className="p-6 flex flex-col items-center justify-center gap-4 bg-card/80">
                   <div className="text-center w-full truncate font-bold text-lg text-foreground px-4">
