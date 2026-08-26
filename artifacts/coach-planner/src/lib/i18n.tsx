@@ -323,7 +323,7 @@ const en: Translations = {
 
 
 
-  "nav.trainings": "Trainings",
+  "nav.trainings": "Performance Log",
   "nav.performance": "Performance",
   "train.new": "New session",
   "train.empty": "No training sessions yet.",
@@ -1118,7 +1118,7 @@ const ar: Translations = {
 
 
 
-  "nav.trainings": "التدريبات",
+  "nav.trainings": "سجل الأداء",
   "nav.performance": "الأداء",
   "train.new": "حصة جديدة",
   "train.empty": "لا توجد حصص تدريبية بعد.",
