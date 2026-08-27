@@ -19,6 +19,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { PITCH_GRADIENT } from '@/lib/chart-theme';
 import { Trash2, Undo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus, Maximize, Minimize, Move as MoveIcon, ArrowUpRight } from 'lucide-react';
+import { AnalysisBoard } from '@/components/analysis-board';
 
 // ---------------------------------------------------------------- board
 
@@ -899,6 +900,7 @@ function AllTab({
     general: 'pill-beige',
     set_piece: 'pill-yellow',
     match_plan: 'pill-green',
+    analysis: 'pill-blue',
   };
 
   if (isLoading) return <p className="text-muted-foreground text-sm">{t('common.loading')}</p>;
@@ -931,7 +933,7 @@ function AllTab({
 
 // ---------------------------------------------------------------- page
 
-const TAB_BY_KIND: Record<TacticKind, string> = { general: 'board', set_piece: 'setpieces', match_plan: 'plans' };
+const TAB_BY_KIND: Record<TacticKind, string> = { general: 'board', set_piece: 'setpieces', match_plan: 'plans', analysis: 'analysis' };
 
 export function Tactics() {
   const { t } = useLanguage();
@@ -957,6 +959,7 @@ export function Tactics() {
           <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="all">{t('tactics.tabAll')}</TabsTrigger>
             <TabsTrigger value="board">{t('tactics.tabBoard')}</TabsTrigger>
+            <TabsTrigger value="analysis">{t('analysis.tabAnalysis')}</TabsTrigger>
             <TabsTrigger value="setpieces">{t('tactics.tabSetPieces')}</TabsTrigger>
             <TabsTrigger value="plans">{t('tactics.tabPlans')}</TabsTrigger>
             <TabsTrigger value="opponents">{t('tactics.tabOpponents')}</TabsTrigger>
@@ -968,6 +971,9 @@ export function Tactics() {
               openId={pending?.kind === 'general' ? pending.id : null}
               onOpened={() => setPending(null)}
             />
+          </TabsContent>
+          <TabsContent value="analysis">
+            <AnalysisBoard teamId={activeTeamId} />
           </TabsContent>
           <TabsContent value="setpieces">
             <BoardsTab

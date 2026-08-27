@@ -25,6 +25,21 @@ export interface BoardLine { x1: number; y1: number; x2: number; y2: number }
 export interface BoardDrawing { points: { x: number; y: number }[] }
 // A frame is a snapshot of marker positions; playback interpolates between frames.
 export interface BoardFrame { markers: BoardMarker[] }
+export const EVENT_TYPES = [
+  'pass', 'shot', 'reception', 'loss', 'recovery', 'press', 'tackle',
+  'off_ball_movement', 'cross', 'corner', 'foul',
+] as const;
+export type TacticalEventType = typeof EVENT_TYPES[number];
+export interface TacticalEvent {
+  id: string;
+  x: number; // 0..100
+  y: number; // 0..100
+  type: TacticalEventType;
+  playerId?: number | null;
+  minute?: number | null; // manually-entered match minute, independent of createdAt
+  createdAt: number; // Date.now() at creation — used to order events when minute isn't set
+}
+
 export interface BoardData {
   markers: BoardMarker[];
   arrows: BoardArrow[];
@@ -32,9 +47,13 @@ export interface BoardData {
   drawings?: BoardDrawing[];
   frames?: BoardFrame[];
   notes?: string;
+  // Only populated for kind:'analysis' boards — the rest of BoardData
+  // (markers/arrows) is shared and reused as-is by the analysis board
+  // for player positions and drawn movement lines.
+  events?: TacticalEvent[];
 }
 
-export type TacticKind = 'general' | 'set_piece' | 'match_plan';
+export type TacticKind = 'general' | 'set_piece' | 'match_plan' | 'analysis';
 export interface Tactic {
   id: number;
   teamId: number;
@@ -64,9 +83,10 @@ export function parseBoard(data: string): BoardData {
       drawings: d.drawings ?? [],
       frames: d.frames ?? [],
       notes: d.notes ?? '',
+      events: d.events ?? [],
     };
   } catch {
-    return { markers: [], arrows: [], lines: [], drawings: [], frames: [], notes: '' };
+    return { markers: [], arrows: [], lines: [], drawings: [], frames: [], notes: '', events: [] };
   }
 }
 
