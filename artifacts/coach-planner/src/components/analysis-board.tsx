@@ -13,13 +13,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   MousePointer2, UserPlus, ArrowUpRight, Undo2, Redo2, Eraser, Save, X,
   ListFilter, ZoomIn, ZoomOut, Trash2, ChevronDown, BarChart3,
 } from 'lucide-react';
 
-type Mode = 'select' | 'add-player' | 'arrow';
+type Mode = 'select' | 'add-player' | 'arrow' | 'erase';
 
 const EVENT_COLORS: Record<TacticalEventType, string> = {
   pass: '#5B9BD5', shot: '#E85D5D', reception: '#6FCF97', loss: '#B0473E',
@@ -33,6 +34,15 @@ function emptyAnalysisBoard(): BoardData {
 
 function dist(x1: number, y1: number, x2: number, y2: number) {
   return Math.hypot(x2 - x1, y2 - y1);
+}
+
+function distToSeg(px: number, py: number, x1: number, y1: number, x2: number, y2: number) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const lenSq = dx * dx + dy * dy;
+  let t = lenSq === 0 ? 0 : ((px - x1) * dx + (py - y1) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  return dist(px, py, x1 + t * dx, y1 + t * dy);
 }
 
 export function AnalysisBoard({ teamId }: { teamId: number }) {
@@ -150,6 +160,31 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
     };
   };
 
+  const eraseAt = (p: { x: number; y: number }) => {
+    let bestKind: 'marker' | 'event' | 'arrow' | null = null;
+    let bestIdx = -1;
+    let bestDist = 5; // percent units — generous enough for a fingertip
+    board.markers.forEach((m, i) => {
+      const d = dist(m.x, m.y, p.x, p.y);
+      if (d < bestDist) { bestDist = d; bestKind = 'marker'; bestIdx = i; }
+    });
+    (board.events ?? []).forEach((e, i) => {
+      const d = dist(e.x, e.y, p.x, p.y);
+      if (d < bestDist) { bestDist = d; bestKind = 'event'; bestIdx = i; }
+    });
+    board.arrows.forEach((a, i) => {
+      const d = distToSeg(p.x, p.y, a.x1, a.y1, a.x2, a.y2);
+      if (d < bestDist) { bestDist = d; bestKind = 'arrow'; bestIdx = i; }
+    });
+    if (bestKind === 'marker') {
+      setBoard({ ...board, markers: board.markers.filter((_, i) => i !== bestIdx) });
+    } else if (bestKind === 'event') {
+      setBoard({ ...board, events: (board.events ?? []).filter((_, i) => i !== bestIdx) });
+    } else if (bestKind === 'arrow') {
+      setBoard({ ...board, arrows: board.arrows.filter((_, i) => i !== bestIdx) });
+    }
+  };
+
   const hitTestMarker = (p: { x: number; y: number }): BoardMarker | null => {
     let best: BoardMarker | null = null;
     let bestDist = 6; // percent units
@@ -232,6 +267,8 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
       } else if (mode === 'add-player') {
         const id = `p-${Date.now()}`;
         setBoard({ ...board, markers: [...board.markers, { id, x: g.startPercent.x, y: g.startPercent.y, label: '', side: 'us' }] });
+      } else if (mode === 'erase') {
+        eraseAt(g.startPercent);
       }
     }
     gesture.current = { kind: 'none', startClientX: 0, startClientY: 0, startPercent: { x: 0, y: 0 }, moved: false };
@@ -277,6 +314,8 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
       else if (mode === 'add-player') {
         const id = `p-${Date.now()}`;
         setBoard({ ...board, markers: [...board.markers, { id, x: g.startPercent.x, y: g.startPercent.y, label: '', side: 'us' }] });
+      } else if (mode === 'erase') {
+        eraseAt(g.startPercent);
       }
     }
     gesture.current = { kind: 'none', startClientX: 0, startClientY: 0, startPercent: { x: 0, y: 0 }, moved: false };
@@ -332,6 +371,9 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
           <Button size="icon" variant={mode === 'arrow' ? 'default' : 'ghost'} className="h-10 w-10" onClick={() => setMode('arrow')} title={t('analysis.toolArrow')}>
             <ArrowUpRight className="w-4.5 h-4.5" />
           </Button>
+          <Button size="icon" variant={mode === 'erase' ? 'default' : 'ghost'} className="h-10 w-10" onClick={() => setMode('erase')} title={t('analysis.toolErase')}>
+            <Eraser className="w-4.5 h-4.5" />
+          </Button>
           <div className="h-px w-6 bg-border my-1" />
           <Button size="icon" variant="ghost" className="h-10 w-10" onClick={undo} disabled={!canUndo} title={t('tactics.undo')}>
             <Undo2 className="w-4.5 h-4.5" />
@@ -347,9 +389,25 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
             <ZoomOut className="w-4.5 h-4.5" />
           </Button>
           <div className="h-px w-6 bg-border my-1" />
-          <Button size="icon" variant="ghost" className="h-10 w-10 text-destructive/70 hover:text-destructive" onClick={handleClear} title={t('tactics.clearAll')}>
-            <Eraser className="w-4.5 h-4.5" />
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="icon" variant="ghost" className="h-10 w-10 text-destructive/70 hover:text-destructive" title={t('tactics.clearAll')}>
+                <Trash2 className="w-4.5 h-4.5" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('common.confirm')}</AlertDialogTitle>
+                <AlertDialogDescription>{t('analysis.clearAllConfirm')}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={handleClear} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  {t('tactics.clearAll')}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         {/* Pitch */}
@@ -401,8 +459,8 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
                 <g key={ev.id} transform={`translate(${ev.x}, ${ev.y})`}>
                   {ev.subtype ? (
                     <>
-                      <rect x="-3.4" y="-2" width="6.8" height="4" rx="0.8" fill={EVENT_COLORS[ev.type]} stroke="#111" strokeWidth="0.3" vectorEffect="non-scaling-stroke" />
-                      <text textAnchor="middle" dy="1.1" fontSize="2.6" fontWeight="700" fill="#fff">{ev.subtype}</text>
+                      <rect x="-4.6" y="-2.6" width="9.2" height="5.2" rx="1" fill={EVENT_COLORS[ev.type]} stroke="#111" strokeWidth="0.4" vectorEffect="non-scaling-stroke" />
+                      <text textAnchor="middle" dy="1.4" fontSize="3.6" fontWeight="800" fill="#fff">{ev.subtype}</text>
                     </>
                   ) : (
                     <circle r="1.6" fill={EVENT_COLORS[ev.type]} stroke="#111" strokeWidth="0.3" vectorEffect="non-scaling-stroke" />
