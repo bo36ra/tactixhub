@@ -648,6 +648,9 @@ function StatsDialog({
   lang: string;
   t: (k: string) => string;
 }) {
+  const [view, setView] = React.useState<'overview' | 'byPlayer' | 'timeline'>('overview');
+  const [openPlayerId, setOpenPlayerId] = React.useState<number | null>(null);
+
   const byType = EVENT_TYPES.map((et) => ({ type: et, count: events.filter((e) => e.type === et).length })).filter((r) => r.count > 0);
   const subtypeBreakdowns = EVENT_TYPES
     .filter((et) => SUBTYPES_BY_EVENT[et])
@@ -659,11 +662,18 @@ function StatsDialog({
       })).filter((r) => r.count > 0),
     }))
     .filter((g) => g.rows.length > 0);
-  const byPlayer = players
+  const byPlayerCount = players
     .map((p) => ({ player: p, count: events.filter((e) => e.playerId === p.id).length }))
     .filter((r) => r.count > 0)
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 8);
+    .sort((a, b) => b.count - a.count);
+  const noPlayerCount = events.filter((e) => !e.playerId).length;
+
+  const sortedEvents = events.slice().sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0) || a.createdAt - b.createdAt);
+
+  const eventLabel = (ev: TacticalEvent) => {
+    const sub = ev.subtype ? ` (${ev.subtype})` : '';
+    return `${t(`analysis.evt.${ev.type}`)}${sub}`;
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -678,46 +688,121 @@ function StatsDialog({
               <p className="text-xs text-muted-foreground">{t('analysis.totalEvents')}</p>
             </div>
 
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t('analysis.byType')}</p>
-              <div className="space-y-1">
-                {byType.map((r) => (
-                  <div key={r.type} className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: EVENT_COLORS[r.type] }} />
-                    <span className="text-sm flex-1">{t(`analysis.evt.${r.type}`)}</span>
-                    <span className="text-sm font-bold" dir="ltr">{r.count}</span>
+            {/* View filter */}
+            <div className="flex gap-1.5 bg-muted/40 rounded-lg p-1">
+              {(['overview', 'byPlayer', 'timeline'] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setView(v)}
+                  className={`flex-1 text-xs font-semibold py-1.5 rounded-md ${view === v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+                >
+                  {t(`analysis.view.${v}`)}
+                </button>
+              ))}
+            </div>
+
+            {/* ---- Overview ---- */}
+            {view === 'overview' && (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t('analysis.byType')}</p>
+                  <div className="space-y-1">
+                    {byType.map((r) => (
+                      <div key={r.type} className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: EVENT_COLORS[r.type] }} />
+                        <span className="text-sm flex-1">{t(`analysis.evt.${r.type}`)}</span>
+                        <span className="text-sm font-bold" dir="ltr">{r.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {subtypeBreakdowns.map((g) => (
+                  <div key={g.type}>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+                      {t(`analysis.evt.${g.type}`)} — {t('analysis.subBreakdown')}
+                    </p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {g.rows.map((r) => (
+                        <div key={r.subtype} className="flex items-center justify-between bg-muted/40 rounded-lg px-2.5 py-1.5">
+                          <span className="text-xs font-bold px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: EVENT_COLORS[g.type] }}>{r.subtype}</span>
+                          <span className="text-xs text-muted-foreground" dir="ltr">{r.count}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
+            )}
 
-            {subtypeBreakdowns.map((g) => (
-              <div key={g.type}>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
-                  {t(`analysis.evt.${g.type}`)} — {t('analysis.foulBreakdown')}
-                </p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {g.rows.map((r) => (
-                    <div key={r.subtype} className="flex items-center justify-between bg-muted/40 rounded-lg px-2.5 py-1.5">
-                      <span className="text-xs font-bold">{r.subtype}</span>
-                      <span className="text-xs text-muted-foreground" dir="ltr">{r.count}</span>
+            {/* ---- By player ---- */}
+            {view === 'byPlayer' && (
+              <div className="space-y-1.5">
+                {byPlayerCount.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-4">{t('analysis.noPlayerEvents')}</p>
+                ) : byPlayerCount.map(({ player, count }) => {
+                  const playerEvents = sortedEvents.filter((e) => e.playerId === player.id);
+                  const isOpen = openPlayerId === player.id;
+                  return (
+                    <div key={player.id} className="border border-border rounded-lg overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setOpenPlayerId(isOpen ? null : player.id)}
+                        className="w-full flex items-center gap-2 px-3 py-2 bg-muted/30"
+                      >
+                        <span className="text-sm font-semibold flex-1 text-start truncate">{playerName(player, lang)}</span>
+                        <span className="text-xs text-muted-foreground" dir="ltr">{count}</span>
+                        <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {isOpen && (
+                        <div className="px-3 py-2 space-y-1.5">
+                          {playerEvents.map((ev) => (
+                            <div key={ev.id} className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: EVENT_COLORS[ev.type] }} />
+                              <span className="text-xs flex-1">{eventLabel(ev)}</span>
+                              <span className="text-[10px] text-muted-foreground font-mono" dir="ltr">{ev.minute != null ? `${ev.minute}'` : '--'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
+                {noPlayerCount > 0 && (
+                  <p className="text-[11px] text-muted-foreground text-center pt-1">{t('analysis.noPlayerEventsCount')}: {noPlayerCount}</p>
+                )}
               </div>
-            ))}
+            )}
 
-            {byPlayer.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t('analysis.byPlayer')}</p>
-                <div className="space-y-1">
-                  {byPlayer.map((r) => (
-                    <div key={r.player.id} className="flex items-center gap-2">
-                      <span className="text-sm flex-1 truncate">{playerName(r.player, lang)}</span>
-                      <span className="text-sm font-bold" dir="ltr">{r.count}</span>
-                    </div>
-                  ))}
-                </div>
+            {/* ---- Timeline / detailed log ---- */}
+            {view === 'timeline' && (
+              <div className="border border-border rounded-lg overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/40">
+                    <tr>
+                      <th className="px-2 py-1.5 text-start font-semibold text-muted-foreground">{t('goal.minute')}</th>
+                      <th className="px-2 py-1.5 text-start font-semibold text-muted-foreground">{t('match.tagPlayer')}</th>
+                      <th className="px-2 py-1.5 text-start font-semibold text-muted-foreground">{t('analysis.eventCol')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {sortedEvents.map((ev) => {
+                      const p = players.find((pl) => pl.id === ev.playerId);
+                      return (
+                        <tr key={ev.id}>
+                          <td className="px-2 py-1.5 font-mono text-muted-foreground" dir="ltr">{ev.minute != null ? `${ev.minute}'` : '--'}</td>
+                          <td className="px-2 py-1.5 truncate max-w-[6rem]">{p ? playerName(p, lang) : t('analysis.noPlayer')}</td>
+                          <td className="px-2 py-1.5">
+                            <span className="inline-flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: EVENT_COLORS[ev.type] }} />
+                              {eventLabel(ev)}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

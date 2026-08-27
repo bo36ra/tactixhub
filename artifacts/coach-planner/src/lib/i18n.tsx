@@ -428,6 +428,14 @@ const en: Translations = {
   "analysis.totalEvents": "Total events logged",
   "analysis.byType": "By event type",
   "analysis.foulBreakdown": "Foul breakdown",
+  "analysis.subBreakdown": "Breakdown",
+  "analysis.view.overview": "Overview",
+  "analysis.view.byPlayer": "By Player",
+  "analysis.view.timeline": "Timeline",
+  "analysis.noPlayerEvents": "No events linked to a player yet",
+  "analysis.noPlayerEventsCount": "Events with no player tagged",
+  "analysis.eventCol": "Event",
+
   "analysis.byPlayer": "By player",
 
 
@@ -1277,6 +1285,14 @@ const ar: Translations = {
   "analysis.totalEvents": "إجمالي الأحداث المسجّلة",
   "analysis.byType": "حسب نوع الحدث",
   "analysis.foulBreakdown": "تفصيل الفاولات",
+  "analysis.subBreakdown": "تفصيل",
+  "analysis.view.overview": "نظرة شاملة",
+  "analysis.view.byPlayer": "حسب اللاعب",
+  "analysis.view.timeline": "السجل الزمني",
+  "analysis.noPlayerEvents": "ما فيه أحداث مربوطة بلاعب لسه",
+  "analysis.noPlayerEventsCount": "أحداث بدون لاعب محدد",
+  "analysis.eventCol": "الحدث",
+
   "analysis.byPlayer": "حسب اللاعب",
 
 
