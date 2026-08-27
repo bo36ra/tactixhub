@@ -256,7 +256,28 @@ export function CalendarPage() {
                 <div
                   key={key}
                   role="button"
-                  onClick={() => { if (inMonth) { setDayOpen(key); } }}
+                  onClick={() => {
+                    if (!inMonth) return;
+                    setDayOpen(key);
+                    // Pre-fill the add-training defaults from the weekly
+                    // cycle's template for this day of week — previously
+                    // this always started from the same hardcoded
+                    // defaults regardless of what the cycle said, which
+                    // made the cycle feel disconnected from the calendar
+                    // even though "Apply Cycle" already respects it when
+                    // generating a whole month at once. This covers the
+                    // other path: clicking a single day by hand.
+                    const dayHasContent = (eventsByDay.get(key) ?? []).length > 0;
+                    if (!dayHasContent) {
+                      const dow = (day.getDay() + 6) % 7; // JS Sunday=0 → ISO Monday=0, matches the backend's cycle/apply conversion
+                      const tpl = (cycle ?? []).find((c) => c.dayOfWeek === dow);
+                      if (tpl) {
+                        setDayFocus(tpl.focus.split(',').map((f) => f.trim()).filter(Boolean));
+                        setDayIntensity(tpl.intensity ?? 'medium');
+                        setDayDuration(tpl.durationMinutes != null ? String(tpl.durationMinutes) : '90');
+                      }
+                    }
+                  }}
                   className={`relative min-h-20 sm:min-h-24 border-t border-e border-border/40 p-1 sm:p-1.5 cursor-pointer hover:bg-white/[0.03] transition-colors ${
                     inMonth ? '' : 'opacity-35 pointer-events-none'
                   }`}
