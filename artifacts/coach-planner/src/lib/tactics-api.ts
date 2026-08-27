@@ -29,7 +29,10 @@ export const EVENT_TYPES = [
   'pass', 'shot', 'reception', 'loss', 'recovery', 'press', 'tackle',
   'off_ball_movement', 'cross', 'corner', 'foul',
 ] as const;
-export type TacticalEventType = typeof EVENT_TYPES[number];
+// 'custom' isn't in EVENT_TYPES (that list drives the fixed color-coded
+// grid) but is a valid event type — lets a coach log something not on
+// the predefined list at all, with their own label and short code.
+export type TacticalEventType = typeof EVENT_TYPES[number] | 'custom';
 export const FOUL_SUBTYPES = ['AF', 'DF', 'PK', 'YC', 'RC', 'HB'] as const;
 export type FoulSubtype = typeof FOUL_SUBTYPES[number];
 
@@ -50,6 +53,9 @@ export interface TacticalEvent {
   x: number; // 0..100
   y: number; // 0..100
   type: TacticalEventType;
+  // Only for type:'custom' — a coach-written name and short code,
+  // used instead of an i18n lookup wherever the event is displayed.
+  customLabel?: string | null;
   // Currently only meaningful for type:'foul' (AF/DF/PK/YC/RC/HB) —
   // kept as a plain string rather than a foul-specific field name so
   // other event types can grow their own short-code subtypes later

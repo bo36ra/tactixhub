@@ -25,8 +25,12 @@ type Mode = 'select' | 'add-player' | 'arrow' | 'erase';
 const EVENT_COLORS: Record<TacticalEventType, string> = {
   pass: '#5B9BD5', shot: '#E85D5D', reception: '#6FCF97', loss: '#B0473E',
   recovery: '#4C7A52', press: '#F2994A', tackle: '#BB8FCE', off_ball_movement: '#9C9483',
-  cross: '#4FC3F7', corner: '#FFD84D', foul: '#D96B5B',
+  cross: '#4FC3F7', corner: '#FFD84D', foul: '#D96B5B', custom: '#7D8590',
 };
+
+function eventTypeLabel(ev: { type: TacticalEventType; customLabel?: string | null }, t: (k: string) => string) {
+  return ev.type === 'custom' ? (ev.customLabel || t('analysis.evt.custom')) : t(`analysis.evt.${ev.type}`);
+}
 
 function emptyAnalysisBoard(): BoardData {
   return { markers: [], arrows: [], lines: [], drawings: [], frames: [], notes: '', events: [] };
@@ -323,9 +327,9 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
 
   const events = (board.events ?? []).slice().sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0) || a.createdAt - b.createdAt);
 
-  const addEvent = (type: TacticalEventType, subtype: string | null, playerId: number | null, minute: number | null) => {
+  const addEvent = (type: TacticalEventType, subtype: string | null, customLabel: string | null, playerId: number | null, minute: number | null) => {
     if (!pendingPos) return;
-    const ev: TacticalEvent = { id: `e-${Date.now()}`, x: pendingPos.x, y: pendingPos.y, type, subtype, playerId, minute, createdAt: Date.now() };
+    const ev: TacticalEvent = { id: `e-${Date.now()}`, x: pendingPos.x, y: pendingPos.y, type, subtype, customLabel, playerId, minute, createdAt: Date.now() };
     setBoard({ ...board, events: [...(board.events ?? []), ev] });
     setPendingPos(null);
   };
@@ -580,6 +584,10 @@ function Legend({ t }: { t: (k: string) => string }) {
                 <span className="text-[11px] text-muted-foreground whitespace-nowrap">{t(`analysis.evt.${et}`)}</span>
               </div>
             ))}
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: EVENT_COLORS.custom }} />
+              <span className="text-[11px] text-muted-foreground whitespace-nowrap">{t('analysis.evt.custom')} ({t('analysis.legendCustomNote')})</span>
+            </div>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
             {EVENT_TYPES.filter((et) => SUBTYPES_BY_EVENT[et]).flatMap((et) =>
@@ -618,9 +626,11 @@ function EventsList({
               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: EVENT_COLORS[ev.type] }} />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold truncate">
-                  {t(`analysis.evt.${ev.type}`)}
+                  {eventTypeLabel(ev, t)}
                   {ev.subtype && (
-                    <span className="ms-1.5 text-[9px] font-bold bg-primary/15 text-primary px-1 py-0.5 rounded">{t(`analysis.sub.${ev.type}.${ev.subtype}`)}</span>
+                    <span className="ms-1.5 text-[9px] font-bold bg-primary/15 text-primary px-1 py-0.5 rounded">
+                      {ev.type === 'custom' ? ev.subtype : t(`analysis.sub.${ev.type}.${ev.subtype}`)}
+                    </span>
                   )}
                 </p>
                 <p className="text-[10px] text-muted-foreground truncate">
@@ -651,7 +661,9 @@ function StatsDialog({
   const [view, setView] = React.useState<'overview' | 'byPlayer' | 'timeline'>('overview');
   const [openPlayerId, setOpenPlayerId] = React.useState<number | null>(null);
 
-  const byType = EVENT_TYPES.map((et) => ({ type: et, count: events.filter((e) => e.type === et).length })).filter((r) => r.count > 0);
+  const byType = EVENT_TYPES.map((et) => ({ type: et as TacticalEventType, count: events.filter((e) => e.type === et).length })).filter((r) => r.count > 0);
+  const customCount = events.filter((e) => e.type === 'custom').length;
+  if (customCount > 0) byType.push({ type: 'custom', count: customCount });
   const subtypeBreakdowns = EVENT_TYPES
     .filter((et) => SUBTYPES_BY_EVENT[et])
     .map((et) => ({
@@ -672,7 +684,7 @@ function StatsDialog({
 
   const eventLabel = (ev: TacticalEvent) => {
     const sub = ev.subtype ? ` (${ev.subtype})` : '';
-    return `${t(`analysis.evt.${ev.type}`)}${sub}`;
+    return `${eventTypeLabel(ev, t)}${sub}`;
   };
 
   return (
@@ -821,15 +833,17 @@ function AddEventDialog({
   lang: string;
   t: (k: string) => string;
   onCancel: () => void;
-  onConfirm: (type: TacticalEventType, subtype: string | null, playerId: number | null, minute: number | null) => void;
+  onConfirm: (type: TacticalEventType, subtype: string | null, customLabel: string | null, playerId: number | null, minute: number | null) => void;
 }) {
   const [type, setType] = React.useState<TacticalEventType>('pass');
   const [subtype, setSubtype] = React.useState<string | null>(null);
+  const [customLabel, setCustomLabel] = React.useState('');
+  const [customCode, setCustomCode] = React.useState('');
   const [playerId, setPlayerId] = React.useState<string>('none');
   const [minute, setMinute] = React.useState('');
 
   React.useEffect(() => {
-    if (open) { setType('pass'); setSubtype(null); setPlayerId('none'); setMinute(''); }
+    if (open) { setType('pass'); setSubtype(null); setCustomLabel(''); setCustomCode(''); setPlayerId('none'); setMinute(''); }
   }, [open]);
 
   const subtypeOptions = SUBTYPES_BY_EVENT[type];
@@ -856,7 +870,28 @@ function AddEventDialog({
                 {t(`analysis.evt.${et}`)}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => { setType('custom'); setSubtype(null); }}
+              className={`text-[11px] font-semibold py-2 rounded-lg border ${type === 'custom' ? 'text-white border-transparent' : 'border-border text-muted-foreground'}`}
+              style={type === 'custom' ? { backgroundColor: EVENT_COLORS.custom } : undefined}
+            >
+              {t('analysis.evt.custom')}
+            </button>
           </div>
+
+          {type === 'custom' && (
+            <div className="space-y-1.5">
+              <div>
+                <p className="text-[11px] font-semibold text-muted-foreground mb-1">{t('analysis.customLabelField')}</p>
+                <Input value={customLabel} onChange={(e) => setCustomLabel(e.target.value)} placeholder={t('analysis.customLabelPlaceholder')} />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-muted-foreground mb-1">{t('analysis.customCodeField')}</p>
+                <Input value={customCode} onChange={(e) => setCustomCode(e.target.value.slice(0, 4).toUpperCase())} placeholder={t('analysis.customCodePlaceholder')} dir="ltr" className="w-28" />
+              </div>
+            </div>
+          )}
 
           {subtypeOptions && (
             <div className="space-y-1">
@@ -889,7 +924,14 @@ function AddEventDialog({
           </div>
           <Button
             className="w-full"
-            onClick={() => onConfirm(type, subtypeOptions ? subtype : null, playerId !== 'none' ? Number(playerId) : null, minute.trim() ? parseInt(minute, 10) : null)}
+            disabled={type === 'custom' && !customLabel.trim()}
+            onClick={() => onConfirm(
+              type,
+              type === 'custom' ? (customCode.trim() || null) : (subtypeOptions ? subtype : null),
+              type === 'custom' ? customLabel.trim() : null,
+              playerId !== 'none' ? Number(playerId) : null,
+              minute.trim() ? parseInt(minute, 10) : null,
+            )}
           >
             {t('common.add')}
           </Button>
