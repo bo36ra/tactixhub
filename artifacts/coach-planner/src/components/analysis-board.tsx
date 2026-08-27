@@ -5,7 +5,7 @@ import { useListPlayers } from '@workspace/api-client-react';
 import {
   useTactics, useSaveTactic, useDeleteTactic, parseBoard,
   type BoardData, type BoardMarker, type Tactic, type TacticalEvent, type TacticalEventType, EVENT_TYPES,
-  FOUL_SUBTYPES,
+  SUBTYPES_BY_EVENT,
 } from '@/lib/tactics-api';
 import { PITCH_GRADIENT } from '@/lib/chart-theme';
 import { playerName } from '@/lib/player-name';
@@ -399,9 +399,9 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
 
               {events.map((ev) => (
                 <g key={ev.id} transform={`translate(${ev.x}, ${ev.y})`}>
-                  {ev.type === 'foul' && ev.subtype ? (
+                  {ev.subtype ? (
                     <>
-                      <rect x="-3.4" y="-2" width="6.8" height="4" rx="0.8" fill={EVENT_COLORS.foul} stroke="#111" strokeWidth="0.3" vectorEffect="non-scaling-stroke" />
+                      <rect x="-3.4" y="-2" width="6.8" height="4" rx="0.8" fill={EVENT_COLORS[ev.type]} stroke="#111" strokeWidth="0.3" vectorEffect="non-scaling-stroke" />
                       <text textAnchor="middle" dy="1.1" fontSize="2.6" fontWeight="700" fill="#fff">{ev.subtype}</text>
                     </>
                   ) : (
@@ -444,6 +444,8 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
           </div>
         )}
       </div>
+
+      <Legend t={t} />
 
       {/* Mobile events sheet */}
       <Sheet open={eventsPanelOpen} onOpenChange={setEventsPanelOpen}>
@@ -499,6 +501,44 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
   );
 }
 
+function Legend({ t }: { t: (k: string) => string }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div className="border-t border-border shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+      >
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
+        {t('analysis.legend')}
+      </button>
+      {open && (
+        <div className="px-3 pb-3 space-y-2.5 max-h-40 overflow-y-auto">
+          <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+            {EVENT_TYPES.map((et) => (
+              <div key={et} className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: EVENT_COLORS[et] }} />
+                <span className="text-[11px] text-muted-foreground whitespace-nowrap">{t(`analysis.evt.${et}`)}</span>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+            {EVENT_TYPES.filter((et) => SUBTYPES_BY_EVENT[et]).flatMap((et) =>
+              (SUBTYPES_BY_EVENT[et] ?? []).map((st) => (
+                <div key={`${et}-${st}`} className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0" style={{ backgroundColor: EVENT_COLORS[et], color: '#fff' }}>{st}</span>
+                  <span className="text-[10px] text-muted-foreground truncate">{t(`analysis.sub.${et}.${st}`)}</span>
+                </div>
+              )),
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EventsList({
   events, players, lang, t, onDelete,
 }: {
@@ -521,8 +561,8 @@ function EventsList({
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold truncate">
                   {t(`analysis.evt.${ev.type}`)}
-                  {ev.type === 'foul' && ev.subtype && (
-                    <span className="ms-1.5 text-[9px] font-bold bg-primary/15 text-primary px-1 py-0.5 rounded">{t(`analysis.foul.${ev.subtype}`)}</span>
+                  {ev.subtype && (
+                    <span className="ms-1.5 text-[9px] font-bold bg-primary/15 text-primary px-1 py-0.5 rounded">{t(`analysis.sub.${ev.type}.${ev.subtype}`)}</span>
                   )}
                 </p>
                 <p className="text-[10px] text-muted-foreground truncate">
@@ -551,8 +591,16 @@ function StatsDialog({
   t: (k: string) => string;
 }) {
   const byType = EVENT_TYPES.map((et) => ({ type: et, count: events.filter((e) => e.type === et).length })).filter((r) => r.count > 0);
-  const fouls = events.filter((e) => e.type === 'foul');
-  const byFoulSubtype = FOUL_SUBTYPES.map((st) => ({ subtype: st, count: fouls.filter((e) => e.subtype === st).length })).filter((r) => r.count > 0);
+  const subtypeBreakdowns = EVENT_TYPES
+    .filter((et) => SUBTYPES_BY_EVENT[et])
+    .map((et) => ({
+      type: et,
+      rows: (SUBTYPES_BY_EVENT[et] ?? []).map((st) => ({
+        subtype: st,
+        count: events.filter((e) => e.type === et && e.subtype === st).length,
+      })).filter((r) => r.count > 0),
+    }))
+    .filter((g) => g.rows.length > 0);
   const byPlayer = players
     .map((p) => ({ player: p, count: events.filter((e) => e.playerId === p.id).length }))
     .filter((r) => r.count > 0)
@@ -585,11 +633,13 @@ function StatsDialog({
               </div>
             </div>
 
-            {byFoulSubtype.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t('analysis.foulBreakdown')}</p>
+            {subtypeBreakdowns.map((g) => (
+              <div key={g.type}>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+                  {t(`analysis.evt.${g.type}`)} — {t('analysis.foulBreakdown')}
+                </p>
                 <div className="grid grid-cols-2 gap-1.5">
-                  {byFoulSubtype.map((r) => (
+                  {g.rows.map((r) => (
                     <div key={r.subtype} className="flex items-center justify-between bg-muted/40 rounded-lg px-2.5 py-1.5">
                       <span className="text-xs font-bold">{r.subtype}</span>
                       <span className="text-xs text-muted-foreground" dir="ltr">{r.count}</span>
@@ -597,7 +647,7 @@ function StatsDialog({
                   ))}
                 </div>
               </div>
-            )}
+            ))}
 
             {byPlayer.length > 0 && (
               <div>
@@ -639,6 +689,8 @@ function AddEventDialog({
     if (open) { setType('pass'); setSubtype(null); setPlayerId('none'); setMinute(''); }
   }, [open]);
 
+  const subtypeOptions = SUBTYPES_BY_EVENT[type];
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onCancel()}>
       <DialogContent>
@@ -654,7 +706,7 @@ function AddEventDialog({
               <button
                 key={et}
                 type="button"
-                onClick={() => { setType(et); setSubtype(et === 'foul' ? FOUL_SUBTYPES[0] : null); }}
+                onClick={() => { setType(et); setSubtype(SUBTYPES_BY_EVENT[et]?.[0] ?? null); }}
                 className={`text-[11px] font-semibold py-2 rounded-lg border ${type === et ? 'text-black border-transparent' : 'border-border text-muted-foreground'}`}
                 style={type === et ? { backgroundColor: EVENT_COLORS[et] } : undefined}
               >
@@ -663,11 +715,11 @@ function AddEventDialog({
             ))}
           </div>
 
-          {type === 'foul' && (
+          {subtypeOptions && (
             <div className="space-y-1">
-              <p className="text-[11px] font-semibold text-muted-foreground">{t('analysis.foulType')}</p>
+              <p className="text-[11px] font-semibold text-muted-foreground">{t('analysis.subtypeLabel')}</p>
               <div className="grid grid-cols-3 gap-1.5">
-                {FOUL_SUBTYPES.map((st) => (
+                {subtypeOptions.map((st) => (
                   <button
                     key={st}
                     type="button"
@@ -678,7 +730,7 @@ function AddEventDialog({
                   </button>
                 ))}
               </div>
-              <p className="text-[10px] text-muted-foreground">{t(`analysis.foul.${subtype}`)}</p>
+              {subtype && <p className="text-[10px] text-muted-foreground">{t(`analysis.sub.${type}.${subtype}`)}</p>}
             </div>
           )}
 
@@ -694,7 +746,7 @@ function AddEventDialog({
           </div>
           <Button
             className="w-full"
-            onClick={() => onConfirm(type, type === 'foul' ? subtype : null, playerId !== 'none' ? Number(playerId) : null, minute.trim() ? parseInt(minute, 10) : null)}
+            onClick={() => onConfirm(type, subtypeOptions ? subtype : null, playerId !== 'none' ? Number(playerId) : null, minute.trim() ? parseInt(minute, 10) : null)}
           >
             {t('common.add')}
           </Button>

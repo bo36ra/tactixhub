@@ -33,6 +33,18 @@ export type TacticalEventType = typeof EVENT_TYPES[number];
 export const FOUL_SUBTYPES = ['AF', 'DF', 'PK', 'YC', 'RC', 'HB'] as const;
 export type FoulSubtype = typeof FOUL_SUBTYPES[number];
 
+export const CORNER_SUBTYPES = ['CA', 'CD'] as const;
+export const SHOT_SUBTYPES = ['ON', 'OFF', 'BLK', 'GOAL'] as const;
+
+// Which event types have a secondary short-code breakdown, and what
+// codes are available for each — drives both the "pick a subtype"
+// step when logging an event and the legend shown under the board.
+export const SUBTYPES_BY_EVENT: Partial<Record<TacticalEventType, readonly string[]>> = {
+  foul: FOUL_SUBTYPES,
+  corner: CORNER_SUBTYPES,
+  shot: SHOT_SUBTYPES,
+};
+
 export interface TacticalEvent {
   id: string;
   x: number; // 0..100
