@@ -29,8 +29,9 @@ import {
   addMonths,
   isSameMonth,
   isToday,
+  differenceInCalendarDays,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Swords, Dumbbell, Repeat, Target, Plus, Trash2, Pencil, Eye } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Swords, Dumbbell, Repeat, Target, Plus, Trash2, Pencil, Eye, Printer } from 'lucide-react';
 import { endOfMonth as eom } from 'date-fns';
 
 // One month view that merges matches and training sessions — the coach's
@@ -160,6 +161,43 @@ export function CalendarPage() {
     return out;
   }, [month]);
 
+  // One row per day actually in this month, with an "MD" (match day)
+  // relative label — MD on a match date itself, MD-N for N days before
+  // the nearest match, MD+N for N days after. This mirrors the layout
+  // of the uploaded Excel microcycle template (Date / Day / MD /
+  // Session / Duration / ... columns), used only for the print view.
+  const printRows = React.useMemo(() => {
+    const matchDates = (matches ?? []).map((m) => new Date(m.date + 'T00:00:00'));
+    return days
+      .filter((d) => isSameMonth(d, month))
+      .map((d) => {
+        const key = format(d, 'yyyy-MM-dd');
+        const dayMatch = (matches ?? []).find((m) => m.date === key);
+        const dayTraining = (trainings ?? []).find((tr) => tr.date === key);
+        let mdLabel = '';
+        if (matchDates.length > 0) {
+          const nearest = matchDates.reduce((best, cur) =>
+            Math.abs(differenceInCalendarDays(cur, d)) < Math.abs(differenceInCalendarDays(best, d)) ? cur : best
+          );
+          const diff = differenceInCalendarDays(d, nearest); // negative = before the match, positive = after
+          mdLabel = diff === 0 ? 'MD' : diff < 0 ? `MD${diff}` : `MD+${diff}`;
+        }
+        return {
+          date: d,
+          dayName: format(d, 'EEEE'),
+          mdLabel,
+          session: dayMatch
+            ? `${t('cal.printMatch')} — ${dayMatch.opponent}`
+            : dayTraining
+            ? focusLabel(t, dayTraining.focus)
+            : t('cal.rest'),
+          duration: dayMatch ? 90 : dayTraining?.durationMinutes ?? null,
+          intensity: dayTraining?.intensity ? t(`train.intensity.${dayTraining.intensity}`) : '',
+          notes: dayTraining?.notes ?? '',
+        };
+      });
+  }, [days, month, matches, trainings, t]);
+
   const weekdayLabels = React.useMemo(() => {
     const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
     return Array.from({ length: 7 }, (_, i) =>
@@ -172,11 +210,14 @@ export function CalendarPage() {
   return (
     <AppLayout>
       <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
-      <div className="space-y-6">
+      <div className="space-y-6 print:hidden">
         <StickyHeader>
         <div className="flex items-center justify-between">
           <PageTitle>{t('cal.title')}</PageTitle>
           <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.print()}>
+            <Printer className="w-3.5 h-3.5" /> {t('cal.print')}
+          </Button>
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setCycleOpen(true)}>
             <Repeat className="w-3.5 h-3.5" /> {t('cal.cycle')}
           </Button>
@@ -986,6 +1027,41 @@ export function CalendarPage() {
           }}
           onOpenChange={(o) => !o && setMatchDeleteId(null)}
         />
+      </div>
+
+      {/* Print-only view — a plain table, one row per day, laid out like
+          the uploaded Excel microcycle template rather than the
+          interactive grid above (which doesn't translate well to print:
+          clickable cells, dialogs, and a 6-week grid with padding days
+          from neighboring months aren't meaningful on paper). */}
+      <div className="hidden print:block p-6">
+        <h1 className="text-lg font-bold mb-1">{t('cal.title')} — {format(month, 'MM / yyyy')}</h1>
+        <table className="w-full text-xs border-collapse" dir={isRtl ? 'rtl' : 'ltr'}>
+          <thead>
+            <tr className="border-b-2 border-black">
+              <th className="text-start py-1.5 pe-2">{t('cal.printDate')}</th>
+              <th className="text-start py-1.5 pe-2">{t('cal.printDay')}</th>
+              <th className="text-start py-1.5 pe-2">MD</th>
+              <th className="text-start py-1.5 pe-2">{t('cal.printSession')}</th>
+              <th className="text-start py-1.5 pe-2">{t('cal.printDuration')}</th>
+              <th className="text-start py-1.5 pe-2">{t('cal.printIntensity')}</th>
+              <th className="text-start py-1.5">{t('cal.printNotes')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {printRows.map((row) => (
+              <tr key={row.date.toISOString()} className="border-b border-gray-300">
+                <td className="py-1 pe-2 whitespace-nowrap" dir="ltr">{format(row.date, 'dd/MM')}</td>
+                <td className="py-1 pe-2">{row.dayName}</td>
+                <td className="py-1 pe-2 font-mono" dir="ltr">{row.mdLabel}</td>
+                <td className="py-1 pe-2">{row.session}</td>
+                <td className="py-1 pe-2">{row.duration != null ? `${row.duration}'` : ''}</td>
+                <td className="py-1 pe-2">{row.intensity}</td>
+                <td className="py-1">{row.notes}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
       </PullToRefresh>
     </AppLayout>
