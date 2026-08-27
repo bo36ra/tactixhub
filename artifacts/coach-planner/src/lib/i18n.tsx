@@ -581,6 +581,7 @@ const en: Translations = {
   "cal.printNotes": "Notes",
 
   "cal.cycleHint": "Set your training rhythm once, then generate the planned sessions for any range. Days that already have a training or a match are skipped.",
+  "cal.cycleInferredNote": "You haven't saved a weekly cycle yet — these values were picked up from the trainings you already added by hand on the calendar. Review them and press Save to make this your reusable cycle.",
   "cal.rest": "Rest",
   "cal.applyMonth": "Apply to this month",
   "cal.applied": "{n} sessions created",
@@ -1463,6 +1464,7 @@ const ar: Translations = {
   "cal.printNotes": "ملاحظات",
 
   "cal.cycleHint": "حدد إيقاع أسبوعك مرة واحدة، ثم ولّد الحصص المخططة لأي فترة. الأيام التي فيها تمرين أو مباراة تُتخطى تلقائياً.",
+  "cal.cycleInferredNote": "ما حفظت دورة أسبوعية لسه — هذي القيم أخذتها من الحصص اللي ضفتها بنفسك يدوياً بالتقويم. راجعها واضغط حفظ عشان تصير دورتك الأسبوعية الثابتة.",
   "cal.rest": "راحة",
   "cal.applyMonth": "طبّق على هذا الشهر",
   "cal.applied": "أُنشئت {n} حصة",

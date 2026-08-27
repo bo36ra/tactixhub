@@ -94,12 +94,42 @@ export function CalendarPage() {
   // weekly cycle editor
   const [cycleOpen, setCycleOpen] = React.useState(false);
   const [cycleDraft, setCycleDraft] = React.useState<(CycleDay | null)[]>(Array(7).fill(null));
+  const [cycleInferred, setCycleInferred] = React.useState(false);
   React.useEffect(() => {
     if (!cycleOpen) return;
+    if ((cycle ?? []).length > 0) {
+      // A cycle was actually saved before — use it as-is, exactly what
+      // was saved.
+      const draft: (CycleDay | null)[] = Array(7).fill(null);
+      cycle!.forEach((c) => { draft[c.dayOfWeek] = { ...c }; });
+      setCycleDraft(draft);
+      setCycleInferred(false);
+      return;
+    }
+    // No saved cycle yet. Rather than showing every day as blank/rest —
+    // confusing when the calendar already has a real, repeating pattern
+    // of individually-added trainings — infer a starting draft from
+    // that existing data: for each day of week, the most recent
+    // training actually logged on that weekday. The coach still has to
+    // press Save to make it a real cycle; this only pre-fills the form.
     const draft: (CycleDay | null)[] = Array(7).fill(null);
-    (cycle ?? []).forEach((c) => { draft[c.dayOfWeek] = { ...c }; });
+    (trainings ?? [])
+      .slice()
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .forEach((tr) => {
+        if (tr.focus === 'rest_day') return;
+        const dow = (new Date(tr.date + 'T00:00:00').getDay() + 6) % 7;
+        draft[dow] = {
+          dayOfWeek: dow,
+          focus: tr.focus.split(',')[0]?.trim() || tr.focus,
+          intensity: tr.intensity,
+          durationMinutes: tr.durationMinutes,
+          time: tr.time,
+        };
+      });
     setCycleDraft(draft);
-  }, [cycleOpen, cycle]);
+    setCycleInferred(draft.some(Boolean));
+  }, [cycleOpen, cycle, trainings]);
 
   // quick-add on a day
   const [dayOpen, setDayOpen] = React.useState<string | null>(null);
@@ -456,6 +486,9 @@ export function CalendarPage() {
               <DialogTitle>{t('cal.cycle')}</DialogTitle>
             </DialogHeader>
             <p className="text-xs text-muted-foreground -mt-2">{t('cal.cycleHint')}</p>
+            {cycleInferred && (
+              <p className="text-xs bg-primary/10 text-primary rounded-lg px-3 py-2">{t('cal.cycleInferredNote')}</p>
+            )}
             <div className="space-y-2">
               {weekdayLabels.map((label, dow) => {
                 const day = cycleDraft[dow];
