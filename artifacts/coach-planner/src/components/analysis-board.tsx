@@ -5,7 +5,7 @@ import { useListPlayers } from '@workspace/api-client-react';
 import {
   useTactics, useSaveTactic, useDeleteTactic, parseBoard,
   type BoardData, type BoardMarker, type Tactic, type TacticalEvent, type TacticalEventType, EVENT_TYPES,
-  SUBTYPES_BY_EVENT,
+  SUBTYPES_BY_EVENT, EVENT_TYPE_CODES,
 } from '@/lib/tactics-api';
 import { PITCH_GRADIENT } from '@/lib/chart-theme';
 import { playerName } from '@/lib/player-name';
@@ -27,6 +27,15 @@ const EVENT_COLORS: Record<TacticalEventType, string> = {
   recovery: '#4C7A52', press: '#F2994A', tackle: '#BB8FCE', off_ball_movement: '#9C9483',
   cross: '#4FC3F7', corner: '#FFD84D', foul: '#D96B5B', custom: '#7D8590',
 };
+
+// Marker color is team-based (who did it), not type-based (what
+// happened) — the badge text (subtype or EVENT_TYPE_CODES fallback)
+// carries the "what happened" distinction instead, so reading a
+// densely-tagged pitch doesn't need both channels fighting for the
+// same job. EVENT_COLORS above is kept only for the legend's per-type
+// swatch reference and the stats report, where grouping by type still
+// benefits from a distinct color per row.
+const TEAM_COLORS: Record<'us' | 'them', string> = { us: '#FFD84D', them: '#F4F1EC' };
 
 function eventTypeLabel(ev: { type: TacticalEventType; customLabel?: string | null }, t: (k: string) => string) {
   return ev.type === 'custom' ? (ev.customLabel || t('analysis.evt.custom')) : t(`analysis.evt.${ev.type}`);
@@ -327,9 +336,9 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
 
   const events = (board.events ?? []).slice().sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0) || a.createdAt - b.createdAt);
 
-  const addEvent = (type: TacticalEventType, subtype: string | null, customLabel: string | null, resultedInGoal: boolean, playerId: number | null, minute: number | null) => {
+  const addEvent = (type: TacticalEventType, subtype: string | null, customLabel: string | null, resultedInGoal: boolean, team: 'us' | 'them', playerId: number | null, minute: number | null) => {
     if (!pendingPos) return;
-    const ev: TacticalEvent = { id: `e-${Date.now()}`, x: pendingPos.x, y: pendingPos.y, type, subtype, customLabel, resultedInGoal, playerId, minute, createdAt: Date.now() };
+    const ev: TacticalEvent = { id: `e-${Date.now()}`, x: pendingPos.x, y: pendingPos.y, type, subtype, customLabel, resultedInGoal, team, playerId, minute, createdAt: Date.now() };
     setBoard({ ...board, events: [...(board.events ?? []), ev] });
     setPendingPos(null);
   };
@@ -459,21 +468,25 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
                 <line x1={arrowDraft.x1} y1={arrowDraft.y1} x2={arrowDraft.x2} y2={arrowDraft.y2} stroke="#FFD84D" strokeWidth="0.8" strokeDasharray="1.5 1" vectorEffect="non-scaling-stroke" />
               )}
 
-              {events.map((ev) => (
-                <g key={ev.id} transform={`translate(${ev.x}, ${ev.y})`}>
-                  {ev.resultedInGoal && (
-                    <circle r="5.6" fill="none" stroke="#FFD84D" strokeWidth="0.6" strokeDasharray="1.2 0.8" vectorEffect="non-scaling-stroke" />
-                  )}
-                  {ev.subtype ? (
-                    <>
-                      <rect x="-4.6" y="-2.6" width="9.2" height="5.2" rx="1" fill={EVENT_COLORS[ev.type]} stroke="#111" strokeWidth="0.4" vectorEffect="non-scaling-stroke" />
-                      <text textAnchor="middle" dy="1.4" fontSize="3.6" fontWeight="800" fill="#fff">{ev.subtype}</text>
-                    </>
-                  ) : (
-                    <circle r="1.6" fill={EVENT_COLORS[ev.type]} stroke="#111" strokeWidth="0.3" vectorEffect="non-scaling-stroke" />
-                  )}
-                </g>
-              ))}
+              {events.map((ev) => {
+                const badgeText = ev.subtype || EVENT_TYPE_CODES[ev.type];
+                const teamColor = TEAM_COLORS[ev.team ?? 'us'];
+                return (
+                  <g key={ev.id} transform={`translate(${ev.x}, ${ev.y})`}>
+                    {ev.resultedInGoal && (
+                      <circle r="5.6" fill="none" stroke="#FFD84D" strokeWidth="0.6" strokeDasharray="1.2 0.8" vectorEffect="non-scaling-stroke" />
+                    )}
+                    {badgeText ? (
+                      <>
+                        <rect x="-4.6" y="-2.6" width="9.2" height="5.2" rx="1" fill={teamColor} stroke="#111" strokeWidth="0.4" vectorEffect="non-scaling-stroke" />
+                        <text textAnchor="middle" dy="1.4" fontSize="3.6" fontWeight="800" fill="#1a1a1a">{badgeText}</text>
+                      </>
+                    ) : (
+                      <circle r="1.8" fill={teamColor} stroke="#111" strokeWidth="0.3" vectorEffect="non-scaling-stroke" />
+                    )}
+                  </g>
+                );
+              })}
 
               {board.markers.map((m) => (
                 <g key={m.id} transform={`translate(${m.x}, ${m.y})`}>
@@ -502,7 +515,7 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
           <div className="flex gap-1.5" dir="ltr">
             {events.map((ev) => (
               <div key={ev.id} className="flex flex-col items-center shrink-0 w-14">
-                <span className="w-2.5 h-2.5 rounded-full mb-1" style={{ backgroundColor: EVENT_COLORS[ev.type] }} />
+                <span className="w-2.5 h-2.5 rounded-full mb-1" style={{ backgroundColor: TEAM_COLORS[ev.team ?? 'us'] }} />
                 <span className="text-[10px] text-muted-foreground font-mono">{ev.minute != null ? `${ev.minute}'` : '--'}</span>
               </div>
             ))}
@@ -579,28 +592,47 @@ function Legend({ t }: { t: (k: string) => string }) {
         {t('analysis.legend')}
       </button>
       {open && (
-        <div className="px-3 pb-3 space-y-2.5 max-h-40 overflow-y-auto">
-          <div className="flex flex-wrap gap-x-3 gap-y-1.5">
-            {EVENT_TYPES.map((et) => (
-              <div key={et} className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: EVENT_COLORS[et] }} />
-                <span className="text-[11px] text-muted-foreground whitespace-nowrap">{t(`analysis.evt.${et}`)}</span>
+        <div className="px-3 pb-3 space-y-2.5 max-h-48 overflow-y-auto">
+          <div>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('analysis.legendTeamNote')}</p>
+            <div className="flex gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: TEAM_COLORS.us }} />
+                <span className="text-[11px] text-muted-foreground">{t('analysis.teamUs')}</span>
               </div>
-            ))}
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: EVENT_COLORS.custom }} />
-              <span className="text-[11px] text-muted-foreground whitespace-nowrap">{t('analysis.evt.custom')} ({t('analysis.legendCustomNote')})</span>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: TEAM_COLORS.them }} />
+                <span className="text-[11px] text-muted-foreground">{t('analysis.teamThem')}</span>
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-            {EVENT_TYPES.filter((et) => SUBTYPES_BY_EVENT[et]).flatMap((et) =>
-              (SUBTYPES_BY_EVENT[et] ?? []).map((st) => (
-                <div key={`${et}-${st}`} className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0" style={{ backgroundColor: EVENT_COLORS[et], color: '#fff' }}>{st}</span>
-                  <span className="text-[10px] text-muted-foreground truncate">{t(`analysis.sub.${et}.${st}`)}</span>
+          <div>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('analysis.legendCodeNote')}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+              {EVENT_TYPES.map((et) => (
+                <div key={et} className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 bg-muted text-foreground border border-border">{EVENT_TYPE_CODES[et]}</span>
+                  <span className="text-[11px] text-muted-foreground truncate">{t(`analysis.evt.${et}`)}</span>
                 </div>
-              )),
-            )}
+              ))}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 bg-muted text-foreground border border-border">?</span>
+                <span className="text-[11px] text-muted-foreground truncate">{t('analysis.evt.custom')} ({t('analysis.legendCustomNote')})</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('analysis.subtypeLabel')}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+              {EVENT_TYPES.filter((et) => SUBTYPES_BY_EVENT[et]).flatMap((et) =>
+                (SUBTYPES_BY_EVENT[et] ?? []).map((st) => (
+                  <div key={`${et}-${st}`} className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 bg-muted text-foreground border border-border">{st}</span>
+                    <span className="text-[10px] text-muted-foreground truncate">{t(`analysis.sub.${et}.${st}`)}</span>
+                  </div>
+                )),
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -626,7 +658,7 @@ function EventsList({
           const player = players.find((p) => p.id === ev.playerId);
           return (
             <div key={ev.id} className="flex items-center gap-2 bg-muted/40 rounded-lg px-2.5 py-1.5">
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: EVENT_COLORS[ev.type] }} />
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: TEAM_COLORS[ev.team ?? 'us'] }} />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold truncate">
                   {eventTypeLabel(ev, t)}
@@ -775,7 +807,7 @@ function StatsDialog({
                         <div className="px-3 py-2 space-y-1.5">
                           {playerEvents.map((ev) => (
                             <div key={ev.id} className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: EVENT_COLORS[ev.type] }} />
+                              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: TEAM_COLORS[ev.team ?? 'us'] }} />
                               <span className="text-xs flex-1">{eventLabel(ev)}</span>
                               <span className="text-[10px] text-muted-foreground font-mono" dir="ltr">{ev.minute != null ? `${ev.minute}'` : '--'}</span>
                             </div>
@@ -811,7 +843,7 @@ function StatsDialog({
                           <td className="px-2 py-1.5 truncate max-w-[6rem]">{p ? playerName(p, lang) : t('analysis.noPlayer')}</td>
                           <td className="px-2 py-1.5">
                             <span className="inline-flex items-center gap-1">
-                              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: EVENT_COLORS[ev.type] }} />
+                              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: TEAM_COLORS[ev.team ?? 'us'] }} />
                               {eventLabel(ev)}
                             </span>
                           </td>
@@ -838,18 +870,19 @@ function AddEventDialog({
   lang: string;
   t: (k: string) => string;
   onCancel: () => void;
-  onConfirm: (type: TacticalEventType, subtype: string | null, customLabel: string | null, resultedInGoal: boolean, playerId: number | null, minute: number | null) => void;
+  onConfirm: (type: TacticalEventType, subtype: string | null, customLabel: string | null, resultedInGoal: boolean, team: 'us' | 'them', playerId: number | null, minute: number | null) => void;
 }) {
   const [type, setType] = React.useState<TacticalEventType>('pass');
   const [subtype, setSubtype] = React.useState<string | null>(null);
   const [customLabel, setCustomLabel] = React.useState('');
   const [customCode, setCustomCode] = React.useState('');
   const [resultedInGoal, setResultedInGoal] = React.useState(false);
+  const [team, setTeam] = React.useState<'us' | 'them'>('us');
   const [playerId, setPlayerId] = React.useState<string>('none');
   const [minute, setMinute] = React.useState('');
 
   React.useEffect(() => {
-    if (open) { setType('pass'); setSubtype(null); setCustomLabel(''); setCustomCode(''); setResultedInGoal(false); setPlayerId('none'); setMinute(''); }
+    if (open) { setType('pass'); setSubtype(null); setCustomLabel(''); setCustomCode(''); setResultedInGoal(false); setTeam('us'); setPlayerId('none'); setMinute(''); }
   }, [open]);
 
   const subtypeOptions = SUBTYPES_BY_EVENT[type];
@@ -864,6 +897,25 @@ function AddEventDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setTeam('us')}
+              className={`flex-1 text-xs font-bold py-2 rounded-lg border ${team === 'us' ? 'border-primary' : 'border-border text-muted-foreground'}`}
+              style={team === 'us' ? { backgroundColor: TEAM_COLORS.us, color: '#1a1a1a' } : undefined}
+            >
+              {t('analysis.teamUs')}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setTeam('them'); setPlayerId('none'); }}
+              className={`flex-1 text-xs font-bold py-2 rounded-lg border ${team === 'them' ? 'border-primary' : 'border-border text-muted-foreground'}`}
+              style={team === 'them' ? { backgroundColor: TEAM_COLORS.them, color: '#1a1a1a' } : undefined}
+            >
+              {t('analysis.teamThem')}
+            </button>
+          </div>
+
           <div className="grid grid-cols-3 gap-1.5">
             {EVENT_TYPES.map((et) => (
               <button
@@ -929,14 +981,17 @@ function AddEventDialog({
 
           <div className="flex gap-2">
             <Input type="number" min="0" max="130" value={minute} onChange={(e) => setMinute(e.target.value)} placeholder={t('goal.minute')} className="w-24" />
-            <Select value={playerId} onValueChange={setPlayerId}>
-              <SelectTrigger className="flex-1"><SelectValue placeholder={t('match.tagPlayer')} /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">{t('match.tagNoPlayer')}</SelectItem>
-                {players.map((p) => <SelectItem key={p.id} value={String(p.id)}>{p.jerseyNumber} - {playerName(p, lang)}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            {team === 'us' && (
+              <Select value={playerId} onValueChange={setPlayerId}>
+                <SelectTrigger className="flex-1"><SelectValue placeholder={t('match.tagPlayer')} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{t('match.tagNoPlayer')}</SelectItem>
+                  {players.map((p) => <SelectItem key={p.id} value={String(p.id)}>{p.jerseyNumber} - {playerName(p, lang)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
           </div>
+          {team === 'them' && <p className="text-[10px] text-muted-foreground -mt-2">{t('analysis.opponentEventNote')}</p>}
           <Button
             className="w-full"
             disabled={type === 'custom' && !customLabel.trim()}
@@ -945,7 +1000,8 @@ function AddEventDialog({
               type === 'custom' ? (customCode.trim() || null) : (subtypeOptions ? subtype : null),
               type === 'custom' ? customLabel.trim() : null,
               resultedInGoal,
-              playerId !== 'none' ? Number(playerId) : null,
+              team,
+              team === 'us' && playerId !== 'none' ? Number(playerId) : null,
               minute.trim() ? parseInt(minute, 10) : null,
             )}
           >

@@ -48,6 +48,17 @@ export const SUBTYPES_BY_EVENT: Partial<Record<TacticalEventType, readonly strin
   shot: SHOT_SUBTYPES,
 };
 
+// Every event type gets a short badge code — foul/corner/shot show
+// their more specific subtype code instead (AF, CA, ON, ...) when one
+// is set, this is the fallback so every marker on the pitch reads as
+// "what happened" regardless of color, which is now team-based rather
+// than type-based.
+export const EVENT_TYPE_CODES: Record<TacticalEventType, string> = {
+  pass: 'PA', shot: 'SH', reception: 'RC', loss: 'LO', recovery: 'RV',
+  press: 'PR', tackle: 'TK', off_ball_movement: 'OB', cross: 'CR',
+  corner: 'CO', foul: 'FO', custom: '',
+};
+
 export interface TacticalEvent {
   id: string;
   x: number; // 0..100
@@ -60,6 +71,11 @@ export interface TacticalEvent {
   // a penalty (foul/PK), so scoring it doesn't need a second, separate
   // shot event for what is really one occurrence on the pitch.
   resultedInGoal?: boolean;
+  // Which side this event belongs to — drives the marker's color
+  // (team-based) while the badge/symbol stays type-based, so a coach
+  // can read "who did it" and "what happened" from the same marker
+  // without them competing for the same visual channel.
+  team?: 'us' | 'them';
   // Currently only meaningful for type:'foul' (AF/DF/PK/YC/RC/HB) —
   // kept as a plain string rather than a foul-specific field name so
   // other event types can grow their own short-code subtypes later
