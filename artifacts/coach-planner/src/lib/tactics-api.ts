@@ -56,6 +56,10 @@ export interface TacticalEvent {
   // Only for type:'custom' — a coach-written name and short code,
   // used instead of an i18n lookup wherever the event is displayed.
   customLabel?: string | null;
+  // Whether this event directly resulted in a goal — specifically for
+  // a penalty (foul/PK), so scoring it doesn't need a second, separate
+  // shot event for what is really one occurrence on the pitch.
+  resultedInGoal?: boolean;
   // Currently only meaningful for type:'foul' (AF/DF/PK/YC/RC/HB) —
   // kept as a plain string rather than a foul-specific field name so
   // other event types can grow their own short-code subtypes later

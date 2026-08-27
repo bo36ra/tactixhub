@@ -327,9 +327,9 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
 
   const events = (board.events ?? []).slice().sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0) || a.createdAt - b.createdAt);
 
-  const addEvent = (type: TacticalEventType, subtype: string | null, customLabel: string | null, playerId: number | null, minute: number | null) => {
+  const addEvent = (type: TacticalEventType, subtype: string | null, customLabel: string | null, resultedInGoal: boolean, playerId: number | null, minute: number | null) => {
     if (!pendingPos) return;
-    const ev: TacticalEvent = { id: `e-${Date.now()}`, x: pendingPos.x, y: pendingPos.y, type, subtype, customLabel, playerId, minute, createdAt: Date.now() };
+    const ev: TacticalEvent = { id: `e-${Date.now()}`, x: pendingPos.x, y: pendingPos.y, type, subtype, customLabel, resultedInGoal, playerId, minute, createdAt: Date.now() };
     setBoard({ ...board, events: [...(board.events ?? []), ev] });
     setPendingPos(null);
   };
@@ -461,6 +461,9 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
 
               {events.map((ev) => (
                 <g key={ev.id} transform={`translate(${ev.x}, ${ev.y})`}>
+                  {ev.resultedInGoal && (
+                    <circle r="5.6" fill="none" stroke="#FFD84D" strokeWidth="0.6" strokeDasharray="1.2 0.8" vectorEffect="non-scaling-stroke" />
+                  )}
                   {ev.subtype ? (
                     <>
                       <rect x="-4.6" y="-2.6" width="9.2" height="5.2" rx="1" fill={EVENT_COLORS[ev.type]} stroke="#111" strokeWidth="0.4" vectorEffect="non-scaling-stroke" />
@@ -632,6 +635,7 @@ function EventsList({
                       {ev.type === 'custom' ? ev.subtype : t(`analysis.sub.${ev.type}.${ev.subtype}`)}
                     </span>
                   )}
+                  {ev.resultedInGoal && <span className="ms-1">⚽</span>}
                 </p>
                 <p className="text-[10px] text-muted-foreground truncate">
                   {ev.minute != null ? `${ev.minute}' · ` : ''}{player ? playerName(player, lang) : t('analysis.noPlayer')}
@@ -684,7 +688,8 @@ function StatsDialog({
 
   const eventLabel = (ev: TacticalEvent) => {
     const sub = ev.subtype ? ` (${ev.subtype})` : '';
-    return `${eventTypeLabel(ev, t)}${sub}`;
+    const goal = ev.resultedInGoal ? ' ⚽' : '';
+    return `${eventTypeLabel(ev, t)}${sub}${goal}`;
   };
 
   return (
@@ -833,17 +838,18 @@ function AddEventDialog({
   lang: string;
   t: (k: string) => string;
   onCancel: () => void;
-  onConfirm: (type: TacticalEventType, subtype: string | null, customLabel: string | null, playerId: number | null, minute: number | null) => void;
+  onConfirm: (type: TacticalEventType, subtype: string | null, customLabel: string | null, resultedInGoal: boolean, playerId: number | null, minute: number | null) => void;
 }) {
   const [type, setType] = React.useState<TacticalEventType>('pass');
   const [subtype, setSubtype] = React.useState<string | null>(null);
   const [customLabel, setCustomLabel] = React.useState('');
   const [customCode, setCustomCode] = React.useState('');
+  const [resultedInGoal, setResultedInGoal] = React.useState(false);
   const [playerId, setPlayerId] = React.useState<string>('none');
   const [minute, setMinute] = React.useState('');
 
   React.useEffect(() => {
-    if (open) { setType('pass'); setSubtype(null); setCustomLabel(''); setCustomCode(''); setPlayerId('none'); setMinute(''); }
+    if (open) { setType('pass'); setSubtype(null); setCustomLabel(''); setCustomCode(''); setResultedInGoal(false); setPlayerId('none'); setMinute(''); }
   }, [open]);
 
   const subtypeOptions = SUBTYPES_BY_EVENT[type];
@@ -863,7 +869,7 @@ function AddEventDialog({
               <button
                 key={et}
                 type="button"
-                onClick={() => { setType(et); setSubtype(SUBTYPES_BY_EVENT[et]?.[0] ?? null); }}
+                onClick={() => { setType(et); setSubtype(SUBTYPES_BY_EVENT[et]?.[0] ?? null); setResultedInGoal(false); }}
                 className={`text-[11px] font-semibold py-2 rounded-lg border ${type === et ? 'text-black border-transparent' : 'border-border text-muted-foreground'}`}
                 style={type === et ? { backgroundColor: EVENT_COLORS[et] } : undefined}
               >
@@ -901,7 +907,7 @@ function AddEventDialog({
                   <button
                     key={st}
                     type="button"
-                    onClick={() => setSubtype(st)}
+                    onClick={() => { setSubtype(st); if (st !== 'PK') setResultedInGoal(false); }}
                     className={`text-xs font-bold py-1.5 rounded-lg border ${subtype === st ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'}`}
                   >
                     {st}
@@ -909,6 +915,15 @@ function AddEventDialog({
                 ))}
               </div>
               {subtype && <p className="text-[10px] text-muted-foreground">{t(`analysis.sub.${type}.${subtype}`)}</p>}
+              {subtype === 'PK' && (
+                <button
+                  type="button"
+                  onClick={() => setResultedInGoal((v) => !v)}
+                  className={`w-full flex items-center justify-center gap-1.5 text-xs font-bold py-2 rounded-lg border ${resultedInGoal ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'}`}
+                >
+                  ⚽ {t('analysis.resultedInGoal')}
+                </button>
+              )}
             </div>
           )}
 
@@ -929,6 +944,7 @@ function AddEventDialog({
               type,
               type === 'custom' ? (customCode.trim() || null) : (subtypeOptions ? subtype : null),
               type === 'custom' ? customLabel.trim() : null,
+              resultedInGoal,
               playerId !== 'none' ? Number(playerId) : null,
               minute.trim() ? parseInt(minute, 10) : null,
             )}
