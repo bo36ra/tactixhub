@@ -1,5 +1,5 @@
 import React from 'react';
-import { format, isSameMonth } from 'date-fns';
+import { format, isSameMonth, differenceInCalendarDays } from 'date-fns';
 import { useLanguage } from '@/lib/i18n';
 import { useToast } from '@/hooks/use-toast';
 import { useCreateTraining, useUpdateTraining, type Training } from '@/lib/dev-api';
@@ -30,6 +30,26 @@ export function MicrocycleGrid({
   const updateTraining = useUpdateTraining(teamId);
 
   const monthDays = days.filter((d) => isSameMonth(d, month));
+
+  // Smart default only — same "distance to nearest match" logic the
+  // print view already uses. Never overwrites a value the coach
+  // actually typed in (training.mdLabel, once saved, always wins) —
+  // this only fills the placeholder shown when that field is empty,
+  // so a normal week auto-labels itself and an unusual one (bye week,
+  // early friendly that doesn't count, MD-4 during a real gap between
+  // matches, ...) is still just a click away to override.
+  const autoMdFor = React.useCallback(
+    (d: Date): string => {
+      const matchDates = matches.map((m) => new Date(m.date + 'T00:00:00'));
+      if (matchDates.length === 0) return '';
+      const nearest = matchDates.reduce((best, cur) =>
+        Math.abs(differenceInCalendarDays(cur, d)) < Math.abs(differenceInCalendarDays(best, d)) ? cur : best
+      );
+      const diff = differenceInCalendarDays(d, nearest);
+      return diff === 0 ? 'MD' : diff < 0 ? `MD${diff}` : `MD+${diff}`;
+    },
+    [matches],
+  );
 
   const onError = () => toast({ title: t('common.saveFailed'), variant: 'destructive' });
 
@@ -88,7 +108,7 @@ export function MicrocycleGrid({
                 <td className="px-1 py-1" dir="ltr">
                   <input
                     className={`${cellInputClass} font-mono`}
-                    defaultValue={training?.mdLabel ?? ''}
+                    defaultValue={training?.mdLabel ?? autoMdFor(d)}
                     placeholder="MD-3"
                     onBlur={(e) => {
                       const v = e.target.value.trim();

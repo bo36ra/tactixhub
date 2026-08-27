@@ -207,7 +207,9 @@ export function CalendarPage() {
         const dayMatch = (matches ?? []).find((m) => m.date === key);
         const dayTraining = (trainings ?? []).find((tr) => tr.date === key);
         let mdLabel = '';
-        if (matchDates.length > 0) {
+        if (dayTraining?.mdLabel) {
+          mdLabel = dayTraining.mdLabel;
+        } else if (matchDates.length > 0) {
           const nearest = matchDates.reduce((best, cur) =>
             Math.abs(differenceInCalendarDays(cur, d)) < Math.abs(differenceInCalendarDays(best, d)) ? cur : best
           );
