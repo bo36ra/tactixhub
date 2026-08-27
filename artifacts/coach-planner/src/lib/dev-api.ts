@@ -6,7 +6,7 @@ export interface Training {
   intensity: string | null; durationMinutes: number | null; drills: string | null; notes: string | null;
   place?: string | null; playersTotal?: number | null; playersUnavailable?: number | null; material?: string | null;
   mainObjectiveOffense?: string | null; mainObjectiveDefense?: string | null; complementaryObjective?: string | null;
-  mesocycleLabel?: string | null; microcycleLabel?: string | null; planNumber?: string | null;
+  mesocycleLabel?: string | null; microcycleLabel?: string | null; mdLabel?: string | null; planNumber?: string | null;
   createdAt: string;
 }
 export interface Injury { id: number; teamId: number; playerId: number; playerName?: string; type: string; date: string; expectedReturn: string | null; status: 'out' | 'recovering' | 'recovered'; notes: string | null; createdAt: string }
@@ -20,7 +20,7 @@ export function useTrainings(teamId: number) {
 export function useCreateTraining(teamId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { date: string; time?: string; focus: string; intensity?: string; durationMinutes?: number; drills?: string; notes?: string }) =>
+    mutationFn: (input: { date: string; time?: string; focus: string; intensity?: string; durationMinutes?: number; drills?: string; notes?: string; mdLabel?: string }) =>
       customFetch<Training>(`/api/teams/${teamId}/trainings`, { method: 'POST', ...json(input) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['trainings', teamId] }),
   });
@@ -32,7 +32,7 @@ export function useUpdateTraining(teamId: number) {
       id: number; date?: string; time?: string | null; focus?: string; intensity?: string | null; durationMinutes?: number | null;
       drills?: string | null; notes?: string | null; place?: string | null; playersTotal?: number | null; playersUnavailable?: number | null;
       material?: string | null; mainObjectiveOffense?: string | null; mainObjectiveDefense?: string | null; complementaryObjective?: string | null;
-      mesocycleLabel?: string | null; microcycleLabel?: string | null; planNumber?: string | null;
+      mesocycleLabel?: string | null; microcycleLabel?: string | null; mdLabel?: string | null; planNumber?: string | null;
     }) =>
       customFetch<Training>(`/api/teams/${teamId}/trainings/${input.id}`, { method: 'PATCH', body: JSON.stringify(input) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['trainings', teamId] }),

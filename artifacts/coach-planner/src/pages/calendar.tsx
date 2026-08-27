@@ -31,7 +31,8 @@ import {
   isToday,
   differenceInCalendarDays,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Swords, Dumbbell, Repeat, Target, Plus, Trash2, Pencil, Eye, Printer } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Swords, Dumbbell, Repeat, Target, Plus, Trash2, Pencil, Eye, Printer, LayoutGrid, CalendarDays } from 'lucide-react';
+import { MicrocycleGrid } from '@/components/microcycle-grid';
 import { endOfMonth as eom } from 'date-fns';
 
 // One month view that merges matches and training sessions — the coach's
@@ -39,6 +40,7 @@ import { endOfMonth as eom } from 'date-fns';
 export function CalendarPage() {
   const { t, isRtl, lang } = useLanguage();
   const { activeTeamId } = useTeam();
+  const [viewMode, setViewMode] = React.useState<'calendar' | 'grid'>('calendar');
   const tid = activeTeamId ?? 0;
   const enabled = !!activeTeamId;
   const [month, setMonth] = React.useState(() => startOfMonth(new Date()));
@@ -245,6 +247,10 @@ export function CalendarPage() {
         <div className="flex items-center justify-between">
           <PageTitle>{t('cal.title')}</PageTitle>
           <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setViewMode((v) => (v === 'calendar' ? 'grid' : 'calendar'))}>
+            {viewMode === 'calendar' ? <LayoutGrid className="w-3.5 h-3.5" /> : <CalendarDays className="w-3.5 h-3.5" />}
+            {viewMode === 'calendar' ? t('cal.gridView') : t('cal.calendarView')}
+          </Button>
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.print()}>
             <Printer className="w-3.5 h-3.5" /> {t('cal.print')}
           </Button>
@@ -311,6 +317,7 @@ export function CalendarPage() {
           )}
         </div>
 
+        {viewMode === 'calendar' ? (
         <div className="bg-card border rounded-xl overflow-hidden">
           <div className="grid grid-cols-7 bg-muted text-muted-foreground text-[11px] font-semibold">
             {weekdayLabels.map((label) => (
@@ -405,6 +412,9 @@ export function CalendarPage() {
             })}
           </div>
         </div>
+        ) : (
+          <MicrocycleGrid teamId={tid} month={month} days={days} trainings={trainings ?? []} matches={matches ?? []} />
+        )}
 
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">

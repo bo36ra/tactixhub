@@ -26,6 +26,14 @@ export const trainingsTable = pgTable("trainings", {
   complementaryObjective: text("complementary_objective"),
   mesocycleLabel: text("mesocycle_label"),
   microcycleLabel: text("microcycle_label"),
+  // Manually set by the coach — e.g. "MD-3", "MD+1" — deliberately NOT
+  // auto-computed from the nearest match date. An auto-computed value
+  // sounds convenient but a coach's actual reference match for
+  // periodization purposes isn't always the chronologically nearest
+  // one (a bye week, an early pre-season friendly that doesn't count,
+  // planning ahead of a match that isn't scheduled yet, ...), so this
+  // stays entirely their call.
+  mdLabel: text("md_label"),
   planNumber: text("plan_number"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

@@ -33,7 +33,7 @@ router.get("/teams/:teamId/trainings", requireAuth, guarded(async (_req, res, te
     .where(eq(trainingsTable.teamId, teamId)).orderBy(desc(trainingsTable.date)));
 }));
 router.post("/teams/:teamId/trainings", requireAuth, guarded(async (req, res, teamId) => {
-  const { date, time, focus, drills, notes, intensity, durationMinutes } = req.body;
+  const { date, time, focus, drills, notes, intensity, durationMinutes, mdLabel } = req.body;
   const cleanIntensity = ["very_light", "light", "medium", "high", "very_high"].includes(intensity) ? intensity : null;
   const cleanDuration =
     Number.isFinite(Number(durationMinutes)) && Number(durationMinutes) > 0
@@ -41,7 +41,7 @@ router.post("/teams/:teamId/trainings", requireAuth, guarded(async (req, res, te
       : null;
   if (!date || !focus) { res.status(400).json({ error: "date and focus are required" }); return; }
   const [row] = await db.insert(trainingsTable)
-    .values({ teamId, date, time: time || null, focus, drills: drills || null, notes: notes || null, intensity: cleanIntensity, durationMinutes: cleanDuration })
+    .values({ teamId, date, time: time || null, focus, drills: drills || null, notes: notes || null, intensity: cleanIntensity, durationMinutes: cleanDuration, mdLabel: mdLabel || null })
     .returning();
   res.status(201).json(row);
 }));
@@ -131,7 +131,7 @@ router.patch("/teams/:teamId/trainings/:trainingId", requireAuth, guarded(async 
     date, time, focus, intensity, durationMinutes, drills, notes,
     place, playersTotal, playersUnavailable, material,
     mainObjectiveOffense, mainObjectiveDefense, complementaryObjective,
-    mesocycleLabel, microcycleLabel, planNumber,
+    mesocycleLabel, microcycleLabel, mdLabel, planNumber,
   } = req.body ?? {};
   const cleanIntensity = intensity === null ? null : ["very_light", "light", "medium", "high", "very_high"].includes(intensity) ? intensity : undefined;
   const cleanDuration =
@@ -161,6 +161,7 @@ router.patch("/teams/:teamId/trainings/:trainingId", requireAuth, guarded(async 
       ...(complementaryObjective !== undefined && { complementaryObjective: complementaryObjective || null }),
       ...(mesocycleLabel !== undefined && { mesocycleLabel: mesocycleLabel || null }),
       ...(microcycleLabel !== undefined && { microcycleLabel: microcycleLabel || null }),
+      ...(mdLabel !== undefined && { mdLabel: mdLabel || null }),
       ...(planNumber !== undefined && { planNumber: planNumber || null }),
     })
     .where(and(eq(trainingsTable.id, trainingId), eq(trainingsTable.teamId, teamId)))
