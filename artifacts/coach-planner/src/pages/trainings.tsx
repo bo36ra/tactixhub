@@ -22,6 +22,8 @@ export const FOCUS_KEYS = [
   'preparation',
   'warmup',
   'fitness',
+  'strength',
+  'endurance',
   'speed_agility',
   'technical',
   'tactics',
