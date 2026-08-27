@@ -30,11 +30,19 @@ export const EVENT_TYPES = [
   'off_ball_movement', 'cross', 'corner', 'foul',
 ] as const;
 export type TacticalEventType = typeof EVENT_TYPES[number];
+export const FOUL_SUBTYPES = ['AF', 'DF', 'PK', 'YC', 'RC', 'HB'] as const;
+export type FoulSubtype = typeof FOUL_SUBTYPES[number];
+
 export interface TacticalEvent {
   id: string;
   x: number; // 0..100
   y: number; // 0..100
   type: TacticalEventType;
+  // Currently only meaningful for type:'foul' (AF/DF/PK/YC/RC/HB) —
+  // kept as a plain string rather than a foul-specific field name so
+  // other event types can grow their own short-code subtypes later
+  // without another schema-shaped change.
+  subtype?: string | null;
   playerId?: number | null;
   minute?: number | null; // manually-entered match minute, independent of createdAt
   createdAt: number; // Date.now() at creation — used to order events when minute isn't set
