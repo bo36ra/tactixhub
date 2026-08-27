@@ -499,19 +499,20 @@ export function CalendarPage() {
                       value={day ? day.focus : 'rest'}
                       onValueChange={(v) => {
                         const next = [...cycleDraft];
-                        next[dow] = v === 'rest' ? null : { dayOfWeek: dow, focus: v, intensity: day?.intensity ?? 'medium', durationMinutes: day?.durationMinutes ?? 90, time: day?.time ?? null };
+                        next[dow] = v === 'rest' ? null : { dayOfWeek: dow, focus: v, intensity: v === 'match' ? null : (day?.intensity ?? 'medium'), durationMinutes: v === 'match' ? null : (day?.durationMinutes ?? 90), time: day?.time ?? null };
                         setCycleDraft(next);
                       }}
                     >
                       <SelectTrigger className="flex-1 h-9 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="rest">{t('cal.rest')}</SelectItem>
+                        <SelectItem value="match">{t('cal.kindMatch')}</SelectItem>
                         {FOCUS_KEYS.map((k) => (
                           <SelectItem key={k} value={k}>{t(`train.focus.${k}`)}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {day && (
+                    {day && day.focus !== 'match' && (
                       <>
                         <Select
                           value={day.intensity ?? 'medium'}
@@ -747,7 +748,7 @@ export function CalendarPage() {
                       ))}
                     </div>
                   </div>
-                  {editMatchId !== null && (
+                  {editMatchId !== null && dayOpen !== null && dayOpen <= todayIso && (
                     <div className="space-y-1.5">
                       <Label className="text-xs">{t('cal.score')}</Label>
                       <div className="flex items-center gap-2" dir="ltr">
@@ -756,6 +757,9 @@ export function CalendarPage() {
                         <Input type="number" min="0" className="w-20 text-center" value={dayScoreThem} onChange={(e) => setDayScoreThem(e.target.value)} />
                       </div>
                     </div>
+                  )}
+                  {editMatchId !== null && dayOpen !== null && dayOpen > todayIso && (
+                    <p className="text-[11px] text-muted-foreground">{t('cal.matchNotPlayedYet')}</p>
                   )}
                   <Button
                     className="w-full gap-1.5"

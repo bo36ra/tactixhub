@@ -331,7 +331,7 @@ router.post("/teams/:teamId/cycle/apply", requireAuth, guarded(async (req, res, 
     const iso = d.toISOString().slice(0, 10);
     const dow = (d.getDay() + 6) % 7; // JS Sunday=0 → ISO Monday=0
     const tpl = byDow.get(dow);
-    if (!tpl || taken.has(iso)) continue;
+    if (!tpl || tpl.focus === "match" || taken.has(iso)) continue;
     values.push({
       teamId,
       date: iso,
