@@ -72,6 +72,24 @@ export function CalendarPage() {
   const saveMonthPlan = useSaveMonthPlan(tid);
   const { data: cycle } = useWeekCycle(tid);
   const saveCycle = useSaveWeekCycle(tid);
+  // Keeps the weekly cycle a live reflection of the calendar rather
+  // than a separate thing that only syncs once when first opened —
+  // every time a training is added or edited for a specific date, the
+  // matching day-of-week slot in the cycle is updated to match too,
+  // silently, in the background. The cycle dialog's own Save/Apply
+  // buttons still work exactly as before for editing the template
+  // directly; this just means the two are never out of sync from the
+  // calendar side either.
+  const syncCycleFromTraining = React.useCallback(
+    (date: string, focus: string, intensity: string | null, durationMinutes: number | null) => {
+      if (focus === 'rest_day') return; // a one-off rest day shouldn't turn that weekday into a rest template
+      const dow = (new Date(date + 'T00:00:00').getDay() + 6) % 7;
+      const merged: CycleDay[] = (cycle ?? []).filter((c) => c.dayOfWeek !== dow);
+      merged.push({ dayOfWeek: dow, focus, intensity, durationMinutes, time: null });
+      saveCycle.mutate(merged);
+    },
+    [cycle, saveCycle],
+  );
   const applyCycle = useApplyCycle(tid);
   const createTraining = useCreateTraining(tid);
   const deleteTraining = useDeleteTraining(tid);
@@ -415,7 +433,7 @@ export function CalendarPage() {
           </div>
         </div>
         ) : (
-          <MicrocycleGrid teamId={tid} month={month} days={days} trainings={trainings ?? []} matches={matches ?? []} />
+          <MicrocycleGrid teamId={tid} month={month} days={days} trainings={trainings ?? []} matches={matches ?? []} onTrainingSaved={syncCycleFromTraining} />
         )}
 
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -833,6 +851,7 @@ export function CalendarPage() {
                       if (!dayOpen) return;
                       const done = () => {
                         toast({ title: t('tactics.saved') });
+                        syncCycleFromTraining(dayOpen, 'rest_day', null, null);
                         resetDayForm();
                         setDayOpen(null);
                       };
@@ -922,8 +941,10 @@ export function CalendarPage() {
                 onClick={() => {
                   if (!dayOpen) return;
                   const resolvedFocus = [...dayFocus, ...(dayCustomFocus.trim() ? [dayCustomFocus.trim()] : [])].join(',');
+                  const resolvedDuration = dayDuration ? Number(dayDuration) : null;
                   const done = () => {
                     toast({ title: t('tactics.saved') });
+                    syncCycleFromTraining(dayOpen, resolvedFocus, dayIntensity, resolvedDuration);
                     resetDayForm();
                     setDayOpen(null);
                   };
@@ -933,7 +954,7 @@ export function CalendarPage() {
                         id: editTrainingId,
                         focus: resolvedFocus,
                         intensity: dayIntensity,
-                        durationMinutes: dayDuration ? Number(dayDuration) : null,
+                        durationMinutes: resolvedDuration,
                       },
                       { onError: showError, onSuccess: done },
                     );
@@ -943,7 +964,7 @@ export function CalendarPage() {
                         date: dayOpen,
                         focus: resolvedFocus,
                         intensity: dayIntensity,
-                        durationMinutes: dayDuration ? Number(dayDuration) : undefined,
+                        durationMinutes: resolvedDuration ?? undefined,
                       },
                       { onError: showError, onSuccess: done },
                     );

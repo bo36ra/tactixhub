@@ -16,13 +16,14 @@ const INTENSITIES = ['very_light', 'light', 'medium', 'high', 'very_high'] as co
 // which the calendar view (built for browsing a month visually) never
 // really replicated.
 export function MicrocycleGrid({
-  teamId, month, days, trainings, matches,
+  teamId, month, days, trainings, matches, onTrainingSaved,
 }: {
   teamId: number;
   month: Date;
   days: Date[];
   trainings: Training[];
   matches: Match[];
+  onTrainingSaved: (date: string, focus: string, intensity: string | null, durationMinutes: number | null) => void;
 }) {
   const { t } = useLanguage();
   const { toast } = useToast();
@@ -62,20 +63,24 @@ export function MicrocycleGrid({
     patch: Partial<Pick<Training, 'focus' | 'intensity' | 'durationMinutes' | 'mdLabel' | 'notes'>>,
   ) => {
     const existing = trainings.find((tr) => tr.date === date);
+    const resultFocus = patch.focus ?? existing?.focus ?? 'rest_day';
+    const resultIntensity = 'intensity' in patch ? (patch.intensity ?? null) : (existing?.intensity ?? null);
+    const resultDuration = 'durationMinutes' in patch ? (patch.durationMinutes ?? null) : (existing?.durationMinutes ?? null);
+    const onSuccess = () => onTrainingSaved(date, resultFocus, resultIntensity, resultDuration);
     if (existing) {
-      updateTraining.mutate({ id: existing.id, ...patch }, { onError });
+      updateTraining.mutate({ id: existing.id, ...patch }, { onError, onSuccess });
       return;
     }
     createTraining.mutate(
       {
         date,
-        focus: patch.focus ?? 'rest_day',
+        focus: resultFocus,
         ...(patch.intensity !== undefined && patch.intensity !== null && { intensity: patch.intensity }),
         ...(patch.durationMinutes !== undefined && patch.durationMinutes !== null && { durationMinutes: patch.durationMinutes }),
         ...(patch.mdLabel !== undefined && patch.mdLabel !== null && { mdLabel: patch.mdLabel }),
         ...(patch.notes !== undefined && patch.notes !== null && { notes: patch.notes }),
       },
-      { onError },
+      { onError, onSuccess },
     );
   };
 
