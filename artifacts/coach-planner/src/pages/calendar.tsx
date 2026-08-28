@@ -133,23 +133,27 @@ export function CalendarPage() {
     // training actually logged on that weekday. The coach still has to
     // press Save to make it a real cycle; this only pre-fills the form.
     const draft: (CycleDay | null)[] = Array(7).fill(null);
+    const combined: { date: string; dow: number; entry: CycleDay }[] = [];
     (trainings ?? [])
-      .slice()
-      .sort((a, b) => a.date.localeCompare(b.date))
+      .filter((tr) => tr.focus !== 'rest_day')
       .forEach((tr) => {
-        if (tr.focus === 'rest_day') return;
         const dow = (new Date(tr.date + 'T00:00:00').getDay() + 6) % 7;
-        draft[dow] = {
-          dayOfWeek: dow,
-          focus: tr.focus.split(',')[0]?.trim() || tr.focus,
-          intensity: tr.intensity,
-          durationMinutes: tr.durationMinutes,
-          time: tr.time,
-        };
+        combined.push({
+          date: tr.date,
+          dow,
+          entry: { dayOfWeek: dow, focus: tr.focus.split(',')[0]?.trim() || tr.focus, intensity: tr.intensity, durationMinutes: tr.durationMinutes, time: tr.time },
+        });
       });
+    (matches ?? []).forEach((m) => {
+      const dow = (new Date(m.date + 'T00:00:00').getDay() + 6) % 7;
+      combined.push({ date: m.date, dow, entry: { dayOfWeek: dow, focus: 'match', intensity: null, durationMinutes: null, time: null } });
+    });
+    combined
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .forEach(({ dow, entry }) => { draft[dow] = entry; });
     setCycleDraft(draft);
     setCycleInferred(draft.some(Boolean));
-  }, [cycleOpen, cycle, trainings]);
+  }, [cycleOpen, cycle, trainings, matches]);
 
   // quick-add on a day
   const [dayOpen, setDayOpen] = React.useState<string | null>(null);
@@ -823,6 +827,7 @@ export function CalendarPage() {
                       const done = () => {
                         toast({ title: t('match.saved') });
                         queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(activeTeamId) });
+                        syncCycleFromTraining(dayOpen, 'match', null, null);
                         resetDayForm();
                         setDayOpen(null);
                       };
