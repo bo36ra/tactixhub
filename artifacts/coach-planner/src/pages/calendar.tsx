@@ -70,8 +70,8 @@ export function CalendarPage() {
   }, [allAttendance, players]);
   const { data: monthPlan } = useMonthPlan(tid, monthKey);
   const saveMonthPlan = useSaveMonthPlan(tid);
-  const { data: cycle } = useWeekCycle(tid);
-  const saveCycle = useSaveWeekCycle(tid);
+  const { data: cycle } = useWeekCycle(tid, monthKey);
+  const saveCycle = useSaveWeekCycle(tid, monthKey);
   // Keeps the weekly cycle a live reflection of the calendar rather
   // than a separate thing that only syncs once when first opened —
   // every time a training is added or edited for a specific date, the
@@ -131,16 +131,18 @@ export function CalendarPage() {
       setCycleInferred(false);
       return;
     }
-    // No saved cycle yet. Rather than showing every day as blank/rest —
-    // confusing when the calendar already has a real, repeating pattern
-    // of individually-added trainings — infer a starting draft from
-    // that existing data: for each day of week, the most recent
-    // training actually logged on that weekday. The coach still has to
-    // press Save to make it a real cycle; this only pre-fills the form.
+    // No saved cycle for this month yet. Rather than showing every day
+    // as blank/rest — confusing when this month's calendar already has
+    // a real, repeating pattern of individually-added trainings — infer
+    // a starting draft from that month's own existing data only (not
+    // other months', now that each month has its own cycle): for each
+    // day of week, the most recent training actually logged on that
+    // weekday within this month. The coach still has to press Save to
+    // make it a real cycle; this only pre-fills the form.
     const draft: (CycleDay | null)[] = Array(7).fill(null);
     const combined: { date: string; dow: number; entry: CycleDay }[] = [];
     (trainings ?? [])
-      .filter((tr) => tr.focus !== 'rest_day')
+      .filter((tr) => tr.focus !== 'rest_day' && tr.date.startsWith(monthKey))
       .forEach((tr) => {
         const dow = (new Date(tr.date + 'T00:00:00').getDay() + 6) % 7;
         combined.push({
@@ -149,16 +151,18 @@ export function CalendarPage() {
           entry: { dayOfWeek: dow, focus: tr.focus.split(',')[0]?.trim() || tr.focus, intensity: tr.intensity, durationMinutes: tr.durationMinutes, time: tr.time },
         });
       });
-    (matches ?? []).forEach((m) => {
-      const dow = (new Date(m.date + 'T00:00:00').getDay() + 6) % 7;
-      combined.push({ date: m.date, dow, entry: { dayOfWeek: dow, focus: 'match', intensity: null, durationMinutes: null, time: null } });
-    });
+    (matches ?? [])
+      .filter((m) => m.date.startsWith(monthKey))
+      .forEach((m) => {
+        const dow = (new Date(m.date + 'T00:00:00').getDay() + 6) % 7;
+        combined.push({ date: m.date, dow, entry: { dayOfWeek: dow, focus: 'match', intensity: null, durationMinutes: null, time: null } });
+      });
     combined
       .sort((a, b) => a.date.localeCompare(b.date))
       .forEach(({ dow, entry }) => { draft[dow] = entry; });
     setCycleDraft(draft);
     setCycleInferred(draft.some(Boolean));
-  }, [cycleOpen, cycle, trainings, matches]);
+  }, [cycleOpen, cycle, trainings, matches, monthKey]);
 
   // quick-add on a day
   const [dayOpen, setDayOpen] = React.useState<string | null>(null);
@@ -522,9 +526,10 @@ export function CalendarPage() {
         <Dialog open={cycleOpen} onOpenChange={setCycleOpen}>
           <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-w-lg max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{t('cal.cycle')}</DialogTitle>
+              <DialogTitle>{t('cal.cycle')} — {format(month, 'MM / yyyy')}</DialogTitle>
             </DialogHeader>
             <p className="text-xs text-muted-foreground -mt-2">{t('cal.cycleHint')}</p>
+            <p className="text-[11px] text-primary bg-primary/10 rounded-lg px-3 py-1.5">{t('cal.cycleMonthNote')}</p>
             {cycleInferred && (
               <p className="text-xs bg-primary/10 text-primary rounded-lg px-3 py-2">{t('cal.cycleInferredNote')}</p>
             )}
@@ -837,7 +842,7 @@ export function CalendarPage() {
                         // needing an explicit push here — just refetch it
                         // so a currently-open cycle view picks up the
                         // change.
-                        queryClient.invalidateQueries({ queryKey: ['week-cycle', activeTeamId] });
+                        queryClient.invalidateQueries({ queryKey: ['week-cycle', activeTeamId, monthKey] });
                         resetDayForm();
                         setDayOpen(null);
                       };
@@ -1137,7 +1142,7 @@ export function CalendarPage() {
                     // than trying to replicate the same decision against
                     // whatever match/cycle data happens to already be
                     // loaded client-side.
-                    queryClient.invalidateQueries({ queryKey: ['week-cycle', activeTeamId] });
+                    queryClient.invalidateQueries({ queryKey: ['week-cycle', activeTeamId, monthKey] });
                   },
                 },
               );

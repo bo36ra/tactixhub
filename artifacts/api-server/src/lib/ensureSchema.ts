@@ -360,6 +360,7 @@ const STATEMENTS = [
   )`,
   `ALTER TABLE "goals" ADD COLUMN IF NOT EXISTS "assist_player_id" integer REFERENCES "players"("id") ON DELETE SET NULL`,
   `ALTER TABLE "trainings" ADD COLUMN IF NOT EXISTS "md_label" text`,
+  `ALTER TABLE "week_cycles" ADD COLUMN IF NOT EXISTS "month" text`,
 ];
 
 export async function ensureSchema(): Promise<void> {

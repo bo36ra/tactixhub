@@ -1,6 +1,6 @@
 import { dbErrorMessage } from "../lib/dbError";
 import { Router } from "express";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, or, isNull, gte, lte } from "drizzle-orm";
 import { db, trainingsTable, injuriesTable, ratingsTable, playersTable, teamsTable, matchesTable, matchPlansTable, weekCyclesTable, monthPlansTable, playerAvailabilityTable, trainingBlocksTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { verifyTeamAccess } from "../lib/teamAccess";
@@ -266,44 +266,64 @@ router.put("/teams/:teamId/matches/:matchId/plan", requireAuth, guarded(async (r
   res.json(plan);
 }));
 
-// ---- Weekly cycle (microcycle) ----
-router.get("/teams/:teamId/cycle", requireAuth, guarded(async (_req, res, teamId) => {
+// ---- Weekly cycle (microcycle) — one per month, not one for the whole team ----
+
+// Shared by GET /cycle and POST /cycle/apply: the cycle actually in
+// effect for a given month — that month's own explicit rows first,
+// falling back to the legacy team-wide rows (month IS NULL, predating
+// this column) for any weekday the month hasn't customized itself,
+// then filling any day still unset with a computed match entry if the
+// team has a real match on that weekday within that specific month.
+async function getEffectiveCycle(teamId: number, month: string) {
   const rows = await db
     .select()
     .from(weekCyclesTable)
-    .where(eq(weekCyclesTable.teamId, teamId))
-    .orderBy(weekCyclesTable.dayOfWeek);
-  // Days explicitly set by the coach always win. For any day of week
-  // with no explicit entry, check whether the team actually has a
-  // match on that weekday and report it as "match" if so — computed
-  // fresh from the real matches every time this is read, rather than
-  // a separate stored flag that has to be kept in sync by hand
-  // whenever a match is added or removed (which is exactly what kept
-  // going stale before this).
-  const explicitDows = new Set(rows.map((r) => r.dayOfWeek));
-  const missingDows = [0, 1, 2, 3, 4, 5, 6].filter((d) => !explicitDows.has(d));
+    .where(and(eq(weekCyclesTable.teamId, teamId), or(eq(weekCyclesTable.month, month), isNull(weekCyclesTable.month))));
+  const byDow = new Map<number, typeof rows[number]>();
+  for (const r of rows) {
+    const existing = byDow.get(r.dayOfWeek);
+    if (!existing || (existing.month === null && r.month === month)) byDow.set(r.dayOfWeek, r);
+  }
+  const missingDows = [0, 1, 2, 3, 4, 5, 6].filter((d) => !byDow.has(d));
   if (missingDows.length > 0) {
-    const teamMatches = await db.select().from(matchesTable).where(eq(matchesTable.teamId, teamId));
-    const matchDows = new Set(teamMatches.map((m) => (new Date(m.date + "T00:00:00").getDay() + 6) % 7));
+    const [y, m] = month.split("-").map(Number);
+    const monthStart = `${month}-01`;
+    const monthEnd = new Date(y, m, 0).toISOString().slice(0, 10); // last day of that month
+    const monthMatches = await db
+      .select()
+      .from(matchesTable)
+      .where(and(eq(matchesTable.teamId, teamId), gte(matchesTable.date, monthStart), lte(matchesTable.date, monthEnd)));
+    const matchDows = new Set(monthMatches.map((mm) => (new Date(mm.date + "T00:00:00").getDay() + 6) % 7));
     for (const dow of missingDows) {
       if (matchDows.has(dow)) {
-        rows.push({
-          id: -1, teamId, dayOfWeek: dow, focus: "match", intensity: null, durationMinutes: null, time: null,
-        } as typeof rows[number]);
+        byDow.set(dow, { id: -1, teamId, month, dayOfWeek: dow, focus: "match", intensity: null, durationMinutes: null, time: null });
       }
     }
-    rows.sort((a, b) => a.dayOfWeek - b.dayOfWeek);
   }
-  res.json(rows);
+  return Array.from(byDow.values()).sort((a, b) => a.dayOfWeek - b.dayOfWeek);
+}
+
+router.get("/teams/:teamId/cycle", requireAuth, guarded(async (req, res, teamId) => {
+  const now = new Date();
+  const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const month = typeof req.query.month === "string" && /^\d{4}-\d{2}$/.test(req.query.month) ? req.query.month : defaultMonth;
+  res.json(await getEffectiveCycle(teamId, month));
 }));
 
-// Replace the whole 7-day template in one shot (rest days are simply absent)
+// Replace one month's 7-day template in one shot (rest days are simply
+// absent) — never touches other months' rows or the legacy fallback.
 router.put("/teams/:teamId/cycle", requireAuth, guarded(async (req, res, teamId) => {
+  const month = req.body?.month;
+  if (typeof month !== "string" || !/^\d{4}-\d{2}$/.test(month)) {
+    res.status(400).json({ error: "month (YYYY-MM) is required" });
+    return;
+  }
   const days = Array.isArray(req.body?.days) ? req.body.days : [];
   const clean = days
     .filter((d: any) => Number.isInteger(d?.dayOfWeek) && d.dayOfWeek >= 0 && d.dayOfWeek <= 6 && typeof d.focus === "string" && d.focus)
     .map((d: any) => ({
       teamId,
+      month,
       dayOfWeek: d.dayOfWeek,
       focus: String(d.focus),
       intensity: ["very_light", "light", "medium", "high", "very_high"].includes(d.intensity) ? d.intensity : null,
@@ -313,13 +333,14 @@ router.put("/teams/:teamId/cycle", requireAuth, guarded(async (req, res, teamId)
           : null,
       time: typeof d.time === "string" && d.time ? d.time : null,
     }));
-  await db.delete(weekCyclesTable).where(eq(weekCyclesTable.teamId, teamId));
+  await db.delete(weekCyclesTable).where(and(eq(weekCyclesTable.teamId, teamId), eq(weekCyclesTable.month, month)));
   const rows = clean.length ? await db.insert(weekCyclesTable).values(clean).returning() : [];
   res.json(rows);
 }));
 
 // Apply the cycle over a date range: create planned trainings on matching
-// weekdays, skipping days that already have a training or a match.
+// weekdays, skipping days that already have a training or a match. A
+// range spanning more than one month uses each date's own month's cycle.
 router.post("/teams/:teamId/cycle/apply", requireAuth, guarded(async (req, res, teamId) => {
   const { from, to } = req.body ?? {};
   const start = new Date(`${from}T00:00:00`);
@@ -332,12 +353,7 @@ router.post("/teams/:teamId/cycle/apply", requireAuth, guarded(async (req, res, 
     res.status(400).json({ error: "Range too large (max ~3 months)" });
     return;
   }
-  const cycle = await db.select().from(weekCyclesTable).where(eq(weekCyclesTable.teamId, teamId));
-  if (cycle.length === 0) {
-    res.status(400).json({ error: "No weekly cycle defined" });
-    return;
-  }
-  const byDow = new Map(cycle.map((c) => [c.dayOfWeek, c]));
+  const cyclesByMonth = new Map<string, Awaited<ReturnType<typeof getEffectiveCycle>>>();
   const existingTrainings = await db
     .select({ date: trainingsTable.date })
     .from(trainingsTable)
@@ -351,8 +367,11 @@ router.post("/teams/:teamId/cycle/apply", requireAuth, guarded(async (req, res, 
   const values: any[] = [];
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     const iso = d.toISOString().slice(0, 10);
+    const monthKey = iso.slice(0, 7);
+    if (!cyclesByMonth.has(monthKey)) cyclesByMonth.set(monthKey, await getEffectiveCycle(teamId, monthKey));
+    const cycle = cyclesByMonth.get(monthKey)!;
     const dow = (d.getDay() + 6) % 7; // JS Sunday=0 → ISO Monday=0
-    const tpl = byDow.get(dow);
+    const tpl = cycle.find((c) => c.dayOfWeek === dow);
     if (!tpl || tpl.focus === "match" || taken.has(iso)) continue;
     values.push({
       teamId,

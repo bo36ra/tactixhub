@@ -77,19 +77,19 @@ export function useSaveMatchPlan(teamId: number) {
 }
 
 export interface CycleDay { id?: number; dayOfWeek: number; focus: string; intensity: string | null; durationMinutes: number | null; time: string | null }
-export function useWeekCycle(teamId: number) {
+export function useWeekCycle(teamId: number, month: string) {
   return useQuery({
-    queryKey: ['week-cycle', teamId],
-    enabled: !!teamId,
-    queryFn: () => customFetch<CycleDay[]>(`/api/teams/${teamId}/cycle`),
+    queryKey: ['week-cycle', teamId, month],
+    enabled: !!teamId && !!month,
+    queryFn: () => customFetch<CycleDay[]>(`/api/teams/${teamId}/cycle?month=${month}`),
   });
 }
-export function useSaveWeekCycle(teamId: number) {
+export function useSaveWeekCycle(teamId: number, month: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (days: CycleDay[]) =>
-      customFetch<CycleDay[]>(`/api/teams/${teamId}/cycle`, { method: 'PUT', body: JSON.stringify({ days }) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['week-cycle', teamId] }),
+      customFetch<CycleDay[]>(`/api/teams/${teamId}/cycle`, { method: 'PUT', body: JSON.stringify({ month, days }) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['week-cycle', teamId, month] }),
   });
 }
 export function useApplyCycle(teamId: number) {
