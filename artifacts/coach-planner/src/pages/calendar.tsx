@@ -1114,11 +1114,30 @@ export function CalendarPage() {
           title={t('match.deleteConfirm')}
           onConfirm={() => {
             if (matchDeleteId !== null && activeTeamId) {
+              const deletedMatch = (matches ?? []).find((m) => m.id === matchDeleteId);
               deleteMatch.mutate(
                 { teamId: activeTeamId, matchId: matchDeleteId },
                 {
                   onError: showError,
-                  onSuccess: () => queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(activeTeamId) }),
+                  onSuccess: () => {
+                    queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(activeTeamId) });
+                    // If that was the last match on this weekday, the
+                    // cycle's Match marker for it (set when a match was
+                    // added) no longer reflects anything real — clear it
+                    // back to unset, but only if it's still exactly
+                    // 'match' (untouched since), so a day the coach has
+                    // since deliberately re-purposed isn't reset under them.
+                    if (deletedMatch) {
+                      const dow = (new Date(deletedMatch.date + 'T00:00:00').getDay() + 6) % 7;
+                      const otherMatchOnSameDow = (matches ?? []).some(
+                        (m) => m.id !== matchDeleteId && (new Date(m.date + 'T00:00:00').getDay() + 6) % 7 === dow
+                      );
+                      const cycleDay = (cycle ?? []).find((c) => c.dayOfWeek === dow);
+                      if (!otherMatchOnSameDow && cycleDay?.focus === 'match') {
+                        saveCycle.mutate((cycle ?? []).filter((c) => c.dayOfWeek !== dow), { onError: showError });
+                      }
+                    }
+                  },
                 },
               );
             }
