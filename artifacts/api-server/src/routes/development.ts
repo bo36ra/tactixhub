@@ -273,6 +273,27 @@ router.get("/teams/:teamId/cycle", requireAuth, guarded(async (_req, res, teamId
     .from(weekCyclesTable)
     .where(eq(weekCyclesTable.teamId, teamId))
     .orderBy(weekCyclesTable.dayOfWeek);
+  // Days explicitly set by the coach always win. For any day of week
+  // with no explicit entry, check whether the team actually has a
+  // match on that weekday and report it as "match" if so — computed
+  // fresh from the real matches every time this is read, rather than
+  // a separate stored flag that has to be kept in sync by hand
+  // whenever a match is added or removed (which is exactly what kept
+  // going stale before this).
+  const explicitDows = new Set(rows.map((r) => r.dayOfWeek));
+  const missingDows = [0, 1, 2, 3, 4, 5, 6].filter((d) => !explicitDows.has(d));
+  if (missingDows.length > 0) {
+    const teamMatches = await db.select().from(matchesTable).where(eq(matchesTable.teamId, teamId));
+    const matchDows = new Set(teamMatches.map((m) => (new Date(m.date + "T00:00:00").getDay() + 6) % 7));
+    for (const dow of missingDows) {
+      if (matchDows.has(dow)) {
+        rows.push({
+          id: -1, teamId, dayOfWeek: dow, focus: "match", intensity: null, durationMinutes: null, time: null,
+        } as typeof rows[number]);
+      }
+    }
+    rows.sort((a, b) => a.dayOfWeek - b.dayOfWeek);
+  }
   res.json(rows);
 }));
 

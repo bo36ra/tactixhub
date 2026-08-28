@@ -1,7 +1,7 @@
 import { dbErrorMessage } from "../lib/dbError";
 import { Router } from "express";
 import { eq, and, desc } from "drizzle-orm";
-import { db, matchesTable, teamsTable, weekCyclesTable } from "@workspace/db";
+import { db, matchesTable, teamsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { verifyTeamAccess } from "../lib/teamAccess";
 
@@ -109,34 +109,9 @@ router.delete("/teams/:teamId/matches/:matchId", requireAuth, async (req, res) =
     return;
   }
   try {
-    const [deleted] = await db
+    await db
       .delete(matchesTable)
-      .where(and(eq(matchesTable.id, matchId), eq(matchesTable.teamId, teamId)))
-      .returning();
-
-    // If that was the last match on this weekday, clear the cycle's
-    // Match marker for it too — computed here, with a fresh read
-    // straight from the database at the moment of deletion, rather
-    // than on the frontend (which would depend on whatever match/cycle
-    // data happened to already be loaded client-side, a real source of
-    // staleness this avoids entirely).
-    if (deleted) {
-      const dow = (new Date(deleted.date + "T00:00:00").getDay() + 6) % 7;
-      const remaining = await db.select().from(matchesTable).where(eq(matchesTable.teamId, teamId));
-      const stillHasMatchOnDow = remaining.some((m) => (new Date(m.date + "T00:00:00").getDay() + 6) % 7 === dow);
-      if (!stillHasMatchOnDow) {
-        const [cycleDay] = await db
-          .select()
-          .from(weekCyclesTable)
-          .where(and(eq(weekCyclesTable.teamId, teamId), eq(weekCyclesTable.dayOfWeek, dow)));
-        if (cycleDay?.focus === "match") {
-          await db
-            .delete(weekCyclesTable)
-            .where(and(eq(weekCyclesTable.teamId, teamId), eq(weekCyclesTable.dayOfWeek, dow)));
-        }
-      }
-    }
-
+      .where(and(eq(matchesTable.id, matchId), eq(matchesTable.teamId, teamId)));
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Failed to delete match");

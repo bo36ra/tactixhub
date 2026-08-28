@@ -117,11 +117,16 @@ export function CalendarPage() {
   const [cycleInferred, setCycleInferred] = React.useState(false);
   React.useEffect(() => {
     if (!cycleOpen) return;
-    if ((cycle ?? []).length > 0) {
-      // A cycle was actually saved before — use it as-is, exactly what
-      // was saved.
+    // The backend fills in computed 'match' entries (id: -1) for any
+    // weekday with no explicit row, straight from real match data —
+    // those aren't a "saved cycle" on their own, just useful context
+    // to merge in either way below.
+    const explicitCycle = (cycle ?? []).filter((c) => c.id !== -1);
+    if (explicitCycle.length > 0) {
+      // A cycle was actually saved before — use it (plus any computed
+      // match fills for days that were never explicitly set) as-is.
       const draft: (CycleDay | null)[] = Array(7).fill(null);
-      cycle!.forEach((c) => { draft[c.dayOfWeek] = { ...c }; });
+      (cycle ?? []).forEach((c) => { draft[c.dayOfWeek] = { ...c }; });
       setCycleDraft(draft);
       setCycleInferred(false);
       return;
@@ -827,7 +832,12 @@ export function CalendarPage() {
                       const done = () => {
                         toast({ title: t('match.saved') });
                         queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(activeTeamId) });
-                        syncCycleFromTraining(dayOpen, 'match', null, null);
+                        // The cycle now computes "match" days directly
+                        // from real match data on the backend rather than
+                        // needing an explicit push here — just refetch it
+                        // so a currently-open cycle view picks up the
+                        // change.
+                        queryClient.invalidateQueries({ queryKey: ['week-cycle', activeTeamId] });
                         resetDayForm();
                         setDayOpen(null);
                       };
