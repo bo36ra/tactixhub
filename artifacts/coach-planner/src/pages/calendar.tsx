@@ -25,6 +25,7 @@ import {
   startOfMonth,
   endOfMonth,
   startOfWeek,
+  endOfWeek,
   addDays,
   addMonths,
   isSameMonth,
@@ -115,6 +116,37 @@ export function CalendarPage() {
   const [cycleOpen, setCycleOpen] = React.useState(false);
   const [cycleDraft, setCycleDraft] = React.useState<(CycleDay | null)[]>(Array(7).fill(null));
   const [cycleInferred, setCycleInferred] = React.useState(false);
+  // What date range "Apply" actually targets — previously hardcoded to
+  // "today through end of month", meaning every application spread
+  // across every remaining week of the month whether that was intended
+  // or not. Defaults to that same range for familiarity, but the coach
+  // can narrow it to just the current week or pick any custom range.
+  const [applyRangePreset, setApplyRangePreset] = React.useState<'week' | 'month' | 'custom'>('month');
+  const [applyFromCustom, setApplyFromCustom] = React.useState('');
+  const [applyToCustom, setApplyToCustom] = React.useState('');
+
+  const resolveApplyRange = (): { from: string; to: string } | null => {
+    const today = new Date();
+    const monthStart = today > month ? today : month;
+    if (applyRangePreset === 'month') {
+      return { from: format(monthStart, 'yyyy-MM-dd'), to: format(eom(month), 'yyyy-MM-dd') };
+    }
+    if (applyRangePreset === 'week') {
+      const weekStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(monthStart, { weekStartsOn: 1 });
+      return { from: format(weekStart > monthStart ? weekStart : monthStart, 'yyyy-MM-dd'), to: format(weekEnd, 'yyyy-MM-dd') };
+    }
+    if (applyFromCustom && applyToCustom) return { from: applyFromCustom, to: applyToCustom };
+    return null;
+  };
+  React.useEffect(() => {
+    if (cycleOpen) {
+      setApplyRangePreset('month');
+      setApplyFromCustom('');
+      setApplyToCustom('');
+    }
+  }, [cycleOpen]);
+
   React.useEffect(() => {
     if (!cycleOpen) return;
     // The backend fills in computed 'match' entries (id: -1) for any
@@ -629,11 +661,53 @@ export function CalendarPage() {
                 <option key={k} value={k}>{t(`train.focus.${k}`)}</option>
               ))}
             </datalist>
+            <div className="space-y-1.5 rounded-lg border border-border/60 p-2.5">
+              <p className="text-[11px] font-semibold text-muted-foreground">{t('cal.applyRangeLabel')}</p>
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setApplyRangePreset('week')}
+                  className={`flex-1 text-[11px] font-medium py-1.5 rounded-lg border ${applyRangePreset === 'week' ? 'bg-primary/15 text-primary border-primary/40' : 'border-border/60 text-muted-foreground'}`}
+                >
+                  {t('cal.applyRangeWeek')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setApplyRangePreset('month')}
+                  className={`flex-1 text-[11px] font-medium py-1.5 rounded-lg border ${applyRangePreset === 'month' ? 'bg-primary/15 text-primary border-primary/40' : 'border-border/60 text-muted-foreground'}`}
+                >
+                  {t('cal.applyRangeMonth')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setApplyRangePreset('custom')}
+                  className={`flex-1 text-[11px] font-medium py-1.5 rounded-lg border ${applyRangePreset === 'custom' ? 'bg-primary/15 text-primary border-primary/40' : 'border-border/60 text-muted-foreground'}`}
+                >
+                  {t('cal.applyRangeCustom')}
+                </button>
+              </div>
+              {applyRangePreset === 'custom' ? (
+                <div className="flex items-center gap-2">
+                  <Input type="date" className="flex-1 h-9 text-xs" value={applyFromCustom} onChange={(e) => setApplyFromCustom(e.target.value)} />
+                  <span className="text-muted-foreground text-xs">–</span>
+                  <Input type="date" className="flex-1 h-9 text-xs" value={applyToCustom} onChange={(e) => setApplyToCustom(e.target.value)} />
+                </div>
+              ) : (
+                (() => {
+                  const r = resolveApplyRange();
+                  return r ? (
+                    <p className="text-[11px] text-muted-foreground" dir="ltr">{r.from} → {r.to}</p>
+                  ) : null;
+                })()
+              )}
+            </div>
             <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2">
               <Button
                 variant="outline"
                 disabled={saveCycle.isPending || applyCycle.isPending || monthInPast}
                 onClick={() => {
+                  const range = resolveApplyRange();
+                  if (!range) { toast({ title: t('cal.applyRangeInvalid'), variant: 'destructive' }); return; }
                   // Exclude computed-only entries (id: -1, the
                   // backend's auto-detected Match days) the coach never
                   // actually touched — saving them would turn a
@@ -644,10 +718,8 @@ export function CalendarPage() {
                   saveCycle.mutate(days, {
                     onError: showError,
                     onSuccess: () => {
-                      const from = format(new Date() > month ? new Date() : month, 'yyyy-MM-dd');
-                      const to = format(eom(month), 'yyyy-MM-dd');
                       applyCycle.mutate(
-                        { from, to },
+                        range,
                         {
                           onError: showError,
                           onSuccess: (r) => {
