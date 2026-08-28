@@ -128,16 +128,21 @@ export function MicrocycleGrid({
                       {t('cal.printMatch')} — {match.opponent}
                     </span>
                   ) : (
-                    <select
+                    // Free text rather than a fixed <select> — a training's
+                    // focus can combine several preset keys plus custom
+                    // text at once (set from the calendar's own day
+                    // dialog), which a strict single-value dropdown can't
+                    // represent and would silently show blank/reset for.
+                    <input
                       className={cellInputClass}
-                      value={training?.focus ?? 'rest_day'}
-                      onChange={(e) => withTrainingFor(key, { focus: e.target.value })}
-                    >
-                      <option value="rest_day">{t('cal.rest')}</option>
-                      {FOCUS_KEYS.map((k) => (
-                        <option key={k} value={k}>{t(`train.focus.${k}`)}</option>
-                      ))}
-                    </select>
+                      list="grid-focus-options"
+                      defaultValue={training?.focus ?? 'rest_day'}
+                      onBlur={(e) => {
+                        const v = e.target.value.trim();
+                        if (v === (training?.focus ?? 'rest_day')) return;
+                        withTrainingFor(key, { focus: v || 'rest_day' });
+                      }}
+                    />
                   )}
                 </td>
                 <td className="px-1 py-1">
@@ -186,6 +191,12 @@ export function MicrocycleGrid({
           })}
         </tbody>
       </table>
+      <datalist id="grid-focus-options">
+        <option value="rest_day">{t('cal.rest')}</option>
+        {FOCUS_KEYS.map((k) => (
+          <option key={k} value={k}>{t(`train.focus.${k}`)}</option>
+        ))}
+      </datalist>
     </div>
   );
 }
