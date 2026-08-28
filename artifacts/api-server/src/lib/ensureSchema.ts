@@ -361,6 +361,21 @@ const STATEMENTS = [
   `ALTER TABLE "goals" ADD COLUMN IF NOT EXISTS "assist_player_id" integer REFERENCES "players"("id") ON DELETE SET NULL`,
   `ALTER TABLE "trainings" ADD COLUMN IF NOT EXISTS "md_label" text`,
   `ALTER TABLE "week_cycles" ADD COLUMN IF NOT EXISTS "month" text`,
+  // This constraint predates month-scoping and only covered (team_id,
+  // day_of_week) — meaning any second row for the same weekday, even
+  // for a completely different month, was rejected outright. Every
+  // "duplicate key" 500 on saving a monthly cycle traced back to this.
+  `ALTER TABLE "week_cycles" DROP CONSTRAINT IF EXISTS "week_cycles_team_id_day_of_week_key"`,
+  // Replaces it with the actually-correct constraint: unique per
+  // (team_id, month, day_of_week) — multiple months can each have
+  // their own row for the same weekday, exactly one row per weekday
+  // within a given month. Postgres treats NULL as distinct from any
+  // other NULL for uniqueness purposes, so this doesn't block the
+  // legacy null-month fallback rows either.
+  `DO $$ BEGIN
+    ALTER TABLE "week_cycles" ADD CONSTRAINT "week_cycles_team_month_day_key" UNIQUE ("team_id", "month", "day_of_week");
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END $$`,
 ];
 
 export async function ensureSchema(): Promise<void> {

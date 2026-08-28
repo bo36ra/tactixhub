@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, timestamp, unique } from "drizzle-orm/pg-core";
 import { teamsTable } from "./teams";
 
 // Periodization support.
@@ -23,7 +23,13 @@ export const weekCyclesTable = pgTable("week_cycles", {
   intensity: text("intensity"),
   durationMinutes: integer("duration_minutes"),
   time: text("time"),
-});
+}, (table) => ({
+  // One row per weekday per month (a pre-month-scoping constraint
+  // predating this column used to cover just team_id+dayOfWeek, which
+  // rejected a second month's row for the same weekday outright — see
+  // ensureSchema.ts for the migration that replaces it with this one).
+  teamMonthDayUnique: unique("week_cycles_team_month_day_key").on(table.teamId, table.month, table.dayOfWeek),
+}));
 
 // month_plans = the mesocycle: a goal + notes per calendar month.
 export const monthPlansTable = pgTable("month_plans", {
