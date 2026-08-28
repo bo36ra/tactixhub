@@ -536,15 +536,28 @@ export function CalendarPage() {
             <div className="space-y-2">
               {weekdayLabels.map((label, dow) => {
                 const day = cycleDraft[dow];
-                const focusText = day?.focus === 'match' ? '' : (day?.focus ?? '');
+                const isRest = day?.focus === 'rest_day';
+                const focusText = (day?.focus === 'match' || isRest) ? '' : (day?.focus ?? '');
                 return (
                   <div key={dow} className="flex items-center gap-1.5 flex-wrap">
                     <span className="w-10 text-xs text-muted-foreground shrink-0">{label}</span>
                     <div className="flex gap-1 shrink-0">
                       <button
                         type="button"
-                        onClick={() => { const next = [...cycleDraft]; next[dow] = null; setCycleDraft(next); }}
-                        className={`h-9 px-2 rounded-lg text-[11px] font-medium border ${!day ? 'bg-primary/15 text-primary border-primary/40' : 'border-border/60 text-muted-foreground'}`}
+                        onClick={() => {
+                          // An explicit stored 'rest_day' entry, not just
+                          // clearing the slot to null/absent — absence
+                          // means "no explicit choice for this weekday",
+                          // which falls back to the computed match check.
+                          // A day the coach has explicitly marked Rest
+                          // needs to actually override that computed
+                          // value, which only works if it's a real,
+                          // saved choice of its own.
+                          const next = [...cycleDraft];
+                          next[dow] = { dayOfWeek: dow, focus: 'rest_day', intensity: null, durationMinutes: null, time: null };
+                          setCycleDraft(next);
+                        }}
+                        className={`h-9 px-2 rounded-lg text-[11px] font-medium border ${isRest ? 'bg-primary/15 text-primary border-primary/40' : 'border-border/60 text-muted-foreground'}`}
                       >
                         {t('cal.rest')}
                       </button>
@@ -556,7 +569,7 @@ export function CalendarPage() {
                         {t('cal.kindMatch')}
                       </button>
                     </div>
-                    {day && day.focus !== 'match' && (
+                    {day && day.focus !== 'match' && !isRest && (
                       <>
                         {/* Free text rather than a fixed Select — a training
                             synced from the calendar can combine several
