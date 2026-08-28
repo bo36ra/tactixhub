@@ -522,28 +522,47 @@ export function CalendarPage() {
             <div className="space-y-2">
               {weekdayLabels.map((label, dow) => {
                 const day = cycleDraft[dow];
+                const focusText = day?.focus === 'match' ? '' : (day?.focus ?? '');
                 return (
-                  <div key={dow} className="flex items-center gap-2">
+                  <div key={dow} className="flex items-center gap-1.5 flex-wrap">
                     <span className="w-10 text-xs text-muted-foreground shrink-0">{label}</span>
-                    <Select
-                      value={day ? day.focus : 'rest'}
-                      onValueChange={(v) => {
-                        const next = [...cycleDraft];
-                        next[dow] = v === 'rest' ? null : { dayOfWeek: dow, focus: v, intensity: v === 'match' ? null : (day?.intensity ?? 'medium'), durationMinutes: v === 'match' ? null : (day?.durationMinutes ?? 90), time: day?.time ?? null };
-                        setCycleDraft(next);
-                      }}
-                    >
-                      <SelectTrigger className="flex-1 h-9 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="rest">{t('cal.rest')}</SelectItem>
-                        <SelectItem value="match">{t('cal.kindMatch')}</SelectItem>
-                        {FOCUS_KEYS.map((k) => (
-                          <SelectItem key={k} value={k}>{t(`train.focus.${k}`)}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => { const next = [...cycleDraft]; next[dow] = null; setCycleDraft(next); }}
+                        className={`h-9 px-2 rounded-lg text-[11px] font-medium border ${!day ? 'bg-primary/15 text-primary border-primary/40' : 'border-border/60 text-muted-foreground'}`}
+                      >
+                        {t('cal.rest')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { const next = [...cycleDraft]; next[dow] = { dayOfWeek: dow, focus: 'match', intensity: null, durationMinutes: null, time: null }; setCycleDraft(next); }}
+                        className={`h-9 px-2 rounded-lg text-[11px] font-medium border ${day?.focus === 'match' ? 'bg-primary/15 text-primary border-primary/40' : 'border-border/60 text-muted-foreground'}`}
+                      >
+                        {t('cal.kindMatch')}
+                      </button>
+                    </div>
                     {day && day.focus !== 'match' && (
                       <>
+                        {/* Free text rather than a fixed Select — a training
+                            synced from the calendar can combine several
+                            focus keys plus custom text (e.g.
+                            "strength,speed_agility,extra note"), which a
+                            strict single-value dropdown can't represent
+                            and would show blank for. This always displays
+                            and can edit whatever string is actually
+                            stored, matching the calendar's own flexibility. */}
+                        <Input
+                          className="flex-1 min-w-28 h-9 text-xs"
+                          list="cycle-focus-options"
+                          placeholder={t('train.focusCustomPh')}
+                          value={focusText}
+                          onChange={(e) => {
+                            const next = [...cycleDraft];
+                            next[dow] = { dayOfWeek: dow, focus: e.target.value, intensity: day.intensity ?? 'medium', durationMinutes: day.durationMinutes ?? 90, time: day.time ?? null };
+                            setCycleDraft(next);
+                          }}
+                        />
                         <Select
                           value={day.intensity ?? 'medium'}
                           onValueChange={(v) => {
@@ -578,6 +597,11 @@ export function CalendarPage() {
                 );
               })}
             </div>
+            <datalist id="cycle-focus-options">
+              {FOCUS_KEYS.map((k) => (
+                <option key={k} value={k}>{t(`train.focus.${k}`)}</option>
+              ))}
+            </datalist>
             <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2">
               <Button
                 variant="outline"
