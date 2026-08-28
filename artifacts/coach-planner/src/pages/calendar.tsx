@@ -621,7 +621,13 @@ export function CalendarPage() {
                 variant="outline"
                 disabled={saveCycle.isPending || applyCycle.isPending || monthInPast}
                 onClick={() => {
-                  const days = cycleDraft.filter(Boolean) as CycleDay[];
+                  // Exclude computed-only entries (id: -1, the
+                  // backend's auto-detected Match days) the coach never
+                  // actually touched — saving them would turn a
+                  // dynamically-computed value into a permanently stored
+                  // one, reintroducing exactly the staleness problem
+                  // going stale-proof was meant to fix.
+                  const days = cycleDraft.filter((d): d is CycleDay => d !== null && d.id !== -1);
                   saveCycle.mutate(days, {
                     onError: showError,
                     onSuccess: () => {
@@ -646,7 +652,13 @@ export function CalendarPage() {
               <Button
                 disabled={saveCycle.isPending}
                 onClick={() => {
-                  const days = cycleDraft.filter(Boolean) as CycleDay[];
+                  // Exclude computed-only entries (id: -1, the
+                  // backend's auto-detected Match days) the coach never
+                  // actually touched — saving them would turn a
+                  // dynamically-computed value into a permanently stored
+                  // one, reintroducing exactly the staleness problem
+                  // going stale-proof was meant to fix.
+                  const days = cycleDraft.filter((d): d is CycleDay => d !== null && d.id !== -1);
                   saveCycle.mutate(days, {
                     onError: showError,
                     onSuccess: () => {
