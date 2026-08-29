@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { PITCH_GRADIENT } from '@/lib/chart-theme';
-import { Trash2, Undo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus, Maximize, Minimize, Move as MoveIcon, ArrowUpRight } from 'lucide-react';
+import { Trash2, Undo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus, Maximize, Minimize, Move as MoveIcon, ArrowUpRight, Footprints, BoxSelect } from 'lucide-react';
 import { AnalysisBoard } from '@/components/analysis-board';
 
 // ---------------------------------------------------------------- board
@@ -98,6 +98,7 @@ const emptyBoard = (): BoardData => ({
   markers: DEFAULT_MARKERS.map((m) => ({ ...m })),
   arrows: [],
   lines: [],
+  zones: [],
   drawings: [],
   frames: [],
   notes: '',
@@ -143,7 +144,7 @@ function TacticBoard({
 }: {
   board: BoardData;
   setBoard: (b: BoardData) => void;
-  mode: 'move' | 'arrow' | 'line' | 'pen' | 'erase';
+  mode: 'move' | 'arrow' | 'dashed-arrow' | 'line' | 'zone' | 'pen' | 'erase';
   selectedMarkerId: string | null;
   onSelectMarker: (id: string | null) => void;
   isFullscreen?: boolean;
@@ -154,6 +155,46 @@ function TacticBoard({
   const penPath = useRef<{ x: number; y: number }[] | null>(null);
   const [penPreview, setPenPreview] = useState<{ x: number; y: number }[]>([]);
   const [preview, setPreview] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+  // Pinch-to-zoom + 2-finger pan — the board previously set
+  // touch-action:none to stop single-finger drawing gestures from
+  // triggering the browser's own page scroll/zoom, but that also
+  // blocked pinch-zoom entirely without putting anything in its place,
+  // leaving no way to zoom in for precision at all. Deliberately
+  // two-finger-only: a single finger is already fully committed to
+  // drawing/moving markers, so zoom/pan needs its own, non-conflicting
+  // gesture rather than trying to share one.
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const pinchState = useRef<{ startDist: number; startZoom: number; startMid: { x: number; y: number }; startPan: { x: number; y: number } } | null>(null);
+
+  const touchDist = (t1: React.Touch, t2: React.Touch) => Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+  const touchMid = (t1: React.Touch, t2: React.Touch) => ({ x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 });
+
+  const onTouchStartZoom = (e: React.TouchEvent) => {
+    if (e.touches.length !== 2) return;
+    e.preventDefault();
+    pinchState.current = {
+      startDist: touchDist(e.touches[0], e.touches[1]),
+      startZoom: zoom,
+      startMid: touchMid(e.touches[0], e.touches[1]),
+      startPan: pan,
+    };
+  };
+  const onTouchMoveZoom = (e: React.TouchEvent) => {
+    if (e.touches.length !== 2 || !pinchState.current) return;
+    e.preventDefault();
+    const dist = touchDist(e.touches[0], e.touches[1]);
+    const mid = touchMid(e.touches[0], e.touches[1]);
+    const nextZoom = Math.max(1, Math.min(3, pinchState.current.startZoom * (dist / pinchState.current.startDist)));
+    setZoom(nextZoom);
+    setPan({
+      x: pinchState.current.startPan.x + (mid.x - pinchState.current.startMid.x) / nextZoom,
+      y: pinchState.current.startPan.y + (mid.y - pinchState.current.startMid.y) / nextZoom,
+    });
+  };
+  const onTouchEndZoom = (e: React.TouchEvent) => {
+    if (e.touches.length < 2) pinchState.current = null;
+  };
 
   const toPct = (e: React.PointerEvent) => {
     const rect = svgRef.current!.getBoundingClientRect();
@@ -173,7 +214,7 @@ function TacticBoard({
         const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / len2));
         return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
       };
-      let bestKind: 'arrow' | 'line' | 'drawing' | 'marker' | null = null;
+      let bestKind: 'arrow' | 'line' | 'drawing' | 'zone' | 'marker' | null = null;
       let bestIdx = -1;
       let bestDist = 5; // tap tolerance in pitch percent units
       board.arrows.forEach((a, i) => {
@@ -188,6 +229,13 @@ function TacticBoard({
         for (let j = 0; j < dr.points.length - 1; j++) {
           const d = distToSeg(p.x, p.y, dr.points[j].x, dr.points[j].y, dr.points[j + 1].x, dr.points[j + 1].y);
           if (d < bestDist) { bestDist = d; bestKind = 'drawing'; bestIdx = i; }
+        }
+      });
+      // A zone is an area, not a line — tapping anywhere inside it
+      // (not just near its border) should hit it.
+      (board.zones ?? []).forEach((z, i) => {
+        if (p.x >= z.x && p.x <= z.x + z.width && p.y >= z.y && p.y <= z.y + z.height) {
+          bestDist = 0; bestKind = 'zone'; bestIdx = i;
         }
       });
       // Markers use a different distance metric (radial, y-scaled to
@@ -207,13 +255,15 @@ function TacticBoard({
         setBoard({ ...board, arrows: board.arrows.filter((_, i) => i !== bestIdx) });
       } else if (bestKind === 'line') {
         setBoard({ ...board, lines: (board.lines ?? []).filter((_, i) => i !== bestIdx) });
+      } else if (bestKind === 'zone') {
+        setBoard({ ...board, zones: (board.zones ?? []).filter((_, i) => i !== bestIdx) });
       } else if (bestKind === 'drawing') {
         setBoard({ ...board, drawings: (board.drawings ?? []).filter((_, i) => i !== bestIdx) });
       }
     } else if (mode === 'pen') {
       penPath.current = [p];
       setPenPreview([p]);
-    } else if (mode === 'arrow' || mode === 'line') {
+    } else if (mode === 'arrow' || mode === 'dashed-arrow' || mode === 'line' || mode === 'zone') {
       arrowStart.current = p;
       setPreview({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
     } else {
@@ -238,7 +288,7 @@ function TacticBoard({
         penPath.current = [...penPath.current, p];
         setPenPreview(penPath.current);
       }
-    } else if ((mode === 'arrow' || mode === 'line') && arrowStart.current) {
+    } else if ((mode === 'arrow' || mode === 'dashed-arrow' || mode === 'line' || mode === 'zone') && arrowStart.current) {
       const p = toPct(e);
       setPreview({ x1: arrowStart.current.x, y1: arrowStart.current.y, x2: p.x, y2: p.y });
     } else if (dragId.current) {
@@ -258,12 +308,19 @@ function TacticBoard({
       penPath.current = null;
       setPenPreview([]);
     }
-    if ((mode === 'arrow' || mode === 'line') && arrowStart.current) {
+    if ((mode === 'arrow' || mode === 'dashed-arrow' || mode === 'line' || mode === 'zone') && arrowStart.current) {
       const p = toPct(e);
       const a = arrowStart.current;
       if (Math.hypot(p.x - a.x, p.y - a.y) > 4) {
         if (mode === 'arrow') {
-          setBoard({ ...board, arrows: [...board.arrows, { x1: a.x, y1: a.y, x2: p.x, y2: p.y }] });
+          setBoard({ ...board, arrows: [...board.arrows, { x1: a.x, y1: a.y, x2: p.x, y2: p.y, style: 'solid' }] });
+        } else if (mode === 'dashed-arrow') {
+          setBoard({ ...board, arrows: [...board.arrows, { x1: a.x, y1: a.y, x2: p.x, y2: p.y, style: 'dashed' }] });
+        } else if (mode === 'zone') {
+          setBoard({
+            ...board,
+            zones: [...(board.zones ?? []), { x: Math.min(a.x, p.x), y: Math.min(a.y, p.y), width: Math.abs(p.x - a.x), height: Math.abs(p.y - a.y) }],
+          });
         } else {
           setBoard({ ...board, lines: [...(board.lines ?? []), { x1: a.x, y1: a.y, x2: p.x, y2: p.y }] });
         }
@@ -275,16 +332,33 @@ function TacticBoard({
   };
 
   return (
-    <svg
-      ref={svgRef}
-      viewBox="0 0 100 140"
-      className={`mx-auto rounded-xl border border-border select-none ${isFullscreen ? 'w-full h-[calc(100vh-9rem)] max-w-none' : 'w-full max-w-md'}`}
-      preserveAspectRatio="xMidYMid meet"
-      style={{ touchAction: 'none', background: PITCH_GRADIENT }}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
+    <div
+      className={`relative mx-auto overflow-hidden rounded-xl border border-border ${isFullscreen ? 'w-full h-[calc(100vh-9rem)]' : 'w-full max-w-md'}`}
+      onTouchStart={onTouchStartZoom}
+      onTouchMove={onTouchMoveZoom}
+      onTouchEnd={onTouchEndZoom}
+      style={{ touchAction: 'none' }}
     >
+      {zoom > 1 && (
+        <button
+          type="button"
+          onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}
+          className="absolute top-2 end-2 z-10 bg-black/60 text-white text-[10px] font-semibold px-2 py-1 rounded-full"
+        >
+          {Math.round(zoom * 100)}% ↺
+        </button>
+      )}
+      <div style={{ transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`, transformOrigin: 'center', width: '100%', height: '100%' }}>
+        <svg
+          ref={svgRef}
+          viewBox="0 0 100 140"
+          className={`mx-auto select-none ${isFullscreen ? 'w-full h-full' : 'w-full max-w-md'}`}
+          preserveAspectRatio="xMidYMid meet"
+          style={{ touchAction: 'none', background: PITCH_GRADIENT }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+        >
       {/* pitch markings */}
       <g stroke="rgba(255,255,255,0.55)" strokeWidth="0.6" fill="none">
         <rect x="3" y="3" width="94" height="134" rx="1" />
@@ -314,7 +388,13 @@ function TacticBoard({
           stroke="rgba(255,255,255,0.65)" strokeWidth="0.6" strokeDasharray="3 2" />
       ))}
 
-      {/* arrows */}
+      {/* tactical zones — filled area highlights (pressing trigger, defensive block, target area, ...) */}
+      {(board.zones ?? []).map((z, i) => (
+        <rect key={`z${i}`} x={z.x} y={z.y * 1.4} width={z.width} height={z.height * 1.4}
+          fill={z.color ?? '#5B9BD5'} fillOpacity="0.22" stroke={z.color ?? '#5B9BD5'} strokeWidth="0.5" strokeOpacity="0.6" />
+      ))}
+
+      {/* arrows — solid = pass/ball movement, dashed = run without the ball */}
       <defs>
         <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="4.5" refY="3" orient="auto">
           <path d="M0,0 L6,3 L0,6 Z" fill="#FFD84D" />
@@ -322,15 +402,22 @@ function TacticBoard({
       </defs>
       {board.arrows.map((a, i) => (
         <line key={i} x1={a.x1} y1={a.y1 * 1.4} x2={a.x2} y2={a.y2 * 1.4}
-          stroke="#FFD84D" strokeWidth="1.1" strokeDasharray="2 2" markerEnd="url(#arrowhead)" />
+          stroke="#FFD84D" strokeWidth="1.1" strokeDasharray={a.style === 'dashed' ? '3 2.5' : undefined} markerEnd="url(#arrowhead)" />
       ))}
       {preview && mode === 'line' && (
         <line x1={preview.x1} y1={preview.y1 * 1.4} x2={preview.x2} y2={preview.y2 * 1.4}
           stroke="rgba(255,255,255,0.65)" strokeWidth="0.6" strokeDasharray="3 2" opacity="0.8" />
       )}
-      {preview && mode === 'arrow' && (
+      {preview && (mode === 'arrow' || mode === 'dashed-arrow') && (
         <line x1={preview.x1} y1={preview.y1 * 1.4} x2={preview.x2} y2={preview.y2 * 1.4}
-          stroke="#FFD84D" strokeWidth="1.1" strokeDasharray="2 2" opacity="0.6" markerEnd="url(#arrowhead)" />
+          stroke="#FFD84D" strokeWidth="1.1" strokeDasharray={mode === 'dashed-arrow' ? '3 2.5' : undefined} opacity="0.6" markerEnd="url(#arrowhead)" />
+      )}
+      {preview && mode === 'zone' && (
+        <rect
+          x={Math.min(preview.x1, preview.x2)} y={Math.min(preview.y1, preview.y2) * 1.4}
+          width={Math.abs(preview.x2 - preview.x1)} height={Math.abs(preview.y2 - preview.y1) * 1.4}
+          fill="#5B9BD5" fillOpacity="0.2" stroke="#5B9BD5" strokeWidth="0.5" strokeOpacity="0.7"
+        />
       )}
 
       {/* markers */}
@@ -356,7 +443,9 @@ function TacticBoard({
         </g>
         );
       })}
-    </svg>
+        </svg>
+      </div>
+    </div>
   );
 }
 
@@ -376,7 +465,7 @@ function BoardsTab({
   const [editing, setEditing] = useState<{ id?: number; name: string; matchId: number | null } | null>(null);
   const [board, setBoard] = useState<BoardData>(emptyBoard());
   // (setBoard supports functional updates natively; playback relies on it)
-  const [mode, setMode] = useState<'move' | 'arrow' | 'line' | 'pen' | 'erase'>('move');
+  const [mode, setMode] = useState<'move' | 'arrow' | 'dashed-arrow' | 'line' | 'zone' | 'pen' | 'erase'>('move');
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
   const boardContainerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -569,8 +658,14 @@ function BoardsTab({
               <Button size="icon" variant={mode === 'arrow' ? 'default' : 'secondary'} onClick={() => setMode('arrow')} title={t('tactics.modeArrow')}>
                 <ArrowUpRight className="w-4 h-4" />
               </Button>
+              <Button size="icon" variant={mode === 'dashed-arrow' ? 'default' : 'secondary'} onClick={() => setMode('dashed-arrow')} title={t('tactics.modeDashedArrow')}>
+                <Footprints className="w-4 h-4" />
+              </Button>
               <Button size="icon" variant={mode === 'line' ? 'default' : 'secondary'} onClick={() => setMode('line')} title={t('tactics.modeLine')}>
                 <Minus className="w-4 h-4" />
+              </Button>
+              <Button size="icon" variant={mode === 'zone' ? 'default' : 'secondary'} onClick={() => setMode('zone')} title={t('tactics.modeZone')}>
+                <BoxSelect className="w-4 h-4" />
               </Button>
               <Button size="icon" variant={mode === 'pen' ? 'default' : 'secondary'} onClick={() => setMode('pen')} title={t('tactics.modePen')}>
                 <Pencil className="w-4 h-4" />
@@ -583,6 +678,7 @@ function BoardsTab({
                 onClick={() => {
                   if (mode === 'pen') setBoard({ ...board, drawings: (board.drawings ?? []).slice(0, -1) });
                   else if (mode === 'line') setBoard({ ...board, lines: (board.lines ?? []).slice(0, -1) });
+                  else if (mode === 'zone') setBoard({ ...board, zones: (board.zones ?? []).slice(0, -1) });
                   else setBoard({ ...board, arrows: board.arrows.slice(0, -1) });
                 }}>
                 <Undo2 className="w-4 h-4" />

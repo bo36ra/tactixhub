@@ -17,11 +17,19 @@ export interface BoardMarker {
   // third "side" value; any marker can be recolored individually.
   color?: string;
 }
-export interface BoardArrow { x1: number; y1: number; x2: number; y2: number }
+// style: 'solid' (default) is a pass/ball movement, 'dashed' is a
+// player run without the ball — the standard convention in football
+// tactical diagrams for distinguishing the two at a glance.
+export interface BoardArrow { x1: number; y1: number; x2: number; y2: number; style?: 'solid' | 'dashed' }
 // Same shape as an arrow, but rendered as a plain zone-divider line (no
 // arrowhead) — for a coach splitting the pitch into thirds, channels,
 // or any custom zone rather than showing a player/ball movement.
 export interface BoardLine { x1: number; y1: number; x2: number; y2: number }
+// A filled, semi-transparent rectangular area — highlighting a
+// pressing trigger zone, a defensive block, a target area for a
+// switch of play, etc., distinct from a divider Line (which only
+// marks a boundary, not an area).
+export interface BoardZone { x: number; y: number; width: number; height: number; color?: string }
 export interface BoardDrawing { points: { x: number; y: number }[] }
 // A frame is a snapshot of marker positions; playback interpolates between frames.
 export interface BoardFrame { markers: BoardMarker[] }
@@ -90,6 +98,7 @@ export interface BoardData {
   markers: BoardMarker[];
   arrows: BoardArrow[];
   lines?: BoardLine[];
+  zones?: BoardZone[];
   drawings?: BoardDrawing[];
   frames?: BoardFrame[];
   notes?: string;
@@ -126,13 +135,14 @@ export function parseBoard(data: string): BoardData {
       markers: d.markers ?? [],
       arrows: d.arrows ?? [],
       lines: d.lines ?? [],
+      zones: d.zones ?? [],
       drawings: d.drawings ?? [],
       frames: d.frames ?? [],
       notes: d.notes ?? '',
       events: d.events ?? [],
     };
   } catch {
-    return { markers: [], arrows: [], lines: [], drawings: [], frames: [], notes: '', events: [] };
+    return { markers: [], arrows: [], lines: [], zones: [], drawings: [], frames: [], notes: '', events: [] };
   }
 }
 
