@@ -17,8 +17,9 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { PITCH_GRADIENT } from '@/lib/chart-theme';
-import { Trash2, Undo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus, Maximize, Minimize, Move as MoveIcon, ArrowUpRight, Footprints, BoxSelect } from 'lucide-react';
+import { Trash2, Undo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus, Maximize, Minimize, Move as MoveIcon, ArrowUpRight, Footprints, BoxSelect, MoreHorizontal } from 'lucide-react';
 import { AnalysisBoard } from '@/components/analysis-board';
 
 // ---------------------------------------------------------------- board
@@ -469,6 +470,8 @@ function BoardsTab({
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
   const boardContainerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
   // Presenting the board to the squad on a tablet/TV works much better
   // full-bleed, without the rest of the app's chrome around it — the
@@ -648,149 +651,197 @@ function BoardsTab({
           )}
         </div>
 
-        <div className="space-y-2.5">
-          <div className="space-y-1">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{t('tactics.groupDraw')}</p>
-            <div className="flex flex-wrap gap-1.5">
-              <Button size="icon" variant={mode === 'move' ? 'default' : 'secondary'} onClick={() => setMode('move')} title={t('tactics.modeMove')}>
-                <MoveIcon className="w-4 h-4" />
-              </Button>
-              <Button size="icon" variant={mode === 'arrow' ? 'default' : 'secondary'} onClick={() => setMode('arrow')} title={t('tactics.modeArrow')}>
-                <ArrowUpRight className="w-4 h-4" />
-              </Button>
-              <Button size="icon" variant={mode === 'dashed-arrow' ? 'default' : 'secondary'} onClick={() => setMode('dashed-arrow')} title={t('tactics.modeDashedArrow')}>
-                <Footprints className="w-4 h-4" />
-              </Button>
-              <Button size="icon" variant={mode === 'line' ? 'default' : 'secondary'} onClick={() => setMode('line')} title={t('tactics.modeLine')}>
-                <Minus className="w-4 h-4" />
-              </Button>
-              <Button size="icon" variant={mode === 'zone' ? 'default' : 'secondary'} onClick={() => setMode('zone')} title={t('tactics.modeZone')}>
-                <BoxSelect className="w-4 h-4" />
-              </Button>
-              <Button size="icon" variant={mode === 'pen' ? 'default' : 'secondary'} onClick={() => setMode('pen')} title={t('tactics.modePen')}>
-                <Pencil className="w-4 h-4" />
-              </Button>
-              <Button size="icon" variant={mode === 'erase' ? 'default' : 'secondary'} onClick={() => setMode('erase')} title={t('tactics.modeErase')}>
-                <Eraser className="w-4 h-4" />
-              </Button>
-              <Button
-                size="icon" variant="secondary" title={t('tactics.undo')}
-                onClick={() => {
-                  if (mode === 'pen') setBoard({ ...board, drawings: (board.drawings ?? []).slice(0, -1) });
-                  else if (mode === 'line') setBoard({ ...board, lines: (board.lines ?? []).slice(0, -1) });
-                  else if (mode === 'zone') setBoard({ ...board, zones: (board.zones ?? []).slice(0, -1) });
-                  else setBoard({ ...board, arrows: board.arrows.slice(0, -1) });
-                }}>
-                <Undo2 className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{t('tactics.groupAdd')}</p>
-            <div className="flex flex-wrap gap-1.5">
-              <Button
-                size="sm" variant="secondary"
-                onClick={() => {
-                  const id = `extra-${Date.now()}`;
-                  setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'us' }] });
-                  setMode('move');
-                  setSelectedMarkerId(id);
-                }}
-              >
-                <Plus className="w-4 h-4 me-1" />{t('tactics.addPlayer')}
-              </Button>
-              <Button
-                size="sm" variant="secondary"
-                onClick={() => {
-                  const id = `extra-${Date.now()}`;
-                  setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'them' }] });
-                  setMode('move');
-                  setSelectedMarkerId(id);
-                }}
-              >
-                <Plus className="w-4 h-4 me-1" />{t('tactics.addOpponent')}
-              </Button>
-              <Select
-                onValueChange={(v) => {
-                  const id = `equip-${Date.now()}`;
-                  setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'equipment', equipment: v as EquipmentType }] });
-                  setMode('move');
-                  setSelectedMarkerId(id);
-                }}
-              >
-                <SelectTrigger className="w-32 h-9"><SelectValue placeholder={t('tactics.addEquipment')} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cone">{t('tactics.equipCone')}</SelectItem>
-                  <SelectItem value="barrier">{t('tactics.equipBarrier')}</SelectItem>
-                  <SelectItem value="goal">{t('tactics.equipGoal')}</SelectItem>
-                  <SelectItem value="flag">{t('tactics.equipFlag')}</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select onValueChange={(v) => applyFormation(v, 'us')}>
-                <SelectTrigger className="w-36 h-9"><SelectValue placeholder={t('tactics.formationUs')} /></SelectTrigger>
-                <SelectContent>
-                  {Object.keys(FORMATIONS).map((key) => (
-                    <SelectItem key={key} value={key} dir="ltr">{key}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select onValueChange={(v) => applyFormation(v, 'them')}>
-                <SelectTrigger className="w-36 h-9"><SelectValue placeholder={t('tactics.formationThem')} /></SelectTrigger>
-                <SelectContent>
-                  {Object.keys(FORMATIONS).map((key) => (
-                    <SelectItem key={key} value={key} dir="ltr">{key}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{t('tactics.groupBoard')}</p>
-            <div className="flex flex-wrap gap-1.5">
-              <Button size="sm" variant="secondary" onClick={() => setBoard(emptyBoard())}>
-                {t('tactics.clearAll')}
-              </Button>
-              <Button size="sm" variant="secondary" onClick={toggleFullscreen}>
-                {isFullscreen ? <Minimize className="w-4 h-4 me-1" /> : <Maximize className="w-4 h-4 me-1" />}
-                {isFullscreen ? t('tactics.exitFullscreen') : t('tactics.fullscreen')}
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground">{t('tactics.zoneTemplates')}:</span>
-          <Button
-            size="sm" variant="outline"
-            onClick={() => setBoard({
-              ...board,
-              lines: [
-                ...(board.lines ?? []),
-                { x1: 3, y1: 33.33, x2: 97, y2: 33.33 },
-                { x1: 3, y1: 66.67, x2: 97, y2: 66.67 },
-              ],
-            })}
-          >
-            {t('tactics.zoneThirds')}
+        {/* Drawing tools — a single scrollable row instead of the three
+            stacked groups this used to be. Bigger, consistent icon
+            buttons meant for a thumb on a phone rather than a mouse
+            pointer; scrolls sideways if it doesn't fit rather than
+            wrapping to more rows, so the board itself stays the focus
+            instead of tool clutter pushing it down the page. */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+          <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'move' ? 'default' : 'secondary'} onClick={() => setMode('move')} title={t('tactics.modeMove')}>
+            <MoveIcon className="w-5 h-5" />
+          </Button>
+          <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'arrow' ? 'default' : 'secondary'} onClick={() => setMode('arrow')} title={t('tactics.modeArrow')}>
+            <ArrowUpRight className="w-5 h-5" />
+          </Button>
+          <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'dashed-arrow' ? 'default' : 'secondary'} onClick={() => setMode('dashed-arrow')} title={t('tactics.modeDashedArrow')}>
+            <Footprints className="w-5 h-5" />
+          </Button>
+          <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'line' ? 'default' : 'secondary'} onClick={() => setMode('line')} title={t('tactics.modeLine')}>
+            <Minus className="w-5 h-5" />
+          </Button>
+          <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'zone' ? 'default' : 'secondary'} onClick={() => setMode('zone')} title={t('tactics.modeZone')}>
+            <BoxSelect className="w-5 h-5" />
+          </Button>
+          <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'pen' ? 'default' : 'secondary'} onClick={() => setMode('pen')} title={t('tactics.modePen')}>
+            <Pencil className="w-5 h-5" />
+          </Button>
+          <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'erase' ? 'default' : 'secondary'} onClick={() => setMode('erase')} title={t('tactics.modeErase')}>
+            <Eraser className="w-5 h-5" />
           </Button>
           <Button
-            size="sm" variant="outline"
-            onClick={() => setBoard({
-              ...board,
-              lines: [
-                ...(board.lines ?? []),
-                { x1: 21.8, y1: 0, x2: 21.8, y2: 100 },
-                { x1: 40.6, y1: 0, x2: 40.6, y2: 100 },
-                { x1: 59.4, y1: 0, x2: 59.4, y2: 100 },
-                { x1: 78.2, y1: 0, x2: 78.2, y2: 100 },
-              ],
-            })}
-          >
-            {t('tactics.zoneChannels')}
+            size="icon" className="h-11 w-11 shrink-0" variant="secondary" title={t('tactics.undo')}
+            onClick={() => {
+              if (mode === 'pen') setBoard({ ...board, drawings: (board.drawings ?? []).slice(0, -1) });
+              else if (mode === 'line') setBoard({ ...board, lines: (board.lines ?? []).slice(0, -1) });
+              else if (mode === 'zone') setBoard({ ...board, zones: (board.zones ?? []).slice(0, -1) });
+              else setBoard({ ...board, arrows: board.arrows.slice(0, -1) });
+            }}>
+            <Undo2 className="w-5 h-5" />
+          </Button>
+          <div className="w-px h-8 bg-border shrink-0 mx-0.5" />
+          <Button size="icon" className="h-11 w-11 shrink-0" variant="outline" onClick={() => setAddMenuOpen(true)} title={t('tactics.addMenu')}>
+            <Plus className="w-5 h-5" />
+          </Button>
+          <Button size="icon" className="h-11 w-11 shrink-0" variant="outline" onClick={() => setMoreMenuOpen(true)} title={t('tactics.moreMenu')}>
+            <MoreHorizontal className="w-5 h-5" />
           </Button>
         </div>
+
+        {/* + menu — every "add something to the board" action grouped
+            behind one button instead of five separate controls always
+            sitting in the toolbar. */}
+        <Sheet open={addMenuOpen} onOpenChange={setAddMenuOpen}>
+          <SheetContent side="bottom" className="max-h-[70vh] overflow-y-auto">
+            <SheetHeader><SheetTitle>{t('tactics.addMenu')}</SheetTitle></SheetHeader>
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="secondary" className="h-12"
+                  onClick={() => {
+                    const id = `extra-${Date.now()}`;
+                    setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'us' }] });
+                    setMode('move');
+                    setSelectedMarkerId(id);
+                    setAddMenuOpen(false);
+                  }}
+                >
+                  <Plus className="w-4 h-4 me-1" />{t('tactics.addPlayer')}
+                </Button>
+                <Button
+                  variant="secondary" className="h-12"
+                  onClick={() => {
+                    const id = `extra-${Date.now()}`;
+                    setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'them' }] });
+                    setMode('move');
+                    setSelectedMarkerId(id);
+                    setAddMenuOpen(false);
+                  }}
+                >
+                  <Plus className="w-4 h-4 me-1" />{t('tactics.addOpponent')}
+                </Button>
+              </div>
+
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{t('tactics.addEquipment')}</p>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {(['cone', 'barrier', 'goal', 'flag'] as EquipmentType[]).map((eq) => (
+                    <Button
+                      key={eq} variant="outline" className="h-12 text-xs"
+                      onClick={() => {
+                        const id = `equip-${Date.now()}`;
+                        setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'equipment', equipment: eq }] });
+                        setMode('move');
+                        setSelectedMarkerId(id);
+                        setAddMenuOpen(false);
+                      }}
+                    >
+                      {t(`tactics.equip${eq.charAt(0).toUpperCase()}${eq.slice(1)}`)}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{t('tactics.formationUs')}</p>
+                <Select onValueChange={(v) => { applyFormation(v, 'us'); setAddMenuOpen(false); }}>
+                  <SelectTrigger className="h-11"><SelectValue placeholder={t('tactics.formationUs')} /></SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(FORMATIONS).map((key) => (
+                      <SelectItem key={key} value={key} dir="ltr">{key}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{t('tactics.formationThem')}</p>
+                <Select onValueChange={(v) => { applyFormation(v, 'them'); setAddMenuOpen(false); }}>
+                  <SelectTrigger className="h-11"><SelectValue placeholder={t('tactics.formationThem')} /></SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(FORMATIONS).map((key) => (
+                      <SelectItem key={key} value={key} dir="ltr">{key}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        {/* ⋯ menu — less-frequent, whole-board actions (clearing
+            everything, fullscreen, zone templates) tucked away instead
+            of permanently occupying toolbar space. */}
+        <Sheet open={moreMenuOpen} onOpenChange={setMoreMenuOpen}>
+          <SheetContent side="bottom" className="max-h-[70vh] overflow-y-auto">
+            <SheetHeader><SheetTitle>{t('tactics.moreMenu')}</SheetTitle></SheetHeader>
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="secondary" className="h-12"
+                  onClick={() => { toggleFullscreen(); setMoreMenuOpen(false); }}
+                >
+                  {isFullscreen ? <Minimize className="w-4 h-4 me-1" /> : <Maximize className="w-4 h-4 me-1" />}
+                  {isFullscreen ? t('tactics.exitFullscreen') : t('tactics.fullscreen')}
+                </Button>
+                <Button
+                  variant="secondary" className="h-12 text-destructive"
+                  onClick={() => { setBoard(emptyBoard()); setMoreMenuOpen(false); }}
+                >
+                  <Trash2 className="w-4 h-4 me-1" />{t('tactics.clearAll')}
+                </Button>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{t('tactics.zoneTemplates')}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline" className="h-11"
+                    onClick={() => {
+                      setBoard({
+                        ...board,
+                        lines: [
+                          ...(board.lines ?? []),
+                          { x1: 3, y1: 33.33, x2: 97, y2: 33.33 },
+                          { x1: 3, y1: 66.67, x2: 97, y2: 66.67 },
+                        ],
+                      });
+                      setMoreMenuOpen(false);
+                    }}
+                  >
+                    {t('tactics.zoneThirds')}
+                  </Button>
+                  <Button
+                    variant="outline" className="h-11"
+                    onClick={() => {
+                      setBoard({
+                        ...board,
+                        lines: [
+                          ...(board.lines ?? []),
+                          { x1: 21.8, y1: 0, x2: 21.8, y2: 100 },
+                          { x1: 40.6, y1: 0, x2: 40.6, y2: 100 },
+                          { x1: 59.4, y1: 0, x2: 59.4, y2: 100 },
+                          { x1: 78.2, y1: 0, x2: 78.2, y2: 100 },
+                        ],
+                      });
+                      setMoreMenuOpen(false);
+                    }}
+                  >
+                    {t('tactics.zoneChannels')}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
 
         <TacticBoard board={board} setBoard={setBoard} mode={mode} selectedMarkerId={selectedMarkerId} onSelectMarker={setSelectedMarkerId} isFullscreen={isFullscreen} />
 
