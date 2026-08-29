@@ -19,7 +19,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { PITCH_GRADIENT } from '@/lib/chart-theme';
-import { Trash2, Undo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus, Maximize, Minimize, Move as MoveIcon, ArrowUpRight, Footprints, BoxSelect, MoreHorizontal } from 'lucide-react';
+import { Trash2, Undo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus, Maximize, Minimize, Move as MoveIcon, ArrowUpRight, Footprints, BoxSelect, MoreHorizontal, Copy } from 'lucide-react';
 import { AnalysisBoard } from '@/components/analysis-board';
 
 // ---------------------------------------------------------------- board
@@ -140,6 +140,14 @@ function EquipmentShape({ type, color }: { type: EquipmentType; color?: string }
   );
 }
 
+// Shared by erase-mode hit-testing and move-mode shape grabbing below.
+function distToSeg(px: number, py: number, x1: number, y1: number, x2: number, y2: number) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const len2 = dx * dx + dy * dy;
+  const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / len2));
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+}
+
 function TacticBoard({
   board, setBoard, mode, selectedMarkerId, onSelectMarker, isFullscreen,
 }: {
@@ -152,6 +160,14 @@ function TacticBoard({
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragId = useRef<string | null>(null);
+  // Move mode previously only ever grabbed markers — an arrow, line, or
+  // zone once drawn could only be deleted and redrawn, never nudged
+  // into place. These track dragging one of those instead, storing the
+  // pointer-to-shape offset at grab time so the whole shape translates
+  // together rather than snapping one point to the finger.
+  const dragArrow = useRef<{ index: number; dx1: number; dy1: number; dx2: number; dy2: number } | null>(null);
+  const dragLine = useRef<{ index: number; dx1: number; dy1: number; dx2: number; dy2: number } | null>(null);
+  const dragZone = useRef<{ index: number; dx: number; dy: number } | null>(null);
   const arrowStart = useRef<{ x: number; y: number } | null>(null);
   const penPath = useRef<{ x: number; y: number }[] | null>(null);
   const [penPreview, setPenPreview] = useState<{ x: number; y: number }[]>([]);
@@ -209,12 +225,6 @@ function TacticBoard({
     const p = toPct(e);
     if (mode === 'erase') {
       // Delete only the tapped arrow or drawing — nearest within reach.
-      const distToSeg = (px: number, py: number, x1: number, y1: number, x2: number, y2: number) => {
-        const dx = x2 - x1, dy = y2 - y1;
-        const len2 = dx * dx + dy * dy;
-        const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / len2));
-        return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
-      };
       let bestKind: 'arrow' | 'line' | 'drawing' | 'zone' | 'marker' | null = null;
       let bestIdx = -1;
       let bestDist = 5; // tap tolerance in pitch percent units
@@ -268,15 +278,52 @@ function TacticBoard({
       arrowStart.current = p;
       setPreview({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
     } else {
-      // pick the nearest marker within reach
+      // Move mode: try a marker first (existing behavior, and markers
+      // sit "on top" conceptually), then fall back to grabbing the
+      // nearest arrow/line/zone so those can be repositioned too
+      // instead of only ever being delete-and-redraw.
+      dragArrow.current = null;
+      dragLine.current = null;
+      dragZone.current = null;
       let best: string | null = null;
       let bestDist = 8;
       for (const m of board.markers) {
         const d = Math.hypot(m.x - p.x, (m.y - p.y) * 1.4);
         if (d < bestDist) { best = m.id; bestDist = d; }
       }
-      dragId.current = best;
-      onSelectMarker(best);
+      if (best) {
+        dragId.current = best;
+        onSelectMarker(best);
+      } else {
+        dragId.current = null;
+        onSelectMarker(null);
+        let bestShapeDist = 5;
+        let grabbedArrow = -1;
+        let grabbedLine = -1;
+        board.arrows.forEach((a, i) => {
+          const d = distToSeg(p.x, p.y, a.x1, a.y1, a.x2, a.y2);
+          if (d < bestShapeDist) { bestShapeDist = d; grabbedArrow = i; grabbedLine = -1; }
+        });
+        (board.lines ?? []).forEach((l, i) => {
+          const d = distToSeg(p.x, p.y, l.x1, l.y1, l.x2, l.y2);
+          if (d < bestShapeDist) { bestShapeDist = d; grabbedLine = i; grabbedArrow = -1; }
+        });
+        if (grabbedArrow !== -1) {
+          const a = board.arrows[grabbedArrow];
+          dragArrow.current = { index: grabbedArrow, dx1: a.x1 - p.x, dy1: a.y1 - p.y, dx2: a.x2 - p.x, dy2: a.y2 - p.y };
+        } else if (grabbedLine !== -1) {
+          const l = (board.lines ?? [])[grabbedLine];
+          dragLine.current = { index: grabbedLine, dx1: l.x1 - p.x, dy1: l.y1 - p.y, dx2: l.x2 - p.x, dy2: l.y2 - p.y };
+        } else {
+          // Zone is an area — grab it if the point falls inside, not
+          // just near its border.
+          const zoneIdx = (board.zones ?? []).findIndex((z) => p.x >= z.x && p.x <= z.x + z.width && p.y >= z.y && p.y <= z.y + z.height);
+          if (zoneIdx !== -1) {
+            const z = (board.zones ?? [])[zoneIdx];
+            dragZone.current = { index: zoneIdx, dx: z.x - p.x, dy: z.y - p.y };
+          }
+        }
+      }
     }
     (e.target as Element).setPointerCapture?.(e.pointerId);
   };
@@ -297,6 +344,27 @@ function TacticBoard({
       setBoard({
         ...board,
         markers: board.markers.map((m) => (m.id === dragId.current ? { ...m, x: p.x, y: p.y } : m)),
+      });
+    } else if (dragArrow.current) {
+      const p = toPct(e);
+      const { index, dx1, dy1, dx2, dy2 } = dragArrow.current;
+      setBoard({
+        ...board,
+        arrows: board.arrows.map((a, i) => (i === index ? { ...a, x1: p.x + dx1, y1: p.y + dy1, x2: p.x + dx2, y2: p.y + dy2 } : a)),
+      });
+    } else if (dragLine.current) {
+      const p = toPct(e);
+      const { index, dx1, dy1, dx2, dy2 } = dragLine.current;
+      setBoard({
+        ...board,
+        lines: (board.lines ?? []).map((l, i) => (i === index ? { ...l, x1: p.x + dx1, y1: p.y + dy1, x2: p.x + dx2, y2: p.y + dy2 } : l)),
+      });
+    } else if (dragZone.current) {
+      const p = toPct(e);
+      const { index, dx, dy } = dragZone.current;
+      setBoard({
+        ...board,
+        zones: (board.zones ?? []).map((z, i) => (i === index ? { ...z, x: p.x + dx, y: p.y + dy } : z)),
       });
     }
   };
@@ -330,6 +398,9 @@ function TacticBoard({
       setPreview(null);
     }
     dragId.current = null;
+    dragArrow.current = null;
+    dragLine.current = null;
+    dragZone.current = null;
   };
 
   return (
@@ -705,9 +776,9 @@ function BoardsTab({
           <SheetContent side="bottom" className="max-h-[70vh] overflow-y-auto">
             <SheetHeader><SheetTitle>{t('tactics.addMenu')}</SheetTitle></SheetHeader>
             <div className="space-y-4 py-2">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <Button
-                  variant="secondary" className="h-12"
+                  variant="secondary" className="h-12 text-xs px-1"
                   onClick={() => {
                     const id = `extra-${Date.now()}`;
                     setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'us' }] });
@@ -719,7 +790,7 @@ function BoardsTab({
                   <Plus className="w-4 h-4 me-1" />{t('tactics.addPlayer')}
                 </Button>
                 <Button
-                  variant="secondary" className="h-12"
+                  variant="secondary" className="h-12 text-xs px-1"
                   onClick={() => {
                     const id = `extra-${Date.now()}`;
                     setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'them' }] });
@@ -729,6 +800,23 @@ function BoardsTab({
                   }}
                 >
                   <Plus className="w-4 h-4 me-1" />{t('tactics.addOpponent')}
+                </Button>
+                <Button
+                  variant="secondary" className="h-12 text-xs px-1"
+                  onClick={() => {
+                    // The board starts with one ball by default — this is
+                    // purely a recovery path for when it's been erased
+                    // (deliberately or by accident) and there was
+                    // previously no way to bring it back short of
+                    // clearing the whole board.
+                    const id = `ball-${Date.now()}`;
+                    setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'ball' }] });
+                    setMode('move');
+                    setSelectedMarkerId(id);
+                    setAddMenuOpen(false);
+                  }}
+                >
+                  <Plus className="w-4 h-4 me-1" />{t('tactics.addBall')}
                 </Button>
               </div>
 
@@ -881,6 +969,28 @@ function BoardsTab({
                   />
                 ))}
               </div>
+              <Button
+                size="sm" variant="ghost" className="shrink-0"
+                onClick={() => {
+                  // A small offset so the copy doesn't land exactly on
+                  // top of the original — same label/side/equipment/
+                  // color, just a new id and nudged position, then
+                  // selected so it's immediately ready to drag into
+                  // place (e.g. placing several cones or mini goals
+                  // quickly rather than reopening the + menu each time).
+                  const id = `dup-${Date.now()}`;
+                  const copy: BoardMarker = {
+                    ...marker,
+                    id,
+                    x: Math.min(96, marker.x + 6),
+                    y: Math.min(96, marker.y + 6),
+                  };
+                  setBoard({ ...board, markers: [...board.markers, copy] });
+                  setSelectedMarkerId(id);
+                }}
+              >
+                <Copy className="w-4 h-4" />
+              </Button>
               <Button
                 size="sm" variant="ghost" className="text-destructive hover:text-destructive shrink-0"
                 onClick={() => {
