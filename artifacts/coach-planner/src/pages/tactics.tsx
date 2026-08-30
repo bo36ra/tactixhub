@@ -9,6 +9,11 @@ import {
   parseBoard, type BoardData, type BoardMarker, type Tactic, type TacticKind,
   type BoardFrame, type EquipmentType,
 } from '@/lib/tactics-api';
+import {
+  screenToWorld, hitTestErasable, hitTestMovable, deleteErasable,
+  moveMarker, translateArrow, translateLine, translateZone,
+  addArrow, addLine, addZone, addPenStroke, duplicateMarker,
+} from '@/lib/tactics-engine';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -140,14 +145,6 @@ function EquipmentShape({ type, color }: { type: EquipmentType; color?: string }
   );
 }
 
-// Shared by erase-mode hit-testing and move-mode shape grabbing below.
-function distToSeg(px: number, py: number, x1: number, y1: number, x2: number, y2: number) {
-  const dx = x2 - x1, dy = y2 - y1;
-  const len2 = dx * dx + dy * dy;
-  const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / len2));
-  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
-}
-
 function TacticBoard({
   board, setBoard, mode, selectedMarkerId, onSelectMarker, isFullscreen,
 }: {
@@ -215,61 +212,16 @@ function TacticBoard({
 
   const toPct = (e: React.PointerEvent) => {
     const rect = svgRef.current!.getBoundingClientRect();
-    return {
-      x: Math.min(100, Math.max(0, ((e.clientX - rect.left) / rect.width) * 100)),
-      y: Math.min(100, Math.max(0, ((e.clientY - rect.top) / rect.height) * 100)),
-    };
+    return screenToWorld(e.clientX, e.clientY, rect);
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
     const p = toPct(e);
     if (mode === 'erase') {
-      // Delete only the tapped arrow or drawing — nearest within reach.
-      let bestKind: 'arrow' | 'line' | 'drawing' | 'zone' | 'marker' | null = null;
-      let bestIdx = -1;
-      let bestDist = 5; // tap tolerance in pitch percent units
-      board.arrows.forEach((a, i) => {
-        const d = distToSeg(p.x, p.y, a.x1, a.y1, a.x2, a.y2);
-        if (d < bestDist) { bestDist = d; bestKind = 'arrow'; bestIdx = i; }
-      });
-      (board.lines ?? []).forEach((l, i) => {
-        const d = distToSeg(p.x, p.y, l.x1, l.y1, l.x2, l.y2);
-        if (d < bestDist) { bestDist = d; bestKind = 'line'; bestIdx = i; }
-      });
-      (board.drawings ?? []).forEach((dr, i) => {
-        for (let j = 0; j < dr.points.length - 1; j++) {
-          const d = distToSeg(p.x, p.y, dr.points[j].x, dr.points[j].y, dr.points[j + 1].x, dr.points[j + 1].y);
-          if (d < bestDist) { bestDist = d; bestKind = 'drawing'; bestIdx = i; }
-        }
-      });
-      // A zone is an area, not a line — tapping anywhere inside it
-      // (not just near its border) should hit it.
-      (board.zones ?? []).forEach((z, i) => {
-        if (p.x >= z.x && p.x <= z.x + z.width && p.y >= z.y && p.y <= z.y + z.height) {
-          bestDist = 0; bestKind = 'zone'; bestIdx = i;
-        }
-      });
-      // Markers use a different distance metric (radial, y-scaled to
-      // match the pitch's aspect ratio) than the segment-based one
-      // above, same as the move-mode grab check below — kept separate
-      // rather than forcing everything onto one metric.
-      let bestMarkerId: string | null = null;
-      let bestMarkerDist = 6;
-      for (const m of board.markers) {
-        const d = Math.hypot(m.x - p.x, (m.y - p.y) * 1.4);
-        if (d < bestMarkerDist) { bestMarkerDist = d; bestMarkerId = m.id; }
-      }
-      if (bestMarkerId && bestMarkerDist < bestDist) {
-        setBoard({ ...board, markers: board.markers.filter((m) => m.id !== bestMarkerId) });
-        if (selectedMarkerId === bestMarkerId) onSelectMarker(null);
-      } else if (bestKind === 'arrow') {
-        setBoard({ ...board, arrows: board.arrows.filter((_, i) => i !== bestIdx) });
-      } else if (bestKind === 'line') {
-        setBoard({ ...board, lines: (board.lines ?? []).filter((_, i) => i !== bestIdx) });
-      } else if (bestKind === 'zone') {
-        setBoard({ ...board, zones: (board.zones ?? []).filter((_, i) => i !== bestIdx) });
-      } else if (bestKind === 'drawing') {
-        setBoard({ ...board, drawings: (board.drawings ?? []).filter((_, i) => i !== bestIdx) });
+      const hit = hitTestErasable(board, p);
+      if (hit) {
+        setBoard(deleteErasable(board, hit));
+        if (hit.kind === 'marker' && hit.markerId && selectedMarkerId === hit.markerId) onSelectMarker(null);
       }
     } else if (mode === 'pen') {
       penPath.current = [p];
@@ -285,44 +237,16 @@ function TacticBoard({
       dragArrow.current = null;
       dragLine.current = null;
       dragZone.current = null;
-      let best: string | null = null;
-      let bestDist = 8;
-      for (const m of board.markers) {
-        const d = Math.hypot(m.x - p.x, (m.y - p.y) * 1.4);
-        if (d < bestDist) { best = m.id; bestDist = d; }
-      }
-      if (best) {
-        dragId.current = best;
-        onSelectMarker(best);
+      const grab = hitTestMovable(board, p);
+      if (grab?.kind === 'marker') {
+        dragId.current = grab.markerId;
+        onSelectMarker(grab.markerId);
       } else {
         dragId.current = null;
         onSelectMarker(null);
-        let bestShapeDist = 5;
-        let grabbedArrow = -1;
-        let grabbedLine = -1;
-        board.arrows.forEach((a, i) => {
-          const d = distToSeg(p.x, p.y, a.x1, a.y1, a.x2, a.y2);
-          if (d < bestShapeDist) { bestShapeDist = d; grabbedArrow = i; grabbedLine = -1; }
-        });
-        (board.lines ?? []).forEach((l, i) => {
-          const d = distToSeg(p.x, p.y, l.x1, l.y1, l.x2, l.y2);
-          if (d < bestShapeDist) { bestShapeDist = d; grabbedLine = i; grabbedArrow = -1; }
-        });
-        if (grabbedArrow !== -1) {
-          const a = board.arrows[grabbedArrow];
-          dragArrow.current = { index: grabbedArrow, dx1: a.x1 - p.x, dy1: a.y1 - p.y, dx2: a.x2 - p.x, dy2: a.y2 - p.y };
-        } else if (grabbedLine !== -1) {
-          const l = (board.lines ?? [])[grabbedLine];
-          dragLine.current = { index: grabbedLine, dx1: l.x1 - p.x, dy1: l.y1 - p.y, dx2: l.x2 - p.x, dy2: l.y2 - p.y };
-        } else {
-          // Zone is an area — grab it if the point falls inside, not
-          // just near its border.
-          const zoneIdx = (board.zones ?? []).findIndex((z) => p.x >= z.x && p.x <= z.x + z.width && p.y >= z.y && p.y <= z.y + z.height);
-          if (zoneIdx !== -1) {
-            const z = (board.zones ?? [])[zoneIdx];
-            dragZone.current = { index: zoneIdx, dx: z.x - p.x, dy: z.y - p.y };
-          }
-        }
+        if (grab?.kind === 'arrow') dragArrow.current = { index: grab.index, ...grab.offset };
+        else if (grab?.kind === 'line') dragLine.current = { index: grab.index, ...grab.offset };
+        else if (grab?.kind === 'zone') dragZone.current = { index: grab.index, ...grab.offset };
       }
     }
     (e.target as Element).setPointerCapture?.(e.pointerId);
@@ -341,59 +265,35 @@ function TacticBoard({
       setPreview({ x1: arrowStart.current.x, y1: arrowStart.current.y, x2: p.x, y2: p.y });
     } else if (dragId.current) {
       const p = toPct(e);
-      setBoard({
-        ...board,
-        markers: board.markers.map((m) => (m.id === dragId.current ? { ...m, x: p.x, y: p.y } : m)),
-      });
+      setBoard(moveMarker(board, dragId.current, p.x, p.y));
     } else if (dragArrow.current) {
       const p = toPct(e);
-      const { index, dx1, dy1, dx2, dy2 } = dragArrow.current;
-      setBoard({
-        ...board,
-        arrows: board.arrows.map((a, i) => (i === index ? { ...a, x1: p.x + dx1, y1: p.y + dy1, x2: p.x + dx2, y2: p.y + dy2 } : a)),
-      });
+      const { index, ...offset } = dragArrow.current;
+      setBoard(translateArrow(board, index, p, offset));
     } else if (dragLine.current) {
       const p = toPct(e);
-      const { index, dx1, dy1, dx2, dy2 } = dragLine.current;
-      setBoard({
-        ...board,
-        lines: (board.lines ?? []).map((l, i) => (i === index ? { ...l, x1: p.x + dx1, y1: p.y + dy1, x2: p.x + dx2, y2: p.y + dy2 } : l)),
-      });
+      const { index, ...offset } = dragLine.current;
+      setBoard(translateLine(board, index, p, offset));
     } else if (dragZone.current) {
       const p = toPct(e);
-      const { index, dx, dy } = dragZone.current;
-      setBoard({
-        ...board,
-        zones: (board.zones ?? []).map((z, i) => (i === index ? { ...z, x: p.x + dx, y: p.y + dy } : z)),
-      });
+      const { index, ...offset } = dragZone.current;
+      setBoard(translateZone(board, index, p, offset));
     }
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
     if (mode === 'pen' && penPath.current) {
-      if (penPath.current.length > 2) {
-        setBoard({ ...board, drawings: [...(board.drawings ?? []), { points: penPath.current }] });
-      }
+      setBoard(addPenStroke(board, penPath.current));
       penPath.current = null;
       setPenPreview([]);
     }
     if ((mode === 'arrow' || mode === 'dashed-arrow' || mode === 'line' || mode === 'zone') && arrowStart.current) {
       const p = toPct(e);
       const a = arrowStart.current;
-      if (Math.hypot(p.x - a.x, p.y - a.y) > 4) {
-        if (mode === 'arrow') {
-          setBoard({ ...board, arrows: [...board.arrows, { x1: a.x, y1: a.y, x2: p.x, y2: p.y, style: 'solid' }] });
-        } else if (mode === 'dashed-arrow') {
-          setBoard({ ...board, arrows: [...board.arrows, { x1: a.x, y1: a.y, x2: p.x, y2: p.y, style: 'dashed' }] });
-        } else if (mode === 'zone') {
-          setBoard({
-            ...board,
-            zones: [...(board.zones ?? []), { x: Math.min(a.x, p.x), y: Math.min(a.y, p.y), width: Math.abs(p.x - a.x), height: Math.abs(p.y - a.y) }],
-          });
-        } else {
-          setBoard({ ...board, lines: [...(board.lines ?? []), { x1: a.x, y1: a.y, x2: p.x, y2: p.y }] });
-        }
-      }
+      if (mode === 'arrow') setBoard(addArrow(board, a, p, 'solid'));
+      else if (mode === 'dashed-arrow') setBoard(addArrow(board, a, p, 'dashed'));
+      else if (mode === 'zone') setBoard(addZone(board, a, p));
+      else setBoard(addLine(board, a, p));
       arrowStart.current = null;
       setPreview(null);
     }
@@ -979,14 +879,11 @@ function BoardsTab({
                   // place (e.g. placing several cones or mini goals
                   // quickly rather than reopening the + menu each time).
                   const id = `dup-${Date.now()}`;
-                  const copy: BoardMarker = {
-                    ...marker,
-                    id,
-                    x: Math.min(96, marker.x + 6),
-                    y: Math.min(96, marker.y + 6),
-                  };
-                  setBoard({ ...board, markers: [...board.markers, copy] });
-                  setSelectedMarkerId(id);
+                  const result = duplicateMarker(board, selectedMarkerId, id);
+                  if (result) {
+                    setBoard(result.board);
+                    setSelectedMarkerId(id);
+                  }
                 }}
               >
                 <Copy className="w-4 h-4" />
