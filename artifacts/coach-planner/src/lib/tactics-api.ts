@@ -35,11 +35,12 @@ export interface BoardArrow {
   // existing arrow and every straight-arrow save/load path is
   // unaffected.
   curve?: { cx: number; cy: number };
+  color?: string;
 }
 // Same shape as an arrow, but rendered as a plain zone-divider line (no
 // arrowhead) — for a coach splitting the pitch into thirds, channels,
 // or any custom zone rather than showing a player/ball movement.
-export interface BoardLine { x1: number; y1: number; x2: number; y2: number }
+export interface BoardLine { x1: number; y1: number; x2: number; y2: number; color?: string }
 // A filled, semi-transparent rectangular area — highlighting a
 // pressing trigger zone, a defensive block, a target area for a
 // switch of play, etc., distinct from a divider Line (which only

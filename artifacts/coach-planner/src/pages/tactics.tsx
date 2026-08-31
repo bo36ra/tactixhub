@@ -446,7 +446,7 @@ function TacticBoard({
               stroke="#4FC3F7" strokeWidth="2.2" strokeLinecap="round" opacity="0.55" />
           )}
           <line x1={l.x1} y1={l.y1 * 1.4} x2={l.x2} y2={l.y2 * 1.4}
-            stroke="rgba(255,255,255,0.65)" strokeWidth="0.6" strokeDasharray="3 2" />
+            stroke={l.color ?? 'rgba(255,255,255,0.65)'} strokeWidth="0.6" strokeDasharray="3 2" />
         </React.Fragment>
       ))}
 
@@ -460,23 +460,30 @@ function TacticBoard({
           strokeOpacity="0.9" />
       ))}
 
-      {/* arrows — solid = pass/ball movement, dashed = run without the ball, curved = dribble */}
+      {/* arrows — solid = pass/ball movement, dashed = run without the ball, curved = dribble.
+          One arrowhead <marker> def per distinct color actually in use —
+          an SVG marker doesn't automatically pick up its referencing
+          path's stroke color (context-fill/context-stroke isn't
+          reliable cross-browser), so each color needs its own def. */}
       <defs>
-        <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="4.5" refY="3" orient="auto">
-          <path d="M0,0 L6,3 L0,6 Z" fill="#FFD84D" />
-        </marker>
+        {Array.from(new Set(['#FFD84D', ...board.arrows.map((a) => a.color ?? '#FFD84D')])).map((c) => (
+          <marker key={c} id={`arrowhead-${c.replace('#', '')}`} markerWidth="6" markerHeight="6" refX="4.5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill={c} />
+          </marker>
+        ))}
       </defs>
       {board.arrows.map((a, i) => {
         const d = a.curve
           ? `M ${a.x1},${a.y1 * 1.4} Q ${a.curve.cx},${a.curve.cy * 1.4} ${a.x2},${a.y2 * 1.4}`
           : `M ${a.x1},${a.y1 * 1.4} L ${a.x2},${a.y2 * 1.4}`;
+        const arrowColor = a.color ?? '#FFD84D';
         return (
           <React.Fragment key={i}>
             {selectedShape?.kind === 'arrow' && selectedShape.index === i && (
               <path d={d} fill="none" stroke="#4FC3F7" strokeWidth="2.6" strokeLinecap="round" opacity="0.55" />
             )}
             <path d={d} fill="none"
-              stroke="#FFD84D" strokeWidth="1.1" strokeDasharray={a.style === 'dashed' ? '3 2.5' : undefined} markerEnd="url(#arrowhead)" />
+              stroke={arrowColor} strokeWidth="1.1" strokeDasharray={a.style === 'dashed' ? '3 2.5' : undefined} markerEnd={`url(#arrowhead-${arrowColor.replace('#', '')})`} />
           </React.Fragment>
         );
       })}
@@ -491,7 +498,7 @@ function TacticBoard({
       )}
       {preview && (mode === 'arrow' || mode === 'dashed-arrow') && (
         <line x1={preview.x1} y1={preview.y1 * 1.4} x2={preview.x2} y2={preview.y2 * 1.4}
-          stroke="#FFD84D" strokeWidth="1.1" strokeDasharray={mode === 'dashed-arrow' ? '3 2.5' : undefined} opacity="0.6" markerEnd="url(#arrowhead)" />
+          stroke="#FFD84D" strokeWidth="1.1" strokeDasharray={mode === 'dashed-arrow' ? '3 2.5' : undefined} opacity="0.6" markerEnd="url(#arrowhead-FFD84D)" />
       )}
       {preview && mode === 'zone' && (
         <rect
@@ -1229,15 +1236,38 @@ function BoardsTab({
         })()}
 
         {/* Shape editor — same idea as the marker editor above, but for
-            a selected arrow/line/zone. Shapes don't have a label or
-            color to edit here, just duplicate (this is specifically
-            what draw-a-zone → copy-it → move-it needed and didn't have
-            before) and delete. */}
-        {selectedShape && (
-          <div className="bg-card border rounded-xl p-3 flex items-center gap-3">
-            <span className="text-sm text-muted-foreground flex-1">
+            a selected arrow/line/zone: recolor, duplicate, delete. */}
+        {selectedShape && (() => {
+          const SHAPE_COLORS = ['#FFD84D', '#5B9BD5', '#E85D5D', '#6FCF97', '#F2994A', '#BB8FCE', '#F4F1EC'];
+          const currentColor =
+            selectedShape.kind === 'arrow' ? (board.arrows[selectedShape.index]?.color ?? '#FFD84D')
+            : selectedShape.kind === 'line' ? ((board.lines ?? [])[selectedShape.index]?.color ?? undefined)
+            : ((board.zones ?? [])[selectedShape.index]?.color ?? '#5B9BD5');
+          const setShapeColor = (c: string) => {
+            if (selectedShape.kind === 'arrow') {
+              commitBoard({ ...board, arrows: board.arrows.map((a, i) => (i === selectedShape.index ? { ...a, color: c } : a)) });
+            } else if (selectedShape.kind === 'line') {
+              commitBoard({ ...board, lines: (board.lines ?? []).map((l, i) => (i === selectedShape.index ? { ...l, color: c } : l)) });
+            } else {
+              commitBoard({ ...board, zones: (board.zones ?? []).map((z, i) => (i === selectedShape.index ? { ...z, color: c } : z)) });
+            }
+          };
+          return (
+          <div className="bg-card border rounded-xl p-3 flex flex-wrap items-center gap-3">
+            <span className="text-sm text-muted-foreground shrink-0">
               {selectedShape.kind === 'zone' ? t('tactics.modeZone') : selectedShape.kind === 'arrow' ? t('tactics.modeArrow') : t('tactics.modeLine')}
             </span>
+            <div className="flex items-center gap-1.5 flex-1 flex-wrap">
+              {SHAPE_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setShapeColor(c)}
+                  className={`w-7 h-7 rounded-full border-2 shrink-0 ${currentColor === c ? 'border-primary' : 'border-transparent'}`}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
             <Button
               size="sm" variant="ghost" className="shrink-0"
               onClick={() => {
@@ -1265,7 +1295,8 @@ function BoardsTab({
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
-        )}
+          );
+        })()}
 
         {/* Animation frames (TacticalPad-style sequences) */}
         <div className="flex flex-wrap items-center gap-2">
