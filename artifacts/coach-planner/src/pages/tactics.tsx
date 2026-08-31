@@ -367,14 +367,24 @@ function TacticBoard({
 
       {/* zone-divider lines (thirds, channels, or freehand splits) */}
       {(board.lines ?? []).map((l, i) => (
-        <line key={`ln${i}`} x1={l.x1} y1={l.y1 * 1.4} x2={l.x2} y2={l.y2 * 1.4}
-          stroke="rgba(255,255,255,0.65)" strokeWidth="0.6" strokeDasharray="3 2" />
+        <React.Fragment key={`ln${i}`}>
+          {selectedShape?.kind === 'line' && selectedShape.index === i && (
+            <line x1={l.x1} y1={l.y1 * 1.4} x2={l.x2} y2={l.y2 * 1.4}
+              stroke="#4FC3F7" strokeWidth="2.2" strokeLinecap="round" opacity="0.55" />
+          )}
+          <line x1={l.x1} y1={l.y1 * 1.4} x2={l.x2} y2={l.y2 * 1.4}
+            stroke="rgba(255,255,255,0.65)" strokeWidth="0.6" strokeDasharray="3 2" />
+        </React.Fragment>
       ))}
 
       {/* tactical zones — filled area highlights (pressing trigger, defensive block, target area, ...) */}
       {(board.zones ?? []).map((z, i) => (
         <rect key={`z${i}`} x={z.x} y={z.y * 1.4} width={z.width} height={z.height * 1.4}
-          fill={z.color ?? '#5B9BD5'} fillOpacity="0.22" stroke={z.color ?? '#5B9BD5'} strokeWidth="0.5" strokeOpacity="0.6" />
+          fill={z.color ?? '#5B9BD5'} fillOpacity="0.22"
+          stroke={selectedShape?.kind === 'zone' && selectedShape.index === i ? '#4FC3F7' : (z.color ?? '#5B9BD5')}
+          strokeWidth={selectedShape?.kind === 'zone' && selectedShape.index === i ? '1' : '0.5'}
+          strokeDasharray={selectedShape?.kind === 'zone' && selectedShape.index === i ? '2 1.2' : undefined}
+          strokeOpacity="0.9" />
       ))}
 
       {/* arrows — solid = pass/ball movement, dashed = run without the ball */}
@@ -384,8 +394,14 @@ function TacticBoard({
         </marker>
       </defs>
       {board.arrows.map((a, i) => (
-        <line key={i} x1={a.x1} y1={a.y1 * 1.4} x2={a.x2} y2={a.y2 * 1.4}
-          stroke="#FFD84D" strokeWidth="1.1" strokeDasharray={a.style === 'dashed' ? '3 2.5' : undefined} markerEnd="url(#arrowhead)" />
+        <React.Fragment key={i}>
+          {selectedShape?.kind === 'arrow' && selectedShape.index === i && (
+            <line x1={a.x1} y1={a.y1 * 1.4} x2={a.x2} y2={a.y2 * 1.4}
+              stroke="#4FC3F7" strokeWidth="2.6" strokeLinecap="round" opacity="0.55" />
+          )}
+          <line x1={a.x1} y1={a.y1 * 1.4} x2={a.x2} y2={a.y2 * 1.4}
+            stroke="#FFD84D" strokeWidth="1.1" strokeDasharray={a.style === 'dashed' ? '3 2.5' : undefined} markerEnd="url(#arrowhead)" />
+        </React.Fragment>
       ))}
       {preview && mode === 'line' && (
         <line x1={preview.x1} y1={preview.y1 * 1.4} x2={preview.x2} y2={preview.y2 * 1.4}
@@ -410,7 +426,7 @@ function TacticBoard({
         return (
         <g key={m.id} transform={`translate(${m.x}, ${m.y * 1.4})`} style={{ cursor: 'grab' }}>
           {m.id === selectedMarkerId && m.side !== 'ball' && (
-            <circle r="5.6" fill="none" stroke="#4FC3F7" strokeWidth="0.6" strokeDasharray="1.4 1" />
+            <circle r="6.2" fill="none" stroke="#4FC3F7" strokeWidth="0.9" strokeDasharray="1.6 1.2" />
           )}
           {m.side === 'ball' ? (
             <circle r="2.2" fill={m.color ?? '#FFFFFF'} stroke="#111" strokeWidth="0.4" />
@@ -687,41 +703,49 @@ function BoardsTab({
             pointer; scrolls sideways if it doesn't fit rather than
             wrapping to more rows, so the board itself stays the focus
             instead of tool clutter pushing it down the page. */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
-          <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'move' ? 'default' : 'secondary'} onClick={() => setMode('move')} title={t('tactics.modeMove')}>
-            <MoveIcon className="w-5 h-5" />
-          </Button>
-          <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'arrow' ? 'default' : 'secondary'} onClick={() => setMode('arrow')} title={t('tactics.modeArrow')}>
-            <ArrowUpRight className="w-5 h-5" />
-          </Button>
-          <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'dashed-arrow' ? 'default' : 'secondary'} onClick={() => setMode('dashed-arrow')} title={t('tactics.modeDashedArrow')}>
-            <Footprints className="w-5 h-5" />
-          </Button>
-          <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'line' ? 'default' : 'secondary'} onClick={() => setMode('line')} title={t('tactics.modeLine')}>
-            <Minus className="w-5 h-5" />
-          </Button>
-          <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'zone' ? 'default' : 'secondary'} onClick={() => setMode('zone')} title={t('tactics.modeZone')}>
-            <BoxSelect className="w-5 h-5" />
-          </Button>
-          <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'pen' ? 'default' : 'secondary'} onClick={() => setMode('pen')} title={t('tactics.modePen')}>
-            <Pencil className="w-5 h-5" />
-          </Button>
-          <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'erase' ? 'default' : 'secondary'} onClick={() => setMode('erase')} title={t('tactics.modeErase')}>
-            <Eraser className="w-5 h-5" />
-          </Button>
-          <Button size="icon" className="h-11 w-11 shrink-0" variant="secondary" title={t('tactics.undo')} disabled={!canUndo} onClick={undo}>
-            <Undo2 className="w-5 h-5" />
-          </Button>
-          <Button size="icon" className="h-11 w-11 shrink-0" variant="secondary" title={t('tactics.redo')} disabled={!canRedo} onClick={redo}>
-            <Redo2 className="w-5 h-5" />
-          </Button>
-          <div className="w-px h-8 bg-border shrink-0 mx-0.5" />
-          <Button size="icon" className="h-11 w-11 shrink-0" variant="outline" onClick={() => setAddMenuOpen(true)} title={t('tactics.addMenu')}>
-            <Plus className="w-5 h-5" />
-          </Button>
-          <Button size="icon" className="h-11 w-11 shrink-0" variant="outline" onClick={() => setMoreMenuOpen(true)} title={t('tactics.moreMenu')}>
-            <MoreHorizontal className="w-5 h-5" />
-          </Button>
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 flex-1 min-w-0">
+            <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'move' ? 'default' : 'secondary'} onClick={() => setMode('move')} title={t('tactics.modeMove')}>
+              <MoveIcon className="w-5 h-5" />
+            </Button>
+            <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'arrow' ? 'default' : 'secondary'} onClick={() => setMode('arrow')} title={t('tactics.modeArrow')}>
+              <ArrowUpRight className="w-5 h-5" />
+            </Button>
+            <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'dashed-arrow' ? 'default' : 'secondary'} onClick={() => setMode('dashed-arrow')} title={t('tactics.modeDashedArrow')}>
+              <Footprints className="w-5 h-5" />
+            </Button>
+            <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'line' ? 'default' : 'secondary'} onClick={() => setMode('line')} title={t('tactics.modeLine')}>
+              <Minus className="w-5 h-5" />
+            </Button>
+            <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'zone' ? 'default' : 'secondary'} onClick={() => setMode('zone')} title={t('tactics.modeZone')}>
+              <BoxSelect className="w-5 h-5" />
+            </Button>
+            <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'pen' ? 'default' : 'secondary'} onClick={() => setMode('pen')} title={t('tactics.modePen')}>
+              <Pencil className="w-5 h-5" />
+            </Button>
+            <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'erase' ? 'default' : 'secondary'} onClick={() => setMode('erase')} title={t('tactics.modeErase')}>
+              <Eraser className="w-5 h-5" />
+            </Button>
+            <Button size="icon" className="h-11 w-11 shrink-0" variant="secondary" title={t('tactics.undo')} disabled={!canUndo} onClick={undo}>
+              <Undo2 className="w-5 h-5" />
+            </Button>
+            <Button size="icon" className="h-11 w-11 shrink-0" variant="secondary" title={t('tactics.redo')} disabled={!canRedo} onClick={redo}>
+              <Redo2 className="w-5 h-5" />
+            </Button>
+          </div>
+          {/* Pinned outside the scroll area — previously the last two
+              items in a long scrolling row, meaning finding "add
+              something to the board" meant scrolling past every drawing
+              tool first. These stay reachable in one tap regardless of
+              how many drawing tools the scrollable section grows to. */}
+          <div className="flex items-center gap-1.5 shrink-0 ps-1.5 border-s border-border">
+            <Button size="icon" className="h-11 w-11 shrink-0" variant="outline" onClick={() => setAddMenuOpen(true)} title={t('tactics.addMenu')}>
+              <Plus className="w-5 h-5" />
+            </Button>
+            <Button size="icon" className="h-11 w-11 shrink-0" variant="outline" onClick={() => setMoreMenuOpen(true)} title={t('tactics.moreMenu')}>
+              <MoreHorizontal className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
 
         {/* + menu — every "add something to the board" action grouped
