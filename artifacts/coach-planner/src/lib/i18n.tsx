@@ -469,6 +469,7 @@ const en: Translations = {
   "tactics.modeMove": "Move players",
   "tactics.modeArrow": "Draw arrows",
   "tactics.modeDashedArrow": "Run (no ball)",
+  "tactics.modeCurvedArrow": "Dribble (curved)",
   "tactics.modeLine": "Zone line",
   "tactics.modeZone": "Highlight area",
   "tactics.modePen": "Pen",
@@ -497,6 +498,8 @@ const en: Translations = {
   "tactics.equipBarrier": "Barrier",
   "tactics.equipGoal": "Mini goal",
   "tactics.equipFlag": "Flag",
+  "tactics.equipPoint": "Point",
+  "tactics.equipNumber": "Number",
 
   "tactics.clearAll": "Clear all",
   "tactics.addFrame": "Snapshot",
@@ -1368,6 +1371,7 @@ const ar: Translations = {
   "tactics.modeMove": "تحريك اللاعبين",
   "tactics.modeArrow": "رسم الأسهم",
   "tactics.modeDashedArrow": "جري بدون كرة",
+  "tactics.modeCurvedArrow": "دريبل (منحني)",
   "tactics.modeLine": "خط تقسيم",
   "tactics.modeZone": "تظليل منطقة",
   "tactics.modePen": "قلم حر",
@@ -1396,6 +1400,8 @@ const ar: Translations = {
   "tactics.equipBarrier": "حاجز",
   "tactics.equipGoal": "مرمى مصغر",
   "tactics.equipFlag": "علم",
+  "tactics.equipPoint": "نقطة",
+  "tactics.equipNumber": "رقم",
 
   "tactics.clearAll": "مسح الكل",
   "tactics.addFrame": "لقطة",

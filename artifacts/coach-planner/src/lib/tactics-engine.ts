@@ -156,7 +156,17 @@ export function moveMarker(board: BoardData, markerId: string, x: number, y: num
 export function translateArrow(board: BoardData, index: number, p: WorldPoint, offset: { dx1: number; dy1: number; dx2: number; dy2: number }): BoardData {
   return {
     ...board,
-    arrows: board.arrows.map((a, i) => (i === index ? { ...a, x1: p.x + offset.dx1, y1: p.y + offset.dy1, x2: p.x + offset.dx2, y2: p.y + offset.dy2 } : a)),
+    arrows: board.arrows.map((a, i) => {
+      if (i !== index) return a;
+      const x1 = p.x + offset.dx1, y1 = p.y + offset.dy1, x2 = p.x + offset.dx2, y2 = p.y + offset.dy2;
+      if (!a.curve) return { ...a, x1, y1, x2, y2 };
+      // Keep the curve's shape by translating its control point by the
+      // same delta as the endpoints, rather than by recomputing it
+      // from a fixed offset (which would only be correct for one of
+      // the two endpoints).
+      const dx = x1 - a.x1, dy = y1 - a.y1;
+      return { ...a, x1, y1, x2, y2, curve: { cx: a.curve.cx + dx, cy: a.curve.cy + dy } };
+    }),
   };
 }
 
@@ -194,6 +204,38 @@ export function addArrow(board: BoardData, start: WorldPoint, end: WorldPoint, s
   return { ...board, arrows: [...board.arrows, arrow] };
 }
 
+// A curved (dribble) arrow — the control point is derived from the
+// actual drag path rather than a separate "drag the curve" step,
+// which would be a second fiddly interaction on a touch screen. The
+// path's own midpoint (whichever recorded point deviates most from
+// the straight start-end line) becomes the point the curve is solved
+// to pass through at its own midpoint, so dragging in an arc produces
+// a curve that follows the gesture naturally.
+export function addCurvedArrow(board: BoardData, path: WorldPoint[], style: 'solid' | 'dashed'): BoardData {
+  if (path.length < 3) return board;
+  const start = path[0];
+  const end = path[path.length - 1];
+  if (Math.hypot(end.x - start.x, end.y - start.y) <= MIN_SHAPE_LENGTH) return board;
+
+  let bestPoint = path[Math.floor(path.length / 2)];
+  let bestDist = -1;
+  for (const p of path) {
+    const d = distToSegment(p.x, p.y, start.x, start.y, end.x, end.y);
+    if (d > bestDist) { bestDist = d; bestPoint = p; }
+  }
+  // If the drag was basically straight, skip the curve entirely rather
+  // than storing a control point indistinguishable from a straight
+  // line — keeps "drag straight" reliably producing a straight arrow.
+  if (bestDist < 2) return addArrow(board, start, end, style);
+
+  // Solve for the quadratic-bezier control point P1 such that
+  // B(0.5) = bestPoint, given B(0.5) = 0.25*P0 + 0.5*P1 + 0.25*P2.
+  const cx = 2 * bestPoint.x - 0.5 * start.x - 0.5 * end.x;
+  const cy = 2 * bestPoint.y - 0.5 * start.y - 0.5 * end.y;
+  const arrow: BoardArrow = { x1: start.x, y1: start.y, x2: end.x, y2: end.y, style, curve: { cx, cy } };
+  return { ...board, arrows: [...board.arrows, arrow] };
+}
+
 export function addLine(board: BoardData, start: WorldPoint, end: WorldPoint): BoardData {
   if (Math.hypot(end.x - start.x, end.y - start.y) <= MIN_SHAPE_LENGTH) return board;
   const line: BoardLine = { x1: start.x, y1: start.y, x2: end.x, y2: end.y };
@@ -227,7 +269,11 @@ const SHAPE_DUP_OFFSET = 6;
 export function duplicateArrow(board: BoardData, index: number): BoardData {
   const a = board.arrows[index];
   if (!a) return board;
-  const copy: BoardArrow = { ...a, x1: a.x1 + SHAPE_DUP_OFFSET, y1: a.y1 + SHAPE_DUP_OFFSET, x2: a.x2 + SHAPE_DUP_OFFSET, y2: a.y2 + SHAPE_DUP_OFFSET };
+  const copy: BoardArrow = {
+    ...a,
+    x1: a.x1 + SHAPE_DUP_OFFSET, y1: a.y1 + SHAPE_DUP_OFFSET, x2: a.x2 + SHAPE_DUP_OFFSET, y2: a.y2 + SHAPE_DUP_OFFSET,
+    curve: a.curve ? { cx: a.curve.cx + SHAPE_DUP_OFFSET, cy: a.curve.cy + SHAPE_DUP_OFFSET } : undefined,
+  };
   return { ...board, arrows: [...board.arrows, copy] };
 }
 

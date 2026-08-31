@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { customFetch } from '@workspace/api-client-react';
 
 // Board format stored as a JSON string in the `data` column.
-export type EquipmentType = 'cone' | 'barrier' | 'goal' | 'flag';
+export type EquipmentType = 'cone' | 'barrier' | 'goal' | 'flag' | 'point' | 'number';
 export interface BoardMarker {
   id: string;
   x: number; // 0..100 (percent of pitch width)
@@ -20,7 +20,15 @@ export interface BoardMarker {
 // style: 'solid' (default) is a pass/ball movement, 'dashed' is a
 // player run without the ball — the standard convention in football
 // tactical diagrams for distinguishing the two at a glance.
-export interface BoardArrow { x1: number; y1: number; x2: number; y2: number; style?: 'solid' | 'dashed' }
+export interface BoardArrow {
+  x1: number; y1: number; x2: number; y2: number;
+  style?: 'solid' | 'dashed';
+  // Quadratic bezier control point — present only for a curved
+  // (dribble) arrow. A straight arrow simply omits this, so every
+  // existing arrow and every straight-arrow save/load path is
+  // unaffected.
+  curve?: { cx: number; cy: number };
+}
 // Same shape as an arrow, but rendered as a plain zone-divider line (no
 // arrowhead) — for a coach splitting the pitch into thirds, channels,
 // or any custom zone rather than showing a player/ball movement.

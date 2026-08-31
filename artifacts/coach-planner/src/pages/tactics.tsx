@@ -12,7 +12,7 @@ import {
 import {
   screenToWorld, hitTestErasable, hitTestMovable, deleteErasable,
   moveMarker, translateArrow, translateLine, translateZone,
-  addArrow, addLine, addZone, addPenStroke, duplicateMarker,
+  addArrow, addCurvedArrow, addLine, addZone, addPenStroke, duplicateMarker,
   duplicateArrow, duplicateLine, duplicateZone,
 } from '@/lib/tactics-engine';
 import { useBoardHistory } from '@/lib/use-board-history';
@@ -26,7 +26,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { PITCH_GRADIENT } from '@/lib/chart-theme';
-import { Trash2, Undo2, Redo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus, Maximize, Minimize, Move as MoveIcon, ArrowUpRight, Footprints, BoxSelect, MoreHorizontal, Copy } from 'lucide-react';
+import { Trash2, Undo2, Redo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus, Maximize, Minimize, Move as MoveIcon, ArrowUpRight, Footprints, BoxSelect, MoreHorizontal, Copy, Spline } from 'lucide-react';
 import { AnalysisBoard } from '@/components/analysis-board';
 
 // ---------------------------------------------------------------- board
@@ -116,7 +116,7 @@ const emptyBoard = (): BoardData => ({
 // circle, so it reads at a glance as "not a player" — a cone, a low
 // hurdle/barrier, a small goal, and a corner flag, the standard set
 // for marking out a training-game grid or drill.
-function EquipmentShape({ type, color }: { type: EquipmentType; color?: string }) {
+function EquipmentShape({ type, color, label }: { type: EquipmentType; color?: string; label?: string }) {
   if (type === 'cone') {
     return <polygon points="0,-3.2 2.6,3 -2.6,3" fill={color ?? '#F2994A'} stroke="#7a3d0e" strokeWidth="0.4" />;
   }
@@ -138,6 +138,23 @@ function EquipmentShape({ type, color }: { type: EquipmentType; color?: string }
       </g>
     );
   }
+  if (type === 'point') {
+    // A simple highlight dot — marking a specific spot on the pitch
+    // without implying a player, ball, or piece of equipment there.
+    return <circle r="1.8" fill={color ?? '#4FC3F7'} stroke="#0a3d4d" strokeWidth="0.4" />;
+  }
+  if (type === 'number') {
+    // A sequence badge (1, 2, 3, ...) for numbering the order of
+    // movements in a drill — reuses the marker's own label field for
+    // the digit, so editing it uses the same label input every other
+    // marker already has, nothing number-specific to build for that.
+    return (
+      <g>
+        <circle r="3.4" fill={color ?? '#BB8FCE'} stroke="#1a1a1a" strokeWidth="0.4" />
+        <text textAnchor="middle" dy="1.3" fontSize="4" fontWeight="800" fill="#1a1a1a">{label || '1'}</text>
+      </g>
+    );
+  }
   // flag
   return (
     <g>
@@ -155,7 +172,7 @@ function TacticBoard({
   setBoardLive: (b: BoardData) => void;
   beginLiveChange: () => void;
   commitLiveChange: () => void;
-  mode: 'move' | 'arrow' | 'dashed-arrow' | 'line' | 'zone' | 'pen' | 'erase';
+  mode: 'move' | 'arrow' | 'dashed-arrow' | 'curved-arrow' | 'line' | 'zone' | 'pen' | 'erase';
   selectedMarkerId: string | null;
   onSelectMarker: (id: string | null) => void;
   selectedShape: { kind: 'arrow' | 'line' | 'zone'; index: number } | null;
@@ -175,6 +192,8 @@ function TacticBoard({
   const arrowStart = useRef<{ x: number; y: number } | null>(null);
   const penPath = useRef<{ x: number; y: number }[] | null>(null);
   const [penPreview, setPenPreview] = useState<{ x: number; y: number }[]>([]);
+  const curvedArrowPath = useRef<{ x: number; y: number }[] | null>(null);
+  const [curvedArrowPreview, setCurvedArrowPreview] = useState<{ x: number; y: number }[]>([]);
   const [preview, setPreview] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   // Pinch-to-zoom + 2-finger pan — the board previously set
   // touch-action:none to stop single-finger drawing gestures from
@@ -233,6 +252,9 @@ function TacticBoard({
     } else if (mode === 'pen') {
       penPath.current = [p];
       setPenPreview([p]);
+    } else if (mode === 'curved-arrow') {
+      curvedArrowPath.current = [p];
+      setCurvedArrowPreview([p]);
     } else if (mode === 'arrow' || mode === 'dashed-arrow' || mode === 'line' || mode === 'zone') {
       arrowStart.current = p;
       setPreview({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
@@ -270,6 +292,13 @@ function TacticBoard({
         penPath.current = [...penPath.current, p];
         setPenPreview(penPath.current);
       }
+    } else if (mode === 'curved-arrow' && curvedArrowPath.current) {
+      const p = toPct(e);
+      const last = curvedArrowPath.current[curvedArrowPath.current.length - 1];
+      if (Math.hypot(p.x - last.x, p.y - last.y) > 1) {
+        curvedArrowPath.current = [...curvedArrowPath.current, p];
+        setCurvedArrowPreview(curvedArrowPath.current);
+      }
     } else if ((mode === 'arrow' || mode === 'dashed-arrow' || mode === 'line' || mode === 'zone') && arrowStart.current) {
       const p = toPct(e);
       setPreview({ x1: arrowStart.current.x, y1: arrowStart.current.y, x2: p.x, y2: p.y });
@@ -296,6 +325,11 @@ function TacticBoard({
       commitBoard(addPenStroke(board, penPath.current));
       penPath.current = null;
       setPenPreview([]);
+    }
+    if (mode === 'curved-arrow' && curvedArrowPath.current) {
+      commitBoard(addCurvedArrow(board, curvedArrowPath.current, 'solid'));
+      curvedArrowPath.current = null;
+      setCurvedArrowPreview([]);
     }
     if ((mode === 'arrow' || mode === 'dashed-arrow' || mode === 'line' || mode === 'zone') && arrowStart.current) {
       const p = toPct(e);
@@ -387,22 +421,31 @@ function TacticBoard({
           strokeOpacity="0.9" />
       ))}
 
-      {/* arrows — solid = pass/ball movement, dashed = run without the ball */}
+      {/* arrows — solid = pass/ball movement, dashed = run without the ball, curved = dribble */}
       <defs>
         <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="4.5" refY="3" orient="auto">
           <path d="M0,0 L6,3 L0,6 Z" fill="#FFD84D" />
         </marker>
       </defs>
-      {board.arrows.map((a, i) => (
-        <React.Fragment key={i}>
-          {selectedShape?.kind === 'arrow' && selectedShape.index === i && (
-            <line x1={a.x1} y1={a.y1 * 1.4} x2={a.x2} y2={a.y2 * 1.4}
-              stroke="#4FC3F7" strokeWidth="2.6" strokeLinecap="round" opacity="0.55" />
-          )}
-          <line x1={a.x1} y1={a.y1 * 1.4} x2={a.x2} y2={a.y2 * 1.4}
-            stroke="#FFD84D" strokeWidth="1.1" strokeDasharray={a.style === 'dashed' ? '3 2.5' : undefined} markerEnd="url(#arrowhead)" />
-        </React.Fragment>
-      ))}
+      {board.arrows.map((a, i) => {
+        const d = a.curve
+          ? `M ${a.x1},${a.y1 * 1.4} Q ${a.curve.cx},${a.curve.cy * 1.4} ${a.x2},${a.y2 * 1.4}`
+          : `M ${a.x1},${a.y1 * 1.4} L ${a.x2},${a.y2 * 1.4}`;
+        return (
+          <React.Fragment key={i}>
+            {selectedShape?.kind === 'arrow' && selectedShape.index === i && (
+              <path d={d} fill="none" stroke="#4FC3F7" strokeWidth="2.6" strokeLinecap="round" opacity="0.55" />
+            )}
+            <path d={d} fill="none"
+              stroke="#FFD84D" strokeWidth="1.1" strokeDasharray={a.style === 'dashed' ? '3 2.5' : undefined} markerEnd="url(#arrowhead)" />
+          </React.Fragment>
+        );
+      })}
+      {curvedArrowPreview.length > 1 && (
+        <polyline fill="none" stroke="#FFD84D" strokeWidth="1.1" opacity="0.6"
+          strokeLinecap="round" strokeLinejoin="round"
+          points={curvedArrowPreview.map((p) => `${p.x},${p.y * 1.4}`).join(' ')} />
+      )}
       {preview && mode === 'line' && (
         <line x1={preview.x1} y1={preview.y1 * 1.4} x2={preview.x2} y2={preview.y2 * 1.4}
           stroke="rgba(255,255,255,0.65)" strokeWidth="0.6" strokeDasharray="3 2" opacity="0.8" />
@@ -431,7 +474,7 @@ function TacticBoard({
           {m.side === 'ball' ? (
             <circle r="2.2" fill={m.color ?? '#FFFFFF'} stroke="#111" strokeWidth="0.4" />
           ) : m.side === 'equipment' ? (
-            <EquipmentShape type={m.equipment ?? 'cone'} color={m.color} />
+            <EquipmentShape type={m.equipment ?? 'cone'} color={m.color} label={m.label} />
           ) : (
             <>
               <circle r="4.2" fill={fill} stroke={stroke} strokeWidth="0.5" />
@@ -464,7 +507,7 @@ function BoardsTab({
   const [editing, setEditing] = useState<{ id?: number; name: string; matchId: number | null } | null>(null);
   const { board, commitBoard, setBoardLive, beginLiveChange, commitLiveChange, undo, redo, canUndo, canRedo, resetBoard } = useBoardHistory(emptyBoard());
   // (setBoard supports functional updates natively; playback relies on it)
-  const [mode, setMode] = useState<'move' | 'arrow' | 'dashed-arrow' | 'line' | 'zone' | 'pen' | 'erase'>('move');
+  const [mode, setMode] = useState<'move' | 'arrow' | 'dashed-arrow' | 'curved-arrow' | 'line' | 'zone' | 'pen' | 'erase'>('move');
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
   const [selectedShape, setSelectedShape] = useState<{ kind: 'arrow' | 'line' | 'zone'; index: number } | null>(null);
   // Keyboard shortcuts — Delete removes the selected marker or shape,
@@ -714,6 +757,9 @@ function BoardsTab({
             <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'dashed-arrow' ? 'default' : 'secondary'} onClick={() => setMode('dashed-arrow')} title={t('tactics.modeDashedArrow')}>
               <Footprints className="w-5 h-5" />
             </Button>
+            <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'curved-arrow' ? 'default' : 'secondary'} onClick={() => setMode('curved-arrow')} title={t('tactics.modeCurvedArrow')}>
+              <Spline className="w-5 h-5" />
+            </Button>
             <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'line' ? 'default' : 'secondary'} onClick={() => setMode('line')} title={t('tactics.modeLine')}>
               <Minus className="w-5 h-5" />
             </Button>
@@ -801,8 +847,8 @@ function BoardsTab({
 
               <div className="space-y-1.5">
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{t('tactics.addEquipment')}</p>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {(['cone', 'barrier', 'goal', 'flag'] as EquipmentType[]).map((eq) => (
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(['cone', 'barrier', 'goal', 'flag', 'point'] as EquipmentType[]).map((eq) => (
                     <Button
                       key={eq} variant="outline" className="h-12 text-xs"
                       onClick={() => {
@@ -816,6 +862,23 @@ function BoardsTab({
                       {t(`tactics.equip${eq.charAt(0).toUpperCase()}${eq.slice(1)}`)}
                     </Button>
                   ))}
+                  <Button
+                    variant="outline" className="h-12 text-xs"
+                    onClick={() => {
+                      // Auto-increments from however many number badges
+                      // are already on the board — tapping this
+                      // repeatedly places 1, 2, 3, ... without having to
+                      // type each one in by hand.
+                      const existingCount = board.markers.filter((m) => m.side === 'equipment' && m.equipment === 'number').length;
+                      const id = `equip-${Date.now()}`;
+                      commitBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: String(existingCount + 1), side: 'equipment', equipment: 'number' }] });
+                      setMode('move');
+                      setSelectedMarkerId(id);
+                      setAddMenuOpen(false);
+                    }}
+                  >
+                    {t('tactics.equipNumber')}
+                  </Button>
                 </div>
               </div>
 
