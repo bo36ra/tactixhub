@@ -14,6 +14,7 @@ import {
   moveMarker, translateArrow, translateLine, translateZone,
   addArrow, addLine, addZone, addPenStroke, duplicateMarker,
 } from '@/lib/tactics-engine';
+import { useBoardHistory } from '@/lib/use-board-history';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,7 +25,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { PITCH_GRADIENT } from '@/lib/chart-theme';
-import { Trash2, Undo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus, Maximize, Minimize, Move as MoveIcon, ArrowUpRight, Footprints, BoxSelect, MoreHorizontal, Copy } from 'lucide-react';
+import { Trash2, Undo2, Redo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus, Maximize, Minimize, Move as MoveIcon, ArrowUpRight, Footprints, BoxSelect, MoreHorizontal, Copy } from 'lucide-react';
 import { AnalysisBoard } from '@/components/analysis-board';
 
 // ---------------------------------------------------------------- board
@@ -146,10 +147,13 @@ function EquipmentShape({ type, color }: { type: EquipmentType; color?: string }
 }
 
 function TacticBoard({
-  board, setBoard, mode, selectedMarkerId, onSelectMarker, isFullscreen,
+  board, commitBoard, setBoardLive, beginLiveChange, commitLiveChange, mode, selectedMarkerId, onSelectMarker, isFullscreen,
 }: {
   board: BoardData;
-  setBoard: (b: BoardData) => void;
+  commitBoard: (b: BoardData) => void;
+  setBoardLive: (b: BoardData) => void;
+  beginLiveChange: () => void;
+  commitLiveChange: () => void;
   mode: 'move' | 'arrow' | 'dashed-arrow' | 'line' | 'zone' | 'pen' | 'erase';
   selectedMarkerId: string | null;
   onSelectMarker: (id: string | null) => void;
@@ -220,7 +224,7 @@ function TacticBoard({
     if (mode === 'erase') {
       const hit = hitTestErasable(board, p);
       if (hit) {
-        setBoard(deleteErasable(board, hit));
+        commitBoard(deleteErasable(board, hit));
         if (hit.kind === 'marker' && hit.markerId && selectedMarkerId === hit.markerId) onSelectMarker(null);
       }
     } else if (mode === 'pen') {
@@ -238,6 +242,7 @@ function TacticBoard({
       dragLine.current = null;
       dragZone.current = null;
       const grab = hitTestMovable(board, p);
+      if (grab) beginLiveChange();
       if (grab?.kind === 'marker') {
         dragId.current = grab.markerId;
         onSelectMarker(grab.markerId);
@@ -265,38 +270,39 @@ function TacticBoard({
       setPreview({ x1: arrowStart.current.x, y1: arrowStart.current.y, x2: p.x, y2: p.y });
     } else if (dragId.current) {
       const p = toPct(e);
-      setBoard(moveMarker(board, dragId.current, p.x, p.y));
+      setBoardLive(moveMarker(board, dragId.current, p.x, p.y));
     } else if (dragArrow.current) {
       const p = toPct(e);
       const { index, ...offset } = dragArrow.current;
-      setBoard(translateArrow(board, index, p, offset));
+      setBoardLive(translateArrow(board, index, p, offset));
     } else if (dragLine.current) {
       const p = toPct(e);
       const { index, ...offset } = dragLine.current;
-      setBoard(translateLine(board, index, p, offset));
+      setBoardLive(translateLine(board, index, p, offset));
     } else if (dragZone.current) {
       const p = toPct(e);
       const { index, ...offset } = dragZone.current;
-      setBoard(translateZone(board, index, p, offset));
+      setBoardLive(translateZone(board, index, p, offset));
     }
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
     if (mode === 'pen' && penPath.current) {
-      setBoard(addPenStroke(board, penPath.current));
+      commitBoard(addPenStroke(board, penPath.current));
       penPath.current = null;
       setPenPreview([]);
     }
     if ((mode === 'arrow' || mode === 'dashed-arrow' || mode === 'line' || mode === 'zone') && arrowStart.current) {
       const p = toPct(e);
       const a = arrowStart.current;
-      if (mode === 'arrow') setBoard(addArrow(board, a, p, 'solid'));
-      else if (mode === 'dashed-arrow') setBoard(addArrow(board, a, p, 'dashed'));
-      else if (mode === 'zone') setBoard(addZone(board, a, p));
-      else setBoard(addLine(board, a, p));
+      if (mode === 'arrow') commitBoard(addArrow(board, a, p, 'solid'));
+      else if (mode === 'dashed-arrow') commitBoard(addArrow(board, a, p, 'dashed'));
+      else if (mode === 'zone') commitBoard(addZone(board, a, p));
+      else commitBoard(addLine(board, a, p));
       arrowStart.current = null;
       setPreview(null);
     }
+    if (dragId.current || dragArrow.current || dragLine.current || dragZone.current) commitLiveChange();
     dragId.current = null;
     dragArrow.current = null;
     dragLine.current = null;
@@ -435,7 +441,7 @@ function BoardsTab({
   const del = useDeleteTactic(teamId);
 
   const [editing, setEditing] = useState<{ id?: number; name: string; matchId: number | null } | null>(null);
-  const [board, setBoard] = useState<BoardData>(emptyBoard());
+  const { board, commitBoard, setBoardLive, beginLiveChange, commitLiveChange, undo, redo, canUndo, canRedo, resetBoard } = useBoardHistory(emptyBoard());
   // (setBoard supports functional updates natively; playback relies on it)
   const [mode, setMode] = useState<'move' | 'arrow' | 'dashed-arrow' | 'line' | 'zone' | 'pen' | 'erase'>('move');
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
@@ -505,7 +511,7 @@ function BoardsTab({
     const allForSide = [...toKeep, ...newMarkers];
     const positioned = new Map(allForSide.map((m, i) => [m.id, positions[i]]));
     const placedNewMarkers = newMarkers.map((m) => ({ ...m, ...positioned.get(m.id)! }));
-    setBoard({
+    commitBoard({
       ...board,
       markers: [
         ...board.markers.map((m) => {
@@ -519,16 +525,16 @@ function BoardsTab({
 
   const addFrame = () => {
     const frame: BoardFrame = { markers: board.markers.map((m) => ({ ...m })) };
-    setBoard({ ...board, frames: [...(board.frames ?? []), frame] });
+    commitBoard({ ...board, frames: [...(board.frames ?? []), frame] });
   };
 
   const loadFrame = (i: number) => {
     const f = (board.frames ?? [])[i];
-    if (f) setBoard({ ...board, markers: f.markers.map((m) => ({ ...m })) });
+    if (f) commitBoard({ ...board, markers: f.markers.map((m) => ({ ...m })) });
   };
 
   const removeFrame = (i: number) => {
-    setBoard({ ...board, frames: (board.frames ?? []).filter((_, idx) => idx !== i) });
+    commitBoard({ ...board, frames: (board.frames ?? []).filter((_, idx) => idx !== i) });
   };
 
   // Play: interpolate marker positions between consecutive frames (like
@@ -546,7 +552,7 @@ function BoardsTab({
       const a = frames[seg].markers;
       const b = frames[seg + 1].markers;
       const k = ease(t);
-      setBoard((prev) => ({
+      setBoardLive((prev) => ({
         ...prev,
         markers: prev.markers.map((m) => {
           const from = a.find((x) => x.id === m.id);
@@ -580,10 +586,10 @@ function BoardsTab({
   const open = (tc?: Tactic) => {
     if (tc) {
       setEditing({ id: tc.id, name: tc.name, matchId: tc.matchId });
-      setBoard(parseBoard(tc.data));
+      resetBoard(parseBoard(tc.data));
     } else {
       setEditing({ name: '', matchId: null });
-      setBoard(emptyBoard());
+      resetBoard(emptyBoard());
     }
     setMode('move');
   };
@@ -650,15 +656,11 @@ function BoardsTab({
           <Button size="icon" className="h-11 w-11 shrink-0" variant={mode === 'erase' ? 'default' : 'secondary'} onClick={() => setMode('erase')} title={t('tactics.modeErase')}>
             <Eraser className="w-5 h-5" />
           </Button>
-          <Button
-            size="icon" className="h-11 w-11 shrink-0" variant="secondary" title={t('tactics.undo')}
-            onClick={() => {
-              if (mode === 'pen') setBoard({ ...board, drawings: (board.drawings ?? []).slice(0, -1) });
-              else if (mode === 'line') setBoard({ ...board, lines: (board.lines ?? []).slice(0, -1) });
-              else if (mode === 'zone') setBoard({ ...board, zones: (board.zones ?? []).slice(0, -1) });
-              else setBoard({ ...board, arrows: board.arrows.slice(0, -1) });
-            }}>
+          <Button size="icon" className="h-11 w-11 shrink-0" variant="secondary" title={t('tactics.undo')} disabled={!canUndo} onClick={undo}>
             <Undo2 className="w-5 h-5" />
+          </Button>
+          <Button size="icon" className="h-11 w-11 shrink-0" variant="secondary" title={t('tactics.redo')} disabled={!canRedo} onClick={redo}>
+            <Redo2 className="w-5 h-5" />
           </Button>
           <div className="w-px h-8 bg-border shrink-0 mx-0.5" />
           <Button size="icon" className="h-11 w-11 shrink-0" variant="outline" onClick={() => setAddMenuOpen(true)} title={t('tactics.addMenu')}>
@@ -681,7 +683,7 @@ function BoardsTab({
                   variant="secondary" className="h-12 text-xs px-1"
                   onClick={() => {
                     const id = `extra-${Date.now()}`;
-                    setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'us' }] });
+                    commitBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'us' }] });
                     setMode('move');
                     setSelectedMarkerId(id);
                     setAddMenuOpen(false);
@@ -693,7 +695,7 @@ function BoardsTab({
                   variant="secondary" className="h-12 text-xs px-1"
                   onClick={() => {
                     const id = `extra-${Date.now()}`;
-                    setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'them' }] });
+                    commitBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'them' }] });
                     setMode('move');
                     setSelectedMarkerId(id);
                     setAddMenuOpen(false);
@@ -710,7 +712,7 @@ function BoardsTab({
                     // previously no way to bring it back short of
                     // clearing the whole board.
                     const id = `ball-${Date.now()}`;
-                    setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'ball' }] });
+                    commitBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'ball' }] });
                     setMode('move');
                     setSelectedMarkerId(id);
                     setAddMenuOpen(false);
@@ -728,7 +730,7 @@ function BoardsTab({
                       key={eq} variant="outline" className="h-12 text-xs"
                       onClick={() => {
                         const id = `equip-${Date.now()}`;
-                        setBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'equipment', equipment: eq }] });
+                        commitBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'equipment', equipment: eq }] });
                         setMode('move');
                         setSelectedMarkerId(id);
                         setAddMenuOpen(false);
@@ -783,7 +785,7 @@ function BoardsTab({
                 </Button>
                 <Button
                   variant="secondary" className="h-12 text-destructive"
-                  onClick={() => { setBoard(emptyBoard()); setMoreMenuOpen(false); }}
+                  onClick={() => { commitBoard(emptyBoard()); setMoreMenuOpen(false); }}
                 >
                   <Trash2 className="w-4 h-4 me-1" />{t('tactics.clearAll')}
                 </Button>
@@ -794,7 +796,7 @@ function BoardsTab({
                   <Button
                     variant="outline" className="h-11"
                     onClick={() => {
-                      setBoard({
+                      commitBoard({
                         ...board,
                         lines: [
                           ...(board.lines ?? []),
@@ -810,7 +812,7 @@ function BoardsTab({
                   <Button
                     variant="outline" className="h-11"
                     onClick={() => {
-                      setBoard({
+                      commitBoard({
                         ...board,
                         lines: [
                           ...(board.lines ?? []),
@@ -831,7 +833,7 @@ function BoardsTab({
           </SheetContent>
         </Sheet>
 
-        <TacticBoard board={board} setBoard={setBoard} mode={mode} selectedMarkerId={selectedMarkerId} onSelectMarker={setSelectedMarkerId} isFullscreen={isFullscreen} />
+        <TacticBoard board={board} commitBoard={commitBoard} setBoardLive={setBoardLive} beginLiveChange={beginLiveChange} commitLiveChange={commitLiveChange} mode={mode} selectedMarkerId={selectedMarkerId} onSelectMarker={setSelectedMarkerId} isFullscreen={isFullscreen} />
 
         {/* Marker editor — appears once a marker is tapped/dragged in
             move mode. Recoloring here is what makes a training-game
@@ -848,7 +850,7 @@ function BoardsTab({
             <div className="bg-card border rounded-xl p-3 flex flex-wrap items-center gap-3">
               <Input
                 value={marker.label}
-                onChange={(e) => setBoard({
+                onChange={(e) => setBoardLive({
                   ...board,
                   markers: board.markers.map((m) => (m.id === selectedMarkerId ? { ...m, label: e.target.value } : m)),
                 })}
@@ -860,7 +862,7 @@ function BoardsTab({
                   <button
                     key={c}
                     type="button"
-                    onClick={() => setBoard({
+                    onClick={() => commitBoard({
                       ...board,
                       markers: board.markers.map((m) => (m.id === selectedMarkerId ? { ...m, color: c } : m)),
                     })}
@@ -881,7 +883,7 @@ function BoardsTab({
                   const id = `dup-${Date.now()}`;
                   const result = duplicateMarker(board, selectedMarkerId, id);
                   if (result) {
-                    setBoard(result.board);
+                    commitBoard(result.board);
                     setSelectedMarkerId(id);
                   }
                 }}
@@ -891,7 +893,7 @@ function BoardsTab({
               <Button
                 size="sm" variant="ghost" className="text-destructive hover:text-destructive shrink-0"
                 onClick={() => {
-                  setBoard({ ...board, markers: board.markers.filter((m) => m.id !== selectedMarkerId) });
+                  commitBoard({ ...board, markers: board.markers.filter((m) => m.id !== selectedMarkerId) });
                   setSelectedMarkerId(null);
                 }}
               >
@@ -923,7 +925,7 @@ function BoardsTab({
         </div>
 
         <Textarea value={board.notes ?? ''} placeholder={t('tactics.notesPlaceholder')}
-          onChange={(e) => setBoard({ ...board, notes: e.target.value })} rows={3} />
+          onChange={(e) => setBoardLive({ ...board, notes: e.target.value })} rows={3} />
 
         <div className="flex gap-2">
           <Button onClick={doSave} disabled={save.isPending}>
