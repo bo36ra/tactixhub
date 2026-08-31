@@ -547,7 +547,7 @@ function TacticBoard({
         return (
         <g key={m.id} transform={`translate(${m.x}, ${m.y * 1.4})`} style={{ cursor: 'grab' }}>
           {m.id === selectedMarkerId && m.side !== 'ball' && (
-            <circle r="6.2" fill="none" stroke="#4FC3F7" strokeWidth="0.9" strokeDasharray="1.6 1.2" />
+            <circle r="7.5" fill="none" stroke="#4FC3F7" strokeWidth="0.9" strokeDasharray="1.6 1.2" />
           )}
           {m.side === 'ball' ? (
             <circle r="2.2" fill={m.color ?? '#FFFFFF'} stroke="#111" strokeWidth="0.4" />
@@ -557,26 +557,26 @@ function TacticBoard({
             <>
               <defs>
                 <clipPath id={`photoclip-${m.id}`}>
-                  <circle r="4.2" />
+                  <circle r="5.5" />
                 </clipPath>
               </defs>
               <image
-                href={m.photoUrl} x="-4.2" y="-4.2" width="8.4" height="8.4"
+                href={m.photoUrl} x="-5.5" y="-5.5" width="11" height="11"
                 preserveAspectRatio="xMidYMid slice" clipPath={`url(#photoclip-${m.id})`}
               />
-              <circle r="4.2" fill="none" stroke={stroke} strokeWidth="0.5" />
+              <circle r="5.5" fill="none" stroke={stroke} strokeWidth="0.5" />
             </>
           ) : (
             <>
-              <circle r="4.2" fill={fill} stroke={stroke} strokeWidth="0.5" />
-              <text textAnchor="middle" dy="1.6" fontSize="4"
+              <circle r="5.5" fill={fill} stroke={stroke} strokeWidth="0.5" />
+              <text textAnchor="middle" dy="1.9" fontSize="5"
                 fontWeight="700" fill="#1a1a1a">{m.label}</text>
             </>
           )}
-          {m.id === selectedMarkerId && m.birthYear && (m.side === 'us' || m.side === 'them') && (
+          {m.birthYear && (m.side === 'us' || m.side === 'them') && (
             <>
-              <rect x="-4.5" y="5.4" width="9" height="3.6" rx="0.8" fill="#0A0C10" opacity="0.85" />
-              <text textAnchor="middle" y="8" fontSize="2.8" fontWeight="700" fill="#4FC3F7">{m.birthYear}</text>
+              <rect x="-4.5" y="6.6" width="9" height="3.6" rx="0.8" fill="#0A0C10" opacity="0.85" />
+              <text textAnchor="middle" y="9.2" fontSize="2.8" fontWeight="700" fill="#4FC3F7">{m.birthYear}</text>
             </>
           )}
         </g>

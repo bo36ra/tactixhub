@@ -83,7 +83,7 @@ export function hitTestErasable(board: BoardData, p: WorldPoint): ErasableHit | 
   });
 
   let bestMarkerId: string | null = null;
-  let bestMarkerDist = 6;
+  let bestMarkerDist = 8; // scaled up to match the larger marker radius (5.5)
   for (const m of board.markers) {
     const d = distToMarker(p.x, p.y, m);
     if (d < bestMarkerDist) { bestMarkerDist = d; bestMarkerId = m.id; }
@@ -106,7 +106,7 @@ export type MovableGrab =
  * whole shape (not just snap one point to the pointer). */
 export function hitTestMovable(board: BoardData, p: WorldPoint): MovableGrab | null {
   let bestMarkerId: string | null = null;
-  let bestMarkerDist = 8;
+  let bestMarkerDist = 10; // scaled up to match the larger marker radius (5.5)
   for (const m of board.markers) {
     const d = distToMarker(p.x, p.y, m);
     if (d < bestMarkerDist) { bestMarkerDist = d; bestMarkerId = m.id; }
