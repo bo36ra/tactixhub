@@ -573,6 +573,12 @@ function TacticBoard({
                 fontWeight="700" fill="#1a1a1a">{m.label}</text>
             </>
           )}
+          {m.id === selectedMarkerId && m.birthYear && (m.side === 'us' || m.side === 'them') && (
+            <>
+              <rect x="-4.5" y="5.4" width="9" height="3.6" rx="0.8" fill="#0A0C10" opacity="0.85" />
+              <text textAnchor="middle" y="8" fontSize="2.8" fontWeight="700" fill="#4FC3F7">{m.birthYear}</text>
+            </>
+          )}
         </g>
         );
       })}
@@ -1055,7 +1061,7 @@ function BoardsTab({
                           ...board,
                           markers: board.markers.map((m) =>
                             m.id === selectedMarkerId
-                              ? { ...m, label: String(p.jerseyNumber), playerId: p.id, photoUrl: p.photo ?? null }
+                              ? { ...m, label: String(p.jerseyNumber), playerId: p.id, photoUrl: p.photo ?? null, birthYear: p.birthYear ?? null }
                               : m
                           ),
                         });
@@ -1065,7 +1071,7 @@ function BoardsTab({
                           ...board,
                           markers: [...board.markers, {
                             id, x: 50, y: 50, label: String(p.jerseyNumber), side: 'us',
-                            playerId: p.id, photoUrl: p.photo ?? null,
+                            playerId: p.id, photoUrl: p.photo ?? null, birthYear: p.birthYear ?? null,
                           }],
                         });
                         setMode('move');

@@ -23,6 +23,7 @@ export interface BoardMarker {
   // if the photo later changes or the player is removed from the team.
   playerId?: number;
   photoUrl?: string | null;
+  birthYear?: number | null;
 }
 // style: 'solid' (default) is a pass/ball movement, 'dashed' is a
 // player run without the ball — the standard convention in football
