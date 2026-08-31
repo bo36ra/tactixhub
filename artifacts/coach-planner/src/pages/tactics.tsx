@@ -10,8 +10,9 @@ import {
   type BoardFrame, type EquipmentType,
 } from '@/lib/tactics-api';
 import {
-  screenToWorld, hitTestErasable, hitTestMovable, deleteErasable,
+  screenToWorld, hitTestErasable, hitTestMovable, hitTestHandle, deleteErasable,
   moveMarker, translateArrow, translateLine, translateZone,
+  resizeArrowEnd, resizeLineEnd, resizeZoneCorner, type HandleGrab,
   addArrow, addCurvedArrow, addLine, addZone, addPenStroke, duplicateMarker,
   duplicateArrow, duplicateLine, duplicateZone,
 } from '@/lib/tactics-engine';
@@ -189,6 +190,7 @@ function TacticBoard({
   const dragArrow = useRef<{ index: number; dx1: number; dy1: number; dx2: number; dy2: number } | null>(null);
   const dragLine = useRef<{ index: number; dx1: number; dy1: number; dx2: number; dy2: number } | null>(null);
   const dragZone = useRef<{ index: number; dx: number; dy: number } | null>(null);
+  const dragHandle = useRef<HandleGrab | null>(null);
   const arrowStart = useRef<{ x: number; y: number } | null>(null);
   const penPath = useRef<{ x: number; y: number }[] | null>(null);
   const [penPreview, setPenPreview] = useState<{ x: number; y: number }[]>([]);
@@ -266,6 +268,16 @@ function TacticBoard({
       dragArrow.current = null;
       dragLine.current = null;
       dragZone.current = null;
+      dragHandle.current = null;
+      const handle = hitTestHandle(board, selectedShape, p);
+      if (handle) {
+        beginLiveChange();
+        dragHandle.current = handle;
+        dragId.current = null;
+        onSelectMarker(null);
+        (e.target as Element).setPointerCapture?.(e.pointerId);
+        return;
+      }
       const grab = hitTestMovable(board, p);
       if (grab) beginLiveChange();
       if (grab?.kind === 'marker') {
@@ -317,6 +329,12 @@ function TacticBoard({
       const p = toPct(e);
       const { index, ...offset } = dragZone.current;
       setBoardLive(translateZone(board, index, p, offset));
+    } else if (dragHandle.current) {
+      const p = toPct(e);
+      const h = dragHandle.current;
+      if (h.kind === 'arrow-end') setBoardLive(resizeArrowEnd(board, h.index, h.which, p));
+      else if (h.kind === 'line-end') setBoardLive(resizeLineEnd(board, h.index, h.which, p));
+      else setBoardLive(resizeZoneCorner(board, h.index, h.corner, p));
     }
   };
 
@@ -341,7 +359,8 @@ function TacticBoard({
       arrowStart.current = null;
       setPreview(null);
     }
-    if (dragId.current || dragArrow.current || dragLine.current || dragZone.current) commitLiveChange();
+    if (dragId.current || dragArrow.current || dragLine.current || dragZone.current || dragHandle.current) commitLiveChange();
+    dragHandle.current = null;
     dragId.current = null;
     dragArrow.current = null;
     dragLine.current = null;
@@ -461,6 +480,38 @@ function TacticBoard({
           fill="#5B9BD5" fillOpacity="0.2" stroke="#5B9BD5" strokeWidth="0.5" strokeOpacity="0.7"
         />
       )}
+
+      {/* Resize handles — only for whichever shape is currently
+          selected, at the exact points hitTestHandle checks against.
+          Endpoints for an arrow/line, corners for a zone. */}
+      {selectedShape?.kind === 'arrow' && board.arrows[selectedShape.index] && (() => {
+        const a = board.arrows[selectedShape.index];
+        return (
+          <>
+            <circle cx={a.x1} cy={a.y1 * 1.4} r="2.2" fill="#4FC3F7" stroke="#0a3d4d" strokeWidth="0.5" />
+            <circle cx={a.x2} cy={a.y2 * 1.4} r="2.2" fill="#4FC3F7" stroke="#0a3d4d" strokeWidth="0.5" />
+          </>
+        );
+      })()}
+      {selectedShape?.kind === 'line' && (board.lines ?? [])[selectedShape.index] && (() => {
+        const l = (board.lines ?? [])[selectedShape.index];
+        return (
+          <>
+            <circle cx={l.x1} cy={l.y1 * 1.4} r="2.2" fill="#4FC3F7" stroke="#0a3d4d" strokeWidth="0.5" />
+            <circle cx={l.x2} cy={l.y2 * 1.4} r="2.2" fill="#4FC3F7" stroke="#0a3d4d" strokeWidth="0.5" />
+          </>
+        );
+      })()}
+      {selectedShape?.kind === 'zone' && (board.zones ?? [])[selectedShape.index] && (() => {
+        const z = (board.zones ?? [])[selectedShape.index];
+        const corners = [
+          { x: z.x, y: z.y }, { x: z.x + z.width, y: z.y },
+          { x: z.x, y: z.y + z.height }, { x: z.x + z.width, y: z.y + z.height },
+        ];
+        return corners.map((c, ci) => (
+          <circle key={ci} cx={c.x} cy={c.y * 1.4} r="2.2" fill="#4FC3F7" stroke="#0a3d4d" strokeWidth="0.5" />
+        ));
+      })()}
 
       {/* markers */}
       {board.markers.map((m) => {

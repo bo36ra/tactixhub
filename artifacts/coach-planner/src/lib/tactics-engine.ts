@@ -140,6 +140,46 @@ export function hitTestMovable(board: BoardData, p: WorldPoint): MovableGrab | n
   return null;
 }
 
+export type SelectedShape = { kind: 'arrow' | 'line' | 'zone'; index: number };
+export type HandleGrab =
+  | { kind: 'arrow-end'; index: number; which: 'start' | 'end' }
+  | { kind: 'line-end'; index: number; which: 'start' | 'end' }
+  | { kind: 'zone-corner'; index: number; corner: ZoneCorner };
+
+const HANDLE_RADIUS = 5; // world units — generous enough for a fingertip
+
+/** Only checks handles belonging to the currently-selected shape —
+ * handles aren't shown (or grabbable) for anything else, so there's no
+ * ambiguity about which shape's handle a touch near two overlapping
+ * shapes' bodies was meant for. */
+export function hitTestHandle(board: BoardData, selected: SelectedShape | null, p: WorldPoint): HandleGrab | null {
+  if (!selected) return null;
+  if (selected.kind === 'arrow') {
+    const a = board.arrows[selected.index];
+    if (!a) return null;
+    if (Math.hypot(a.x1 - p.x, a.y1 - p.y) < HANDLE_RADIUS) return { kind: 'arrow-end', index: selected.index, which: 'start' };
+    if (Math.hypot(a.x2 - p.x, a.y2 - p.y) < HANDLE_RADIUS) return { kind: 'arrow-end', index: selected.index, which: 'end' };
+  } else if (selected.kind === 'line') {
+    const l = (board.lines ?? [])[selected.index];
+    if (!l) return null;
+    if (Math.hypot(l.x1 - p.x, l.y1 - p.y) < HANDLE_RADIUS) return { kind: 'line-end', index: selected.index, which: 'start' };
+    if (Math.hypot(l.x2 - p.x, l.y2 - p.y) < HANDLE_RADIUS) return { kind: 'line-end', index: selected.index, which: 'end' };
+  } else if (selected.kind === 'zone') {
+    const z = (board.zones ?? [])[selected.index];
+    if (!z) return null;
+    const corners: { corner: ZoneCorner; x: number; y: number }[] = [
+      { corner: 'tl', x: z.x, y: z.y },
+      { corner: 'tr', x: z.x + z.width, y: z.y },
+      { corner: 'bl', x: z.x, y: z.y + z.height },
+      { corner: 'br', x: z.x + z.width, y: z.y + z.height },
+    ];
+    for (const c of corners) {
+      if (Math.hypot(c.x - p.x, c.y - p.y) < HANDLE_RADIUS) return { kind: 'zone-corner', index: selected.index, corner: c.corner };
+    }
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // Mutations — every function here takes a BoardData and returns a new one.
 // None of them mutate their input, and none know anything about React,
@@ -179,6 +219,59 @@ export function translateLine(board: BoardData, index: number, p: WorldPoint, of
 
 export function translateZone(board: BoardData, index: number, p: WorldPoint, offset: { dx: number; dy: number }): BoardData {
   return { ...board, zones: (board.zones ?? []).map((z, i) => (i === index ? { ...z, x: p.x + offset.dx, y: p.y + offset.dy } : z)) };
+}
+
+// Resizing — moving just one endpoint/corner of an already-drawn shape
+// rather than the whole thing, which translateArrow/Line/Zone above
+// already cover. A shape only exposes these handles once selected.
+
+export function resizeArrowEnd(board: BoardData, index: number, which: 'start' | 'end', p: WorldPoint): BoardData {
+  return {
+    ...board,
+    arrows: board.arrows.map((a, i) => {
+      if (i !== index) return a;
+      // Moving an endpoint of a curved arrow keeps the same control
+      // point rather than recomputing the curve — the shape only
+      // stretches/rotates around whichever end didn't move.
+      return which === 'start' ? { ...a, x1: p.x, y1: p.y } : { ...a, x2: p.x, y2: p.y };
+    }),
+  };
+}
+
+export function resizeLineEnd(board: BoardData, index: number, which: 'start' | 'end', p: WorldPoint): BoardData {
+  return {
+    ...board,
+    lines: (board.lines ?? []).map((l, i) => {
+      if (i !== index) return l;
+      return which === 'start' ? { ...l, x1: p.x, y1: p.y } : { ...l, x2: p.x, y2: p.y };
+    }),
+  };
+}
+
+export type ZoneCorner = 'tl' | 'tr' | 'bl' | 'br';
+
+/** Dragging one corner of a zone moves that corner while keeping the
+ * opposite corner fixed — the standard resize-handle behavior — by
+ * recomputing x/y/width/height from whichever two opposite corners
+ * are now in play, same min/max normalization addZone already uses so
+ * dragging a corner past the opposite one flips the rectangle
+ * correctly instead of collapsing to zero width/height. */
+export function resizeZoneCorner(board: BoardData, index: number, corner: ZoneCorner, p: WorldPoint): BoardData {
+  return {
+    ...board,
+    zones: (board.zones ?? []).map((z, i) => {
+      if (i !== index) return z;
+      const fixedX = corner === 'tl' || corner === 'bl' ? z.x + z.width : z.x;
+      const fixedY = corner === 'tl' || corner === 'tr' ? z.y + z.height : z.y;
+      return {
+        ...z,
+        x: Math.min(fixedX, p.x),
+        y: Math.min(fixedY, p.y),
+        width: Math.abs(fixedX - p.x),
+        height: Math.abs(fixedY - p.y),
+      };
+    }),
+  };
 }
 
 export function deleteErasable(board: BoardData, hit: ErasableHit): BoardData {
