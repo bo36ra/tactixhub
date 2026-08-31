@@ -166,13 +166,14 @@ function EquipmentShape({ type, color, label }: { type: EquipmentType; color?: s
 }
 
 function TacticBoard({
-  board, commitBoard, setBoardLive, beginLiveChange, commitLiveChange, mode, selectedMarkerId, onSelectMarker, selectedShape, onSelectShape, isFullscreen,
+  board, commitBoard, setBoardLive, beginLiveChange, commitLiveChange, cancelLiveChange, mode, selectedMarkerId, onSelectMarker, selectedShape, onSelectShape, isFullscreen,
 }: {
   board: BoardData;
   commitBoard: (b: BoardData) => void;
   setBoardLive: (b: BoardData) => void;
   beginLiveChange: () => void;
   commitLiveChange: () => void;
+  cancelLiveChange: () => void;
   mode: 'move' | 'arrow' | 'dashed-arrow' | 'curved-arrow' | 'line' | 'zone' | 'pen' | 'erase';
   selectedMarkerId: string | null;
   onSelectMarker: (id: string | null) => void;
@@ -197,46 +198,23 @@ function TacticBoard({
   const curvedArrowPath = useRef<{ x: number; y: number }[] | null>(null);
   const [curvedArrowPreview, setCurvedArrowPreview] = useState<{ x: number; y: number }[]>([]);
   const [preview, setPreview] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
-  // Pinch-to-zoom + 2-finger pan — the board previously set
-  // touch-action:none to stop single-finger drawing gestures from
-  // triggering the browser's own page scroll/zoom, but that also
-  // blocked pinch-zoom entirely without putting anything in its place,
-  // leaving no way to zoom in for precision at all. Deliberately
-  // two-finger-only: a single finger is already fully committed to
-  // drawing/moving markers, so zoom/pan needs its own, non-conflicting
-  // gesture rather than trying to share one.
+  // Pinch-to-zoom + 2-finger pan — tracked entirely through Pointer
+  // Events (the same system drawing/moving already uses), not raw
+  // Touch Events. Mixing touchstart/touchmove listeners on a wrapper
+  // with pointerdown/pointermove on a nested element is a known iOS
+  // Safari incompatibility — it can suppress pointer event dispatch
+  // for descendants entirely, which is exactly consistent with taps
+  // producing zero response at all on iPhone (not "the wrong thing
+  // happens" — nothing happens). Tracking multiple simultaneous
+  // pointers by id, all through the SVG's own pointer handlers,
+  // avoids that mixing altogether.
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
   const pinchState = useRef<{ startDist: number; startZoom: number; startMid: { x: number; y: number }; startPan: { x: number; y: number } } | null>(null);
 
-  const touchDist = (t1: React.Touch, t2: React.Touch) => Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-  const touchMid = (t1: React.Touch, t2: React.Touch) => ({ x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 });
-
-  const onTouchStartZoom = (e: React.TouchEvent) => {
-    if (e.touches.length !== 2) return;
-    e.preventDefault();
-    pinchState.current = {
-      startDist: touchDist(e.touches[0], e.touches[1]),
-      startZoom: zoom,
-      startMid: touchMid(e.touches[0], e.touches[1]),
-      startPan: pan,
-    };
-  };
-  const onTouchMoveZoom = (e: React.TouchEvent) => {
-    if (e.touches.length !== 2 || !pinchState.current) return;
-    e.preventDefault();
-    const dist = touchDist(e.touches[0], e.touches[1]);
-    const mid = touchMid(e.touches[0], e.touches[1]);
-    const nextZoom = Math.max(1, Math.min(3, pinchState.current.startZoom * (dist / pinchState.current.startDist)));
-    setZoom(nextZoom);
-    setPan({
-      x: pinchState.current.startPan.x + (mid.x - pinchState.current.startMid.x) / nextZoom,
-      y: pinchState.current.startPan.y + (mid.y - pinchState.current.startMid.y) / nextZoom,
-    });
-  };
-  const onTouchEndZoom = (e: React.TouchEvent) => {
-    if (e.touches.length < 2) pinchState.current = null;
-  };
+  const pointerDist = (pts: { x: number; y: number }[]) => Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+  const pointerMid = (pts: { x: number; y: number }[]) => ({ x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 });
 
   const toPct = (e: React.PointerEvent) => {
     const rect = svgRef.current!.getBoundingClientRect();
@@ -244,6 +222,27 @@ function TacticBoard({
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (activePointers.current.size >= 2) {
+      // A second finger just landed — this becomes a pinch/pan
+      // gesture instead of a draw/move/erase action, regardless of
+      // what was in progress with the first finger.
+      const pts = Array.from(activePointers.current.values()).slice(0, 2);
+      pinchState.current = { startDist: pointerDist(pts), startZoom: zoom, startMid: pointerMid(pts), startPan: pan };
+      cancelLiveChange();
+      arrowStart.current = null;
+      penPath.current = null;
+      curvedArrowPath.current = null;
+      dragId.current = null;
+      dragArrow.current = null;
+      dragLine.current = null;
+      dragZone.current = null;
+      dragHandle.current = null;
+      setPreview(null);
+      setPenPreview([]);
+      setCurvedArrowPreview([]);
+      return;
+    }
     const p = toPct(e);
     if (mode === 'erase') {
       const hit = hitTestErasable(board, p);
@@ -297,6 +296,21 @@ function TacticBoard({
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
+    if (activePointers.current.has(e.pointerId)) {
+      activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+    if (pinchState.current && activePointers.current.size >= 2) {
+      const pts = Array.from(activePointers.current.values()).slice(0, 2);
+      const dist = pointerDist(pts);
+      const mid = pointerMid(pts);
+      const nextZoom = Math.max(1, Math.min(3, pinchState.current.startZoom * (dist / pinchState.current.startDist)));
+      setZoom(nextZoom);
+      setPan({
+        x: pinchState.current.startPan.x + (mid.x - pinchState.current.startMid.x) / nextZoom,
+        y: pinchState.current.startPan.y + (mid.y - pinchState.current.startMid.y) / nextZoom,
+      });
+      return;
+    }
     if (mode === 'pen' && penPath.current) {
       const p = toPct(e);
       const last = penPath.current[penPath.current.length - 1];
@@ -339,6 +353,15 @@ function TacticBoard({
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
+    activePointers.current.delete(e.pointerId);
+    if (activePointers.current.size < 2) pinchState.current = null;
+    if (activePointers.current.size >= 1) {
+      // A pinch just ended but one finger is still down — that
+      // remaining finger didn't start a draw/move/erase gesture (the
+      // pinch consumed pointerdown for it), so there's nothing to
+      // commit here. Let it lift on its own pointerup.
+      return;
+    }
     if (mode === 'pen' && penPath.current) {
       commitBoard(addPenStroke(board, penPath.current));
       penPath.current = null;
@@ -370,9 +393,6 @@ function TacticBoard({
   return (
     <div
       className={`relative mx-auto overflow-hidden rounded-xl border border-border ${isFullscreen ? 'w-full h-[calc(100vh-9rem)]' : 'w-full max-w-md'}`}
-      onTouchStart={onTouchStartZoom}
-      onTouchMove={onTouchMoveZoom}
-      onTouchEnd={onTouchEndZoom}
       style={{ touchAction: 'none' }}
     >
       {zoom > 1 && (
@@ -570,7 +590,7 @@ function BoardsTab({
   const del = useDeleteTactic(teamId);
 
   const [editing, setEditing] = useState<{ id?: number; name: string; matchId: number | null } | null>(null);
-  const { board, commitBoard, setBoardLive, beginLiveChange, commitLiveChange, undo, redo, canUndo, canRedo, resetBoard } = useBoardHistory(emptyBoard());
+  const { board, commitBoard, setBoardLive, beginLiveChange, commitLiveChange, cancelLiveChange, undo, redo, canUndo, canRedo, resetBoard } = useBoardHistory(emptyBoard());
   // (setBoard supports functional updates natively; playback relies on it)
   const [mode, setMode] = useState<'move' | 'arrow' | 'dashed-arrow' | 'curved-arrow' | 'line' | 'zone' | 'pen' | 'erase'>('move');
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
@@ -1095,7 +1115,7 @@ function BoardsTab({
           </SheetContent>
         </Sheet>
 
-        <TacticBoard board={board} commitBoard={commitBoard} setBoardLive={setBoardLive} beginLiveChange={beginLiveChange} commitLiveChange={commitLiveChange} mode={mode} selectedMarkerId={selectedMarkerId} onSelectMarker={setSelectedMarkerId} selectedShape={selectedShape} onSelectShape={setSelectedShape} isFullscreen={isFullscreen} />
+        <TacticBoard board={board} commitBoard={commitBoard} setBoardLive={setBoardLive} beginLiveChange={beginLiveChange} commitLiveChange={commitLiveChange} cancelLiveChange={cancelLiveChange} mode={mode} selectedMarkerId={selectedMarkerId} onSelectMarker={setSelectedMarkerId} selectedShape={selectedShape} onSelectShape={setSelectedShape} isFullscreen={isFullscreen} />
 
         {/* Marker editor — appears once a marker is tapped/dragged in
             move mode. Recoloring here is what makes a training-game

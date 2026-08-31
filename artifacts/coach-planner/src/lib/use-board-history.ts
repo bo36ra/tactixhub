@@ -93,6 +93,17 @@ export function useBoardHistory(initial: BoardData) {
     dispatch({ type: 'commitLive', snapshot });
   }, []);
 
+  // For abandoning an in-progress live change without recording it —
+  // e.g. a second finger lands mid-drag and the gesture becomes a
+  // pinch instead. Without this, the pending pre-drag snapshot from
+  // beginLiveChange() would sit unused until the *next* drag's
+  // beginLiveChange() call, which only sets the snapshot when none is
+  // already pending — silently corrupting that next undo entry to
+  // point at the wrong (earlier, abandoned) state.
+  const cancelLiveChange = useCallback(() => {
+    liveStartSnapshot.current = null;
+  }, []);
+
   const undo = useCallback(() => dispatch({ type: 'undo' }), []);
   const redo = useCallback(() => dispatch({ type: 'redo' }), []);
 
@@ -105,7 +116,7 @@ export function useBoardHistory(initial: BoardData) {
   }, []);
 
   return {
-    board: state.board, commitBoard, setBoardLive, beginLiveChange, commitLiveChange,
+    board: state.board, commitBoard, setBoardLive, beginLiveChange, commitLiveChange, cancelLiveChange,
     undo, redo, canUndo: state.past.length > 0, canRedo: state.future.length > 0, resetBoard,
   };
 }
