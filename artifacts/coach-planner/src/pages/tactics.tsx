@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
-import { useListMatches, getListMatchesQueryKey } from '@workspace/api-client-react';
+import { useListMatches, getListMatchesQueryKey, useListPlayers } from '@workspace/api-client-react';
 import {
   useTactics, useSaveTactic, useDeleteTactic,
   useOpponentNotes, useSaveOpponentNote, useDeleteOpponentNote,
@@ -475,6 +475,19 @@ function TacticBoard({
             <circle r="2.2" fill={m.color ?? '#FFFFFF'} stroke="#111" strokeWidth="0.4" />
           ) : m.side === 'equipment' ? (
             <EquipmentShape type={m.equipment ?? 'cone'} color={m.color} label={m.label} />
+          ) : m.photoUrl ? (
+            <>
+              <defs>
+                <clipPath id={`photoclip-${m.id}`}>
+                  <circle r="4.2" />
+                </clipPath>
+              </defs>
+              <image
+                href={m.photoUrl} x="-4.2" y="-4.2" width="8.4" height="8.4"
+                preserveAspectRatio="xMidYMid slice" clipPath={`url(#photoclip-${m.id})`}
+              />
+              <circle r="4.2" fill="none" stroke={stroke} strokeWidth="0.5" />
+            </>
           ) : (
             <>
               <circle r="4.2" fill={fill} stroke={stroke} strokeWidth="0.5" />
@@ -501,6 +514,7 @@ function BoardsTab({
   const { t } = useLanguage();
   const { data: tactics, isLoading } = useTactics(teamId);
   const { data: matches } = useListMatches(teamId, { query: { enabled: kind === 'match_plan', queryKey: getListMatchesQueryKey(teamId) } });
+  const { data: rosterPlayers } = useListPlayers(teamId);
   const save = useSaveTactic(teamId);
   const del = useDeleteTactic(teamId);
 
@@ -560,6 +574,7 @@ function BoardsTab({
   const boardContainerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [pickPlayerOpen, setPickPlayerOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
   // Presenting the board to the squad on a tablet/TV works much better
@@ -804,13 +819,7 @@ function BoardsTab({
               <div className="grid grid-cols-3 gap-2">
                 <Button
                   variant="secondary" className="h-12 text-xs px-1"
-                  onClick={() => {
-                    const id = `extra-${Date.now()}`;
-                    commitBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'us' }] });
-                    setMode('move');
-                    setSelectedMarkerId(id);
-                    setAddMenuOpen(false);
-                  }}
+                  onClick={() => { setAddMenuOpen(false); setPickPlayerOpen(true); }}
                 >
                   <Plus className="w-4 h-4 me-1" />{t('tactics.addPlayer')}
                 </Button>
@@ -904,6 +913,68 @@ function BoardsTab({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        {/* Roster player picker — opened by the + menu's Add Player
+            button instead of immediately dropping a blank, unnamed
+            marker. Picking a player snapshots their photo (if any) and
+            jersey number onto the marker at this moment, rather than
+            keeping a live reference — the board keeps rendering
+            correctly even if that photo later changes. */}
+        <Sheet open={pickPlayerOpen} onOpenChange={setPickPlayerOpen}>
+          <SheetContent side="bottom" className="max-h-[70vh] overflow-y-auto">
+            <SheetHeader><SheetTitle>{t('tactics.pickPlayer')}</SheetTitle></SheetHeader>
+            <div className="space-y-2 py-2">
+              <Button
+                variant="outline" className="w-full justify-start h-11"
+                onClick={() => {
+                  const id = `extra-${Date.now()}`;
+                  commitBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'us' }] });
+                  setMode('move');
+                  setSelectedMarkerId(id);
+                  setPickPlayerOpen(false);
+                }}
+              >
+                <Plus className="w-4 h-4 me-1.5" />{t('tactics.addBlankPlayer')}
+              </Button>
+              {(rosterPlayers ?? []).length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-6">{t('tactics.noRosterPlayers')}</p>
+              ) : (
+                (rosterPlayers ?? []).map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 text-start"
+                    onClick={() => {
+                      const id = `extra-${Date.now()}`;
+                      commitBoard({
+                        ...board,
+                        markers: [...board.markers, {
+                          id, x: 50, y: 50, label: String(p.jerseyNumber), side: 'us',
+                          playerId: p.id, photoUrl: p.photo ?? null,
+                        }],
+                      });
+                      setMode('move');
+                      setSelectedMarkerId(id);
+                      setPickPlayerOpen(false);
+                    }}
+                  >
+                    {p.photo ? (
+                      <img src={p.photo} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                        {p.jerseyNumber}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{p.name}</p>
+                      <p className="text-xs text-muted-foreground">#{p.jerseyNumber} · {t(`position.${p.position}`)}</p>
+                    </div>
+                  </button>
+                ))
+              )}
             </div>
           </SheetContent>
         </Sheet>

@@ -16,6 +16,13 @@ export interface BoardMarker {
   // (e.g. splitting the squad into 3 teams) without needing a rigid
   // third "side" value; any marker can be recolored individually.
   color?: string;
+  // Set when this marker was added by picking a real player from the
+  // roster, rather than a plain unnamed spot. photoUrl is a snapshot
+  // taken at the moment the player was added — the board doesn't
+  // re-fetch player data to render, so it keeps working correctly even
+  // if the photo later changes or the player is removed from the team.
+  playerId?: number;
+  photoUrl?: string | null;
 }
 // style: 'solid' (default) is a pass/ball movement, 'dashed' is a
 // player run without the ball — the standard convention in football
