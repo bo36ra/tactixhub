@@ -445,6 +445,37 @@ function BoardsTab({
   // (setBoard supports functional updates natively; playback relies on it)
   const [mode, setMode] = useState<'move' | 'arrow' | 'dashed-arrow' | 'line' | 'zone' | 'pen' | 'erase'>('move');
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
+  // Keyboard shortcuts — Delete removes the selected marker,
+  // Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y redoes. Skips
+  // entirely while a text field has focus (the label input, notes
+  // textarea, tactic-name field, ...) so it never fights the browser's
+  // own native undo/typing behavior there — this is specifically for
+  // shortcuts aimed at the board itself.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isTextInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+      if (isTextInput) return;
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (ctrl && e.key.toLowerCase() === 'z' && e.shiftKey) {
+        e.preventDefault();
+        redo();
+      } else if (ctrl && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        undo();
+      } else if (ctrl && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        redo();
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedMarkerId) {
+        e.preventDefault();
+        commitBoard({ ...board, markers: board.markers.filter((m) => m.id !== selectedMarkerId) });
+        setSelectedMarkerId(null);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [undo, redo, selectedMarkerId, board, commitBoard]);
+
   const boardContainerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
