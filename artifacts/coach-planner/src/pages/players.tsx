@@ -132,7 +132,12 @@ export function Players() {
       <div className="space-y-6">
         <StickyHeader>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <PageTitle>{t('nav.players')}</PageTitle>
+          <div className="flex items-center gap-2.5">
+            <PageTitle>{t('nav.players')}</PageTitle>
+            <span className="text-xs font-semibold bg-primary/15 text-primary px-2.5 py-1 rounded-full">
+              {t('player.totalCount').replace('{n}', String(players?.length ?? 0))}
+            </span>
+          </div>
           
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
