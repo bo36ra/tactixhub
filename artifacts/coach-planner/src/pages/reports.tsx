@@ -645,7 +645,7 @@ export function Reports() {
                   <table className="w-full text-xs sm:text-sm">
                     <thead>
                       <tr className="bg-muted text-muted-foreground">
-                        <th className="px-3 py-2 text-start sticky start-0 bg-muted z-10 min-w-32 transform-gpu">
+                        <th className="px-3 py-2 text-start sticky start-0 bg-muted z-10 min-w-32 transform-gpu touch-pan-y">
                           {t('common.name')}
                         </th>
                         {rangeDates.map((dateStr) => {
@@ -667,7 +667,7 @@ export function Reports() {
                         .filter((p) => gridPlayer === 'all' || String(p.id) === gridPlayer)
                         .map((player) => (
                           <tr key={player.id}>
-                            <td className="px-3 py-1.5 sticky start-0 bg-card z-10 font-medium truncate max-w-[9rem] transform-gpu">
+                            <td className="px-3 py-1.5 sticky start-0 bg-card z-10 font-medium truncate max-w-[9rem] transform-gpu touch-pan-y">
                               {playerName(player, lang)}
                             </td>
                             {rangeDates.map((dateStr) => {
@@ -760,7 +760,7 @@ export function Reports() {
                     <table className="text-xs border-collapse min-w-full">
                       <thead>
                         <tr className="bg-muted text-muted-foreground">
-                          <th className="px-3 py-2 text-start sticky start-0 bg-muted z-10 min-w-32 transform-gpu">
+                          <th className="px-3 py-2 text-start sticky start-0 bg-muted z-10 min-w-32 transform-gpu touch-pan-y">
                             {t('common.name')}
                           </th>
                           {monthGrid.activeDays.map(day => {
@@ -780,7 +780,7 @@ export function Reports() {
                       <tbody className="divide-y divide-border/50">
                         {players?.map(player => (
                           <tr key={player.id} className="hover:bg-muted/40">
-                            <td className="px-3 py-1.5 font-medium sticky start-0 bg-card z-10 whitespace-nowrap transform-gpu">
+                            <td className="px-3 py-1.5 font-medium sticky start-0 bg-card z-10 whitespace-nowrap transform-gpu touch-pan-y">
                               <span className="text-muted-foreground font-mono me-1.5">{player.jerseyNumber}</span>
                               {playerName(player, lang)}
                             </td>
