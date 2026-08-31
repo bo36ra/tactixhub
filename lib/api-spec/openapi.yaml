@@ -1353,7 +1353,7 @@ components:
           type: integer
         position:
           type: string
-          enum: [goalkeeper, defender, midfielder, forward]
+          enum: [goalkeeper, center_back, full_back, wing_back, defender, defensive_midfielder, attacking_midfielder, midfielder, winger, second_striker, forward]
         age:
           type: ["integer", "null"]
         nationality:
@@ -1383,7 +1383,7 @@ components:
           type: integer
         position:
           type: string
-          enum: [goalkeeper, defender, midfielder, forward]
+          enum: [goalkeeper, center_back, full_back, wing_back, defender, defensive_midfielder, attacking_midfielder, midfielder, winger, second_striker, forward]
         age:
           type: integer
         nationality:
@@ -1409,7 +1409,7 @@ components:
           type: integer
         position:
           type: string
-          enum: [goalkeeper, defender, midfielder, forward]
+          enum: [goalkeeper, center_back, full_back, wing_back, defender, defensive_midfielder, attacking_midfielder, midfielder, winger, second_striker, forward]
         age:
           type: integer
         nationality:

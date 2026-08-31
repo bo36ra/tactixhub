@@ -11,7 +11,14 @@ export type PlayerPosition = typeof PlayerPosition[keyof typeof PlayerPosition];
 
 export const PlayerPosition = {
   goalkeeper: 'goalkeeper',
+  center_back: 'center_back',
+  full_back: 'full_back',
+  wing_back: 'wing_back',
   defender: 'defender',
+  defensive_midfielder: 'defensive_midfielder',
+  attacking_midfielder: 'attacking_midfielder',
   midfielder: 'midfielder',
+  winger: 'winger',
+  second_striker: 'second_striker',
   forward: 'forward',
 } as const;

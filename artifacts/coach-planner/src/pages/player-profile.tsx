@@ -2,7 +2,7 @@ import React from 'react';
 import { useRoute, Link, Redirect } from 'wouter';
 import { AppLayout } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
-import { useGetPlayerTimeline, getGetPlayerTimelineQueryKey, useUpdatePlayer, useListPlayers, getListPlayersQueryKey, type PlayerUpdatePosition, type PlayerUpdateStatus } from '@workspace/api-client-react';
+import { useGetPlayerTimeline, getGetPlayerTimelineQueryKey, useUpdatePlayer, useListPlayers, getListPlayersQueryKey, PlayerUpdatePosition, type PlayerUpdateStatus } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTeam } from '@/lib/team-context';
 import { compressImageFile } from '@/lib/image';
@@ -370,7 +370,7 @@ export function PlayerProfile() {
                 <Select value={editForm.position} onValueChange={(v) => setEditForm({ ...editForm, position: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {(['goalkeeper', 'defender', 'midfielder', 'forward'] as const).map((k) => (
+                    {Object.values(PlayerUpdatePosition).map((k) => (
                       <SelectItem key={k} value={k}>{t(`position.${k}`)}</SelectItem>
                     ))}
                   </SelectContent>
