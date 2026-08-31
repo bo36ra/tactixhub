@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
 import { useListMatches, getListMatchesQueryKey, useListPlayers } from '@workspace/api-client-react';
@@ -674,6 +675,7 @@ function BoardsTab({
   // change) a roster player's photo on a marker they already placed,
   // not just at the moment of creation.
   const [pickPlayerMode, setPickPlayerMode] = useState<'add' | 'assign'>('add');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
   // Presenting the board to the squad on a tablet/TV works much better
@@ -864,7 +866,24 @@ function BoardsTab({
               </SelectContent>
             </Select>
           )}
+          {editing.id !== undefined && (
+            <Button size="icon" variant="ghost" className="shrink-0 ms-auto text-destructive hover:text-destructive" onClick={() => setDeleteConfirmOpen(true)} title={t('common.delete')}>
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
         </div>
+
+        <ConfirmDialog
+          open={deleteConfirmOpen}
+          title={t('tactics.deleteConfirm')}
+          onConfirm={() => {
+            if (editing?.id !== undefined) {
+              del.mutate(editing.id, { onSuccess: () => setEditing(null) });
+            }
+            setDeleteConfirmOpen(false);
+          }}
+          onOpenChange={setDeleteConfirmOpen}
+        />
 
         {/* Drawing tools — a single scrollable row instead of the three
             stacked groups this used to be. Bigger, consistent icon
