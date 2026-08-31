@@ -166,7 +166,7 @@ function EquipmentShape({ type, color, label }: { type: EquipmentType; color?: s
 }
 
 function TacticBoard({
-  board, commitBoard, setBoardLive, beginLiveChange, commitLiveChange, cancelLiveChange, mode, selectedMarkerId, onSelectMarker, selectedShape, onSelectShape, isFullscreen,
+  board, commitBoard, setBoardLive, beginLiveChange, commitLiveChange, cancelLiveChange, mode, selectedMarkerId, onSelectMarker, selectedShape, onSelectShape, isFullscreen, rosterById,
 }: {
   board: BoardData;
   commitBoard: (b: BoardData) => void;
@@ -180,6 +180,7 @@ function TacticBoard({
   selectedShape: { kind: 'arrow' | 'line' | 'zone'; index: number } | null;
   onSelectShape: (shape: { kind: 'arrow' | 'line' | 'zone'; index: number } | null) => void;
   isFullscreen?: boolean;
+  rosterById: Map<number, { photo?: string | null; birthYear?: number | null }>;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragId = useRef<string | null>(null);
@@ -544,6 +545,9 @@ function TacticBoard({
       {board.markers.map((m) => {
         const fill = m.color ?? (m.side === 'us' ? '#FFD84D' : '#F4F1EC');
         const stroke = m.color ? '#1a1a1a' : (m.side === 'us' ? '#7a6410' : '#333');
+        const rosterEntry = m.playerId != null ? rosterById.get(m.playerId) : undefined;
+        const resolvedPhoto = rosterEntry ? rosterEntry.photo : m.photoUrl;
+        const resolvedBirthYear = rosterEntry ? rosterEntry.birthYear : m.birthYear;
         return (
         <g key={m.id} transform={`translate(${m.x}, ${m.y * 1.4})`} style={{ cursor: 'grab' }}>
           {m.id === selectedMarkerId && m.side !== 'ball' && (
@@ -553,7 +557,7 @@ function TacticBoard({
             <circle r="2.2" fill={m.color ?? '#FFFFFF'} stroke="#111" strokeWidth="0.4" />
           ) : m.side === 'equipment' ? (
             <EquipmentShape type={m.equipment ?? 'cone'} color={m.color} label={m.label} />
-          ) : m.photoUrl ? (
+          ) : resolvedPhoto ? (
             <>
               <defs>
                 <clipPath id={`photoclip-${m.id}`}>
@@ -561,7 +565,7 @@ function TacticBoard({
                 </clipPath>
               </defs>
               <image
-                href={m.photoUrl} x="-5.5" y="-5.5" width="11" height="11"
+                href={resolvedPhoto} x="-5.5" y="-5.5" width="11" height="11"
                 preserveAspectRatio="xMidYMid slice" clipPath={`url(#photoclip-${m.id})`}
               />
               <circle r="5.5" fill="none" stroke={stroke} strokeWidth="0.5" />
@@ -573,10 +577,10 @@ function TacticBoard({
                 fontWeight="700" fill="#1a1a1a">{m.label}</text>
             </>
           )}
-          {m.birthYear && (m.side === 'us' || m.side === 'them') && (
+          {resolvedBirthYear && (m.side === 'us' || m.side === 'them') && (
             <>
               <rect x="-4.5" y="6.6" width="9" height="3.6" rx="0.8" fill="#0A0C10" opacity="0.85" />
-              <text textAnchor="middle" y="9.2" fontSize="2.8" fontWeight="700" fill="#4FC3F7">{m.birthYear}</text>
+              <text textAnchor="middle" y="9.2" fontSize="2.8" fontWeight="700" fill="#4FC3F7">{resolvedBirthYear}</text>
             </>
           )}
         </g>
@@ -599,6 +603,10 @@ function BoardsTab({
   const { data: tactics, isLoading } = useTactics(teamId);
   const { data: matches } = useListMatches(teamId, { query: { enabled: kind === 'match_plan', queryKey: getListMatchesQueryKey(teamId) } });
   const { data: rosterPlayers } = useListPlayers(teamId);
+  const rosterById = React.useMemo(
+    () => new Map((rosterPlayers ?? []).map((p) => [p.id, { photo: p.photo, birthYear: p.birthYear }])),
+    [rosterPlayers],
+  );
   const save = useSaveTactic(teamId);
   const del = useDeleteTactic(teamId);
 
@@ -821,7 +829,6 @@ function BoardsTab({
       { id: editing.id, name: editing.name.trim(), kind, matchId: editing.matchId, data: board },
       {
         onSuccess: () => { toast({ title: t('tactics.saved') }); setEditing(null); },
-        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
       },
     );
   };
@@ -1075,7 +1082,7 @@ function BoardsTab({
                           ...board,
                           markers: board.markers.map((m) =>
                             m.id === selectedMarkerId
-                              ? { ...m, label: String(p.jerseyNumber), playerId: p.id, photoUrl: p.photo ?? null, birthYear: p.birthYear ?? null }
+                              ? { ...m, label: String(p.jerseyNumber), playerId: p.id, photoUrl: null, birthYear: null }
                               : m
                           ),
                         });
@@ -1085,7 +1092,7 @@ function BoardsTab({
                           ...board,
                           markers: [...board.markers, {
                             id, x: 50, y: 50, label: String(p.jerseyNumber), side: 'us',
-                            playerId: p.id, photoUrl: p.photo ?? null, birthYear: p.birthYear ?? null,
+                            playerId: p.id, photoUrl: null, birthYear: null,
                           }],
                         });
                         setMode('move');
@@ -1179,7 +1186,7 @@ function BoardsTab({
           </SheetContent>
         </Sheet>
 
-        <TacticBoard board={board} commitBoard={commitBoard} setBoardLive={setBoardLive} beginLiveChange={beginLiveChange} commitLiveChange={commitLiveChange} cancelLiveChange={cancelLiveChange} mode={mode} selectedMarkerId={selectedMarkerId} onSelectMarker={setSelectedMarkerId} selectedShape={selectedShape} onSelectShape={setSelectedShape} isFullscreen={isFullscreen} />
+        <TacticBoard board={board} commitBoard={commitBoard} setBoardLive={setBoardLive} beginLiveChange={beginLiveChange} commitLiveChange={commitLiveChange} cancelLiveChange={cancelLiveChange} mode={mode} selectedMarkerId={selectedMarkerId} onSelectMarker={setSelectedMarkerId} selectedShape={selectedShape} onSelectShape={setSelectedShape} isFullscreen={isFullscreen} rosterById={rosterById} />
 
         {/* Marker editor — appears once a marker is tapped/dragged in
             move mode. Recoloring here is what makes a training-game
@@ -1373,7 +1380,7 @@ function BoardsTab({
                   ? ` · ${(matches ?? []).find((m) => m.id === tc.matchId)?.opponent}` : ''}
               </div>
             </button>
-            <Button size="icon" variant="ghost" onClick={() => del.mutate(tc.id, { onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }) })}>
+            <Button size="icon" variant="ghost" onClick={() => del.mutate(tc.id)}>
               <Trash2 className="w-4 h-4 text-destructive" />
             </Button>
           </div>
@@ -1399,7 +1406,6 @@ function OpponentsTab({ teamId }: { teamId: number }) {
     }
     save.mutate(form, {
       onSuccess: () => { toast({ title: t('tactics.saved') }); setForm(null); },
-      onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
     });
   };
 
@@ -1441,7 +1447,7 @@ function OpponentsTab({ teamId }: { teamId: number }) {
                 setForm({ id: n.id, opponent: n.opponent, strengths: n.strengths ?? '', weaknesses: n.weaknesses ?? '', plan: n.plan ?? '' })}>
                 {n.opponent}
               </button>
-              <Button size="icon" variant="ghost" onClick={() => del.mutate(n.id, { onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }) })}>
+              <Button size="icon" variant="ghost" onClick={() => del.mutate(n.id)}>
                 <Trash2 className="w-4 h-4 text-destructive" />
               </Button>
             </div>
