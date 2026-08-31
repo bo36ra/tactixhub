@@ -27,7 +27,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { PITCH_GRADIENT } from '@/lib/chart-theme';
-import { Trash2, Undo2, Redo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus, Maximize, Minimize, Move as MoveIcon, ArrowUpRight, Footprints, BoxSelect, MoreHorizontal, Copy, Spline, Image as ImageIcon } from 'lucide-react';
+import { Trash2, Undo2, Redo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus, Maximize, Minimize, Move as MoveIcon, ArrowUpRight, ArrowLeft, Footprints, BoxSelect, MoreHorizontal, Copy, Spline, Image as ImageIcon } from 'lucide-react';
 import { AnalysisBoard } from '@/components/analysis-board';
 
 // ---------------------------------------------------------------- board
@@ -599,7 +599,7 @@ function BoardsTab({
 }: {
   teamId: number; kind: TacticKind; openId?: number | null; onOpened?: () => void;
 }) {
-  const { t } = useLanguage();
+  const { t, isRtl } = useLanguage();
   const { data: tactics, isLoading } = useTactics(teamId);
   const { data: matches } = useListMatches(teamId, { query: { enabled: kind === 'match_plan', queryKey: getListMatchesQueryKey(teamId) } });
   const { data: rosterPlayers } = useListPlayers(teamId);
@@ -828,7 +828,17 @@ function BoardsTab({
     save.mutate(
       { id: editing.id, name: editing.name.trim(), kind, matchId: editing.matchId, data: board },
       {
-        onSuccess: () => { toast({ title: t('tactics.saved') }); setEditing(null); },
+        // Staying in the editor rather than kicking back to the list —
+        // saving repeatedly while refining a tactic shouldn't mean
+        // re-navigating to find and reopen it each time. Capturing the
+        // response's id (present after a first-time create) means the
+        // *next* save correctly PATCHes this same tactic instead of
+        // creating a duplicate, since editing.id was previously
+        // undefined for a brand new one.
+        onSuccess: (saved) => {
+          toast({ title: t('tactics.saved') });
+          setEditing((prev) => (prev ? { ...prev, id: saved.id } : prev));
+        },
       },
     );
   };
@@ -837,6 +847,9 @@ function BoardsTab({
     return (
       <div ref={boardContainerRef} className={isFullscreen ? 'space-y-3 bg-background p-4 overflow-y-auto h-full' : 'space-y-3'}>
         <div className="flex flex-wrap gap-2 items-center">
+          <Button size="icon" variant="ghost" className="shrink-0" onClick={() => setEditing(null)} title={t('common.back')}>
+            <ArrowLeft className={`w-4 h-4 ${isRtl ? 'rotate-180' : ''}`} />
+          </Button>
           <Input value={editing.name} placeholder={t('tactics.namePlaceholder')}
             onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="max-w-56" />
           {kind === 'match_plan' && (
