@@ -170,7 +170,7 @@ export function useTactics(teamId: number, enabled = true) {
   return useQuery({
     queryKey: tacticsKey(teamId),
     enabled,
-    queryFn: () => customFetch<Tactic[]>(`/teams/${teamId}/tactics`),
+    queryFn: () => customFetch<Tactic[]>(`/api/teams/${teamId}/tactics`),
   });
 }
 
@@ -179,12 +179,12 @@ export function useSaveTactic(teamId: number) {
   return useMutation({
     mutationFn: (input: { id?: number; name: string; kind: TacticKind; matchId?: number | null; data: BoardData }) =>
       input.id
-        ? customFetch<Tactic>(`/teams/${teamId}/tactics/${input.id}`, {
+        ? customFetch<Tactic>(`/api/teams/${teamId}/tactics/${input.id}`, {
             method: 'PATCH',
             body: JSON.stringify({ name: input.name, kind: input.kind, matchId: input.matchId ?? null, data: JSON.stringify(input.data) }),
             headers: { 'Content-Type': 'application/json' },
           })
-        : customFetch<Tactic>(`/teams/${teamId}/tactics`, {
+        : customFetch<Tactic>(`/api/teams/${teamId}/tactics`, {
             method: 'POST',
             body: JSON.stringify({ name: input.name, kind: input.kind, matchId: input.matchId ?? null, data: JSON.stringify(input.data) }),
             headers: { 'Content-Type': 'application/json' },
@@ -196,7 +196,7 @@ export function useSaveTactic(teamId: number) {
 export function useDeleteTactic(teamId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => customFetch<void>(`/teams/${teamId}/tactics/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: number) => customFetch<void>(`/api/teams/${teamId}/tactics/${id}`, { method: 'DELETE' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: tacticsKey(teamId) }),
   });
 }
@@ -205,7 +205,7 @@ export function useOpponentNotes(teamId: number, enabled = true) {
   return useQuery({
     queryKey: notesKey(teamId),
     enabled,
-    queryFn: () => customFetch<OpponentNote[]>(`/teams/${teamId}/opponent-notes`),
+    queryFn: () => customFetch<OpponentNote[]>(`/api/teams/${teamId}/opponent-notes`),
   });
 }
 
@@ -214,12 +214,12 @@ export function useSaveOpponentNote(teamId: number) {
   return useMutation({
     mutationFn: (input: { id?: number; opponent: string; strengths?: string; weaknesses?: string; plan?: string }) =>
       input.id
-        ? customFetch<OpponentNote>(`/teams/${teamId}/opponent-notes/${input.id}`, {
+        ? customFetch<OpponentNote>(`/api/teams/${teamId}/opponent-notes/${input.id}`, {
             method: 'PATCH',
             body: JSON.stringify(input),
             headers: { 'Content-Type': 'application/json' },
           })
-        : customFetch<OpponentNote>(`/teams/${teamId}/opponent-notes`, {
+        : customFetch<OpponentNote>(`/api/teams/${teamId}/opponent-notes`, {
             method: 'POST',
             body: JSON.stringify(input),
             headers: { 'Content-Type': 'application/json' },
@@ -231,7 +231,7 @@ export function useSaveOpponentNote(teamId: number) {
 export function useDeleteOpponentNote(teamId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => customFetch<void>(`/teams/${teamId}/opponent-notes/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: number) => customFetch<void>(`/api/teams/${teamId}/opponent-notes/${id}`, { method: 'DELETE' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: notesKey(teamId) }),
   });
 }
