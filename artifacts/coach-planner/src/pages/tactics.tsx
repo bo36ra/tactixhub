@@ -27,7 +27,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { PITCH_GRADIENT } from '@/lib/chart-theme';
-import { Trash2, Undo2, Redo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus, Maximize, Minimize, Move as MoveIcon, ArrowUpRight, Footprints, BoxSelect, MoreHorizontal, Copy, Spline } from 'lucide-react';
+import { Trash2, Undo2, Redo2, Eraser, Save, Plus, ClipboardList, Play, Camera, Pencil, Minus, Maximize, Minimize, Move as MoveIcon, ArrowUpRight, Footprints, BoxSelect, MoreHorizontal, Copy, Spline, Image as ImageIcon } from 'lucide-react';
 import { AnalysisBoard } from '@/components/analysis-board';
 
 // ---------------------------------------------------------------- board
@@ -646,6 +646,13 @@ function BoardsTab({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [pickPlayerOpen, setPickPlayerOpen] = useState(false);
+  const [pickPlayerSearch, setPickPlayerSearch] = useState('');
+  // 'add' creates a brand new marker (the + menu's Add Player flow);
+  // 'assign' instead updates whichever marker is already selected —
+  // opened from the marker editor panel so a coach can attach (or
+  // change) a roster player's photo on a marker they already placed,
+  // not just at the moment of creation.
+  const [pickPlayerMode, setPickPlayerMode] = useState<'add' | 'assign'>('add');
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
   // Presenting the board to the squad on a tablet/TV works much better
@@ -890,7 +897,7 @@ function BoardsTab({
               <div className="grid grid-cols-3 gap-2">
                 <Button
                   variant="secondary" className="h-12 text-xs px-1"
-                  onClick={() => { setAddMenuOpen(false); setPickPlayerOpen(true); }}
+                  onClick={() => { setAddMenuOpen(false); setPickPlayerMode('add'); setPickPlayerOpen(true); }}
                 >
                   <Plus className="w-4 h-4 me-1" />{t('tactics.addPlayer')}
                 </Button>
@@ -988,47 +995,75 @@ function BoardsTab({
           </SheetContent>
         </Sheet>
 
-        {/* Roster player picker — opened by the + menu's Add Player
-            button instead of immediately dropping a blank, unnamed
-            marker. Picking a player snapshots their photo (if any) and
-            jersey number onto the marker at this moment, rather than
-            keeping a live reference — the board keeps rendering
-            correctly even if that photo later changes. */}
-        <Sheet open={pickPlayerOpen} onOpenChange={setPickPlayerOpen}>
+        {/* Roster player picker — opened either from the + menu (adds a
+            new marker) or from the marker editor panel (assigns a
+            photo to the marker already selected). Picking a player
+            snapshots their photo (if any) and jersey number at this
+            moment, rather than keeping a live reference — the board
+            keeps rendering correctly even if that photo later changes. */}
+        <Sheet open={pickPlayerOpen} onOpenChange={(o) => { setPickPlayerOpen(o); if (!o) setPickPlayerSearch(''); }}>
           <SheetContent side="bottom" className="max-h-[70vh] overflow-y-auto">
             <SheetHeader><SheetTitle>{t('tactics.pickPlayer')}</SheetTitle></SheetHeader>
             <div className="space-y-2 py-2">
-              <Button
-                variant="outline" className="w-full justify-start h-11"
-                onClick={() => {
-                  const id = `extra-${Date.now()}`;
-                  commitBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'us' }] });
-                  setMode('move');
-                  setSelectedMarkerId(id);
-                  setPickPlayerOpen(false);
-                }}
-              >
-                <Plus className="w-4 h-4 me-1.5" />{t('tactics.addBlankPlayer')}
-              </Button>
-              {(rosterPlayers ?? []).length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-6">{t('tactics.noRosterPlayers')}</p>
-              ) : (
-                (rosterPlayers ?? []).map((p) => (
+              <Input
+                autoFocus
+                placeholder={t('tactics.searchPlayerPlaceholder')}
+                value={pickPlayerSearch}
+                onChange={(e) => setPickPlayerSearch(e.target.value)}
+                className="h-11"
+              />
+              {pickPlayerMode === 'add' && (
+                <Button
+                  variant="outline" className="w-full justify-start h-11"
+                  onClick={() => {
+                    const id = `extra-${Date.now()}`;
+                    commitBoard({ ...board, markers: [...board.markers, { id, x: 50, y: 50, label: '', side: 'us' }] });
+                    setMode('move');
+                    setSelectedMarkerId(id);
+                    setPickPlayerOpen(false);
+                  }}
+                >
+                  <Plus className="w-4 h-4 me-1.5" />{t('tactics.addBlankPlayer')}
+                </Button>
+              )}
+              {(() => {
+                const q = pickPlayerSearch.trim().toLowerCase();
+                const filtered = (rosterPlayers ?? []).filter((p) =>
+                  !q || p.name.toLowerCase().includes(q) || String(p.jerseyNumber).includes(q)
+                );
+                if ((rosterPlayers ?? []).length === 0) {
+                  return <p className="text-xs text-muted-foreground text-center py-6">{t('tactics.noRosterPlayers')}</p>;
+                }
+                if (filtered.length === 0) {
+                  return <p className="text-xs text-muted-foreground text-center py-6">{t('common.noResults')}</p>;
+                }
+                return filtered.map((p) => (
                   <button
                     key={p.id}
                     type="button"
                     className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 text-start"
                     onClick={() => {
-                      const id = `extra-${Date.now()}`;
-                      commitBoard({
-                        ...board,
-                        markers: [...board.markers, {
-                          id, x: 50, y: 50, label: String(p.jerseyNumber), side: 'us',
-                          playerId: p.id, photoUrl: p.photo ?? null,
-                        }],
-                      });
-                      setMode('move');
-                      setSelectedMarkerId(id);
+                      if (pickPlayerMode === 'assign' && selectedMarkerId) {
+                        commitBoard({
+                          ...board,
+                          markers: board.markers.map((m) =>
+                            m.id === selectedMarkerId
+                              ? { ...m, label: String(p.jerseyNumber), playerId: p.id, photoUrl: p.photo ?? null }
+                              : m
+                          ),
+                        });
+                      } else {
+                        const id = `extra-${Date.now()}`;
+                        commitBoard({
+                          ...board,
+                          markers: [...board.markers, {
+                            id, x: 50, y: 50, label: String(p.jerseyNumber), side: 'us',
+                            playerId: p.id, photoUrl: p.photo ?? null,
+                          }],
+                        });
+                        setMode('move');
+                        setSelectedMarkerId(id);
+                      }
                       setPickPlayerOpen(false);
                     }}
                   >
@@ -1044,8 +1079,8 @@ function BoardsTab({
                       <p className="text-xs text-muted-foreground">#{p.jerseyNumber} · {t(`position.${p.position}`)}</p>
                     </div>
                   </button>
-                ))
-              )}
+                ));
+              })()}
             </div>
           </SheetContent>
         </Sheet>
@@ -1153,6 +1188,14 @@ function BoardsTab({
                   />
                 ))}
               </div>
+              {(marker.side === 'us' || marker.side === 'them') && (
+                <Button
+                  size="sm" variant="ghost" className="shrink-0"
+                  onClick={() => { setPickPlayerMode('assign'); setPickPlayerOpen(true); }}
+                >
+                  <ImageIcon className="w-4 h-4" />
+                </Button>
+              )}
               <Button
                 size="sm" variant="ghost" className="shrink-0"
                 onClick={() => {
