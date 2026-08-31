@@ -217,3 +217,30 @@ export function duplicateMarker(board: BoardData, markerId: string, newId: strin
   const copy: BoardMarker = { ...marker, id: newId, x: Math.min(96, marker.x + 6), y: Math.min(96, marker.y + 6) };
   return { board: { ...board, markers: [...board.markers, copy] }, newMarker: copy };
 }
+
+// Same nudge-and-copy idea as duplicateMarker, extended to shapes —
+// mirrors an arrow/line by translating both endpoints together, a zone
+// by translating its origin, so the copy keeps its exact size/angle
+// rather than landing exactly on top of the original.
+const SHAPE_DUP_OFFSET = 6;
+
+export function duplicateArrow(board: BoardData, index: number): BoardData {
+  const a = board.arrows[index];
+  if (!a) return board;
+  const copy: BoardArrow = { ...a, x1: a.x1 + SHAPE_DUP_OFFSET, y1: a.y1 + SHAPE_DUP_OFFSET, x2: a.x2 + SHAPE_DUP_OFFSET, y2: a.y2 + SHAPE_DUP_OFFSET };
+  return { ...board, arrows: [...board.arrows, copy] };
+}
+
+export function duplicateLine(board: BoardData, index: number): BoardData {
+  const l = (board.lines ?? [])[index];
+  if (!l) return board;
+  const copy: BoardLine = { ...l, x1: l.x1 + SHAPE_DUP_OFFSET, y1: l.y1 + SHAPE_DUP_OFFSET, x2: l.x2 + SHAPE_DUP_OFFSET, y2: l.y2 + SHAPE_DUP_OFFSET };
+  return { ...board, lines: [...(board.lines ?? []), copy] };
+}
+
+export function duplicateZone(board: BoardData, index: number): BoardData {
+  const z = (board.zones ?? [])[index];
+  if (!z) return board;
+  const copy: BoardZone = { ...z, x: z.x + SHAPE_DUP_OFFSET, y: z.y + SHAPE_DUP_OFFSET };
+  return { ...board, zones: [...(board.zones ?? []), copy] };
+}

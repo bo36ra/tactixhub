@@ -13,6 +13,7 @@ import {
   screenToWorld, hitTestErasable, hitTestMovable, deleteErasable,
   moveMarker, translateArrow, translateLine, translateZone,
   addArrow, addLine, addZone, addPenStroke, duplicateMarker,
+  duplicateArrow, duplicateLine, duplicateZone,
 } from '@/lib/tactics-engine';
 import { useBoardHistory } from '@/lib/use-board-history';
 import { Button } from '@/components/ui/button';
@@ -147,7 +148,7 @@ function EquipmentShape({ type, color }: { type: EquipmentType; color?: string }
 }
 
 function TacticBoard({
-  board, commitBoard, setBoardLive, beginLiveChange, commitLiveChange, mode, selectedMarkerId, onSelectMarker, isFullscreen,
+  board, commitBoard, setBoardLive, beginLiveChange, commitLiveChange, mode, selectedMarkerId, onSelectMarker, selectedShape, onSelectShape, isFullscreen,
 }: {
   board: BoardData;
   commitBoard: (b: BoardData) => void;
@@ -157,6 +158,8 @@ function TacticBoard({
   mode: 'move' | 'arrow' | 'dashed-arrow' | 'line' | 'zone' | 'pen' | 'erase';
   selectedMarkerId: string | null;
   onSelectMarker: (id: string | null) => void;
+  selectedShape: { kind: 'arrow' | 'line' | 'zone'; index: number } | null;
+  onSelectShape: (shape: { kind: 'arrow' | 'line' | 'zone'; index: number } | null) => void;
   isFullscreen?: boolean;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -246,12 +249,14 @@ function TacticBoard({
       if (grab?.kind === 'marker') {
         dragId.current = grab.markerId;
         onSelectMarker(grab.markerId);
+        onSelectShape(null);
       } else {
         dragId.current = null;
         onSelectMarker(null);
-        if (grab?.kind === 'arrow') dragArrow.current = { index: grab.index, ...grab.offset };
-        else if (grab?.kind === 'line') dragLine.current = { index: grab.index, ...grab.offset };
-        else if (grab?.kind === 'zone') dragZone.current = { index: grab.index, ...grab.offset };
+        if (grab?.kind === 'arrow') { dragArrow.current = { index: grab.index, ...grab.offset }; onSelectShape({ kind: 'arrow', index: grab.index }); }
+        else if (grab?.kind === 'line') { dragLine.current = { index: grab.index, ...grab.offset }; onSelectShape({ kind: 'line', index: grab.index }); }
+        else if (grab?.kind === 'zone') { dragZone.current = { index: grab.index, ...grab.offset }; onSelectShape({ kind: 'zone', index: grab.index }); }
+        else onSelectShape(null);
       }
     }
     (e.target as Element).setPointerCapture?.(e.pointerId);
@@ -445,12 +450,13 @@ function BoardsTab({
   // (setBoard supports functional updates natively; playback relies on it)
   const [mode, setMode] = useState<'move' | 'arrow' | 'dashed-arrow' | 'line' | 'zone' | 'pen' | 'erase'>('move');
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
-  // Keyboard shortcuts — Delete removes the selected marker,
-  // Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y redoes. Skips
-  // entirely while a text field has focus (the label input, notes
-  // textarea, tactic-name field, ...) so it never fights the browser's
-  // own native undo/typing behavior there — this is specifically for
-  // shortcuts aimed at the board itself.
+  const [selectedShape, setSelectedShape] = useState<{ kind: 'arrow' | 'line' | 'zone'; index: number } | null>(null);
+  // Keyboard shortcuts — Delete removes the selected marker or shape,
+  // Ctrl/Cmd+D duplicates it, Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z or
+  // Ctrl/Cmd+Y redoes. Skips entirely while a text field has focus (the
+  // label input, notes textarea, tactic-name field, ...) so it never
+  // fights the browser's own native undo/typing behavior there — this
+  // is specifically for shortcuts aimed at the board itself.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -466,15 +472,31 @@ function BoardsTab({
       } else if (ctrl && e.key.toLowerCase() === 'y') {
         e.preventDefault();
         redo();
+      } else if (ctrl && e.key.toLowerCase() === 'd' && selectedMarkerId) {
+        e.preventDefault();
+        const id = `dup-${Date.now()}`;
+        const result = duplicateMarker(board, selectedMarkerId, id);
+        if (result) { commitBoard(result.board); setSelectedMarkerId(id); }
+      } else if (ctrl && e.key.toLowerCase() === 'd' && selectedShape) {
+        e.preventDefault();
+        const next =
+          selectedShape.kind === 'arrow' ? duplicateArrow(board, selectedShape.index)
+          : selectedShape.kind === 'line' ? duplicateLine(board, selectedShape.index)
+          : duplicateZone(board, selectedShape.index);
+        commitBoard(next);
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedMarkerId) {
         e.preventDefault();
         commitBoard({ ...board, markers: board.markers.filter((m) => m.id !== selectedMarkerId) });
         setSelectedMarkerId(null);
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedShape) {
+        e.preventDefault();
+        commitBoard(deleteErasable(board, { kind: selectedShape.kind, index: selectedShape.index }));
+        setSelectedShape(null);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [undo, redo, selectedMarkerId, board, commitBoard]);
+  }, [undo, redo, selectedMarkerId, selectedShape, board, commitBoard]);
 
   const boardContainerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -864,7 +886,7 @@ function BoardsTab({
           </SheetContent>
         </Sheet>
 
-        <TacticBoard board={board} commitBoard={commitBoard} setBoardLive={setBoardLive} beginLiveChange={beginLiveChange} commitLiveChange={commitLiveChange} mode={mode} selectedMarkerId={selectedMarkerId} onSelectMarker={setSelectedMarkerId} isFullscreen={isFullscreen} />
+        <TacticBoard board={board} commitBoard={commitBoard} setBoardLive={setBoardLive} beginLiveChange={beginLiveChange} commitLiveChange={commitLiveChange} mode={mode} selectedMarkerId={selectedMarkerId} onSelectMarker={setSelectedMarkerId} selectedShape={selectedShape} onSelectShape={setSelectedShape} isFullscreen={isFullscreen} />
 
         {/* Marker editor — appears once a marker is tapped/dragged in
             move mode. Recoloring here is what makes a training-game
@@ -933,6 +955,45 @@ function BoardsTab({
             </div>
           );
         })()}
+
+        {/* Shape editor — same idea as the marker editor above, but for
+            a selected arrow/line/zone. Shapes don't have a label or
+            color to edit here, just duplicate (this is specifically
+            what draw-a-zone → copy-it → move-it needed and didn't have
+            before) and delete. */}
+        {selectedShape && (
+          <div className="bg-card border rounded-xl p-3 flex items-center gap-3">
+            <span className="text-sm text-muted-foreground flex-1">
+              {selectedShape.kind === 'zone' ? t('tactics.modeZone') : selectedShape.kind === 'arrow' ? t('tactics.modeArrow') : t('tactics.modeLine')}
+            </span>
+            <Button
+              size="sm" variant="ghost" className="shrink-0"
+              onClick={() => {
+                const next =
+                  selectedShape.kind === 'arrow' ? duplicateArrow(board, selectedShape.index)
+                  : selectedShape.kind === 'line' ? duplicateLine(board, selectedShape.index)
+                  : duplicateZone(board, selectedShape.index);
+                commitBoard(next);
+                const newIndex =
+                  selectedShape.kind === 'arrow' ? next.arrows.length - 1
+                  : selectedShape.kind === 'line' ? (next.lines ?? []).length - 1
+                  : (next.zones ?? []).length - 1;
+                setSelectedShape({ kind: selectedShape.kind, index: newIndex });
+              }}
+            >
+              <Copy className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm" variant="ghost" className="text-destructive hover:text-destructive shrink-0"
+              onClick={() => {
+                commitBoard(deleteErasable(board, { kind: selectedShape.kind, index: selectedShape.index }));
+                setSelectedShape(null);
+              }}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
 
         {/* Animation frames (TacticalPad-style sequences) */}
         <div className="flex flex-wrap items-center gap-2">
