@@ -53,39 +53,69 @@ import { ApiKeepAlive } from '@/components/api-keep-alive';
 
 import { lazy, Suspense } from 'react';
 
+// After a new deployment, a tab that's been open since before it has stale
+// chunk references — every JS file gets a new content hash on each build,
+// and the old ones are gone from the server. The next time that tab
+// navigates to a not-yet-visited page, the dynamic import 404s and React's
+// lazy-loading machinery throws "undefined is not an object (evaluating
+// '..._result.default')" — a real crash with no indication of what
+// actually went wrong or what to do about it.
+//
+// Wrapping every lazy-loaded page through this instead of calling lazy()
+// directly means a failed chunk load triggers exactly one automatic full
+// page reload (which re-fetches the current index.html and its correctly-
+// hashed asset references), turning what looked like a broken app into a
+// transparent, automatic recovery. A sessionStorage flag caps it at one
+// attempt per session so a genuinely broken deploy doesn't reload-loop
+// forever — if it fails again after that, the error is left to surface
+// normally.
+function lazyImport<T extends { default: React.ComponentType<any> }>(factory: () => Promise<T>) {
+  return lazy(() =>
+    factory().catch((err) => {
+      const key = 'chunk-reload-attempted';
+      if (!sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, '1');
+        window.location.reload();
+        return new Promise<T>(() => {}); // never resolves — the reload takes over before this would matter
+      }
+      throw err;
+    })
+  );
+}
+
 // Each page loads as its own small chunk on first visit instead of all
 // pages being bundled into one large file the browser must download before
 // showing anything. Landing/auth stay eager since they're the first thing
 // almost everyone sees.
 import { Landing } from '@/pages/landing';
 import { SignInPage, SignUpPage } from '@/pages/auth';
-const Dashboard = lazy(() => import('@/pages/dashboard').then(m => ({ default: m.Dashboard })));
-const Players = lazy(() => import('@/pages/players').then(m => ({ default: m.Players })));
-const Attendance = lazy(() => import('@/pages/attendance').then(m => ({ default: m.Attendance })));
-const Matches = lazy(() => import('@/pages/matches').then(m => ({ default: m.Matches })));
-const Goals = lazy(() => import('@/pages/goals').then(m => ({ default: m.Goals })));
-const Cards = lazy(() => import('@/pages/cards').then(m => ({ default: m.Cards })));
-const PlayingTime = lazy(() => import('@/pages/playing-time').then(m => ({ default: m.PlayingTime })));
-const Teams = lazy(() => import('@/pages/teams').then(m => ({ default: m.Teams })));
-const Reports = lazy(() => import('@/pages/reports').then(m => ({ default: m.Reports })));
-const Lineup = lazy(() => import('@/pages/lineup').then(m => ({ default: m.Lineup })));
-const PlayerProfile = lazy(() => import('@/pages/player-profile').then(m => ({ default: m.PlayerProfile })));
-const Tactics = lazy(() => import('@/pages/tactics'));
-const Trainings = lazy(() => import('@/pages/trainings'));
-const Performance = lazy(() => import('@/pages/performance'));
-const MatchReport = lazy(() => import('@/pages/match-report'));
-const Staff = lazy(() => import('@/pages/staff'));
-const Readiness = lazy(() => import('@/pages/readiness'));
-const CalendarPage = lazy(() => import('@/pages/calendar'));
-const AvailabilityPage = lazy(() => import('@/pages/availability'));
-const TrainingPlanPage = lazy(() => import('@/pages/training-plan'));
-const AdminPage = lazy(() => import('@/pages/admin'));
-const TrainingLoadPage = lazy(() => import('@/pages/training-load'));
-const GymPage = lazy(() => import('@/pages/gym'));
-const LibraryPage = lazy(() => import('@/pages/library'));
-const ExerciseLibraryPage = lazy(() => import('@/pages/exercise-library'));
-const Notes = lazy(() => import('@/pages/notes'));
-const NotFound = lazy(() => import('@/pages/not-found'));
+const Dashboard = lazyImport(() => import('@/pages/dashboard').then(m => ({ default: m.Dashboard })));
+const Players = lazyImport(() => import('@/pages/players').then(m => ({ default: m.Players })));
+const Attendance = lazyImport(() => import('@/pages/attendance').then(m => ({ default: m.Attendance })));
+const Matches = lazyImport(() => import('@/pages/matches').then(m => ({ default: m.Matches })));
+const Goals = lazyImport(() => import('@/pages/goals').then(m => ({ default: m.Goals })));
+const Cards = lazyImport(() => import('@/pages/cards').then(m => ({ default: m.Cards })));
+const PlayingTime = lazyImport(() => import('@/pages/playing-time').then(m => ({ default: m.PlayingTime })));
+const Teams = lazyImport(() => import('@/pages/teams').then(m => ({ default: m.Teams })));
+const Reports = lazyImport(() => import('@/pages/reports').then(m => ({ default: m.Reports })));
+const Lineup = lazyImport(() => import('@/pages/lineup').then(m => ({ default: m.Lineup })));
+const PlayerProfile = lazyImport(() => import('@/pages/player-profile').then(m => ({ default: m.PlayerProfile })));
+const Tactics = lazyImport(() => import('@/pages/tactics'));
+const Trainings = lazyImport(() => import('@/pages/trainings'));
+const Performance = lazyImport(() => import('@/pages/performance'));
+const MatchReport = lazyImport(() => import('@/pages/match-report'));
+const Staff = lazyImport(() => import('@/pages/staff'));
+const Readiness = lazyImport(() => import('@/pages/readiness'));
+const CalendarPage = lazyImport(() => import('@/pages/calendar'));
+const AvailabilityPage = lazyImport(() => import('@/pages/availability'));
+const TrainingPlanPage = lazyImport(() => import('@/pages/training-plan'));
+const AdminPage = lazyImport(() => import('@/pages/admin'));
+const TrainingLoadPage = lazyImport(() => import('@/pages/training-load'));
+const GymPage = lazyImport(() => import('@/pages/gym'));
+const LibraryPage = lazyImport(() => import('@/pages/library'));
+const ExerciseLibraryPage = lazyImport(() => import('@/pages/exercise-library'));
+const Notes = lazyImport(() => import('@/pages/notes'));
+const NotFound = lazyImport(() => import('@/pages/not-found'));
 
 // The original app derived this from the Replit hostname (dynamic per-deploy
 // subdomains); that lookup returns nothing on any other host (Vercel, etc.)
