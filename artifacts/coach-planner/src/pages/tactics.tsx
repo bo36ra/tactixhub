@@ -1050,12 +1050,26 @@ function BoardsTab({
                 if (filtered.length === 0) {
                   return <p className="text-xs text-muted-foreground text-center py-6">{t('common.noResults')}</p>;
                 }
-                return filtered.map((p) => (
+                // A player already placed elsewhere on the board can't
+                // be picked again — except the one currently attached
+                // to the marker being edited in assign mode, since
+                // re-opening the picker for a marker that already has
+                // a player shouldn't grey that same player out.
+                const currentMarkerPlayerId =
+                  pickPlayerMode === 'assign' ? board.markers.find((m) => m.id === selectedMarkerId)?.playerId : undefined;
+                const placedPlayerIds = new Set(
+                  board.markers.filter((m) => m.playerId != null && m.playerId !== currentMarkerPlayerId).map((m) => m.playerId)
+                );
+                return filtered.map((p) => {
+                  const isPlaced = placedPlayerIds.has(p.id);
+                  return (
                   <button
                     key={p.id}
                     type="button"
-                    className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 text-start"
+                    disabled={isPlaced}
+                    className={`w-full flex items-center gap-3 p-2 rounded-lg text-start ${isPlaced ? 'opacity-40 cursor-not-allowed' : 'hover:bg-muted/50'}`}
                     onClick={() => {
+                      if (isPlaced) return;
                       if (pickPlayerMode === 'assign' && selectedMarkerId) {
                         commitBoard({
                           ...board,
@@ -1087,12 +1101,14 @@ function BoardsTab({
                         {p.jerseyNumber}
                       </div>
                     )}
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">{p.name}</p>
                       <p className="text-xs text-muted-foreground">#{p.jerseyNumber} · {t(`position.${p.position}`)}</p>
                     </div>
+                    {isPlaced && <span className="text-[10px] text-muted-foreground shrink-0">{t('tactics.alreadyOnBoard')}</span>}
                   </button>
-                ));
+                  );
+                });
               })()}
             </div>
           </SheetContent>
