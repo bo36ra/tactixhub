@@ -133,6 +133,30 @@ function RatingsTab({ teamId, t }: { teamId: number; t: (k: string) => string })
       </Select>
 
       {matchId && (
+        <>
+        {(ratings ?? []).length > 0 && (
+          <div className="border border-border rounded-xl p-3 bg-card space-y-1.5">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('perf.matchRatingsReport')}</h3>
+            {(ratings ?? [])
+              .slice()
+              .sort((a, b) => b.rating - a.rating)
+              .map((r) => {
+                const p = (players ?? []).find((pl: any) => pl.id === r.playerId);
+                if (!p) return null;
+                return (
+                  <div key={r.id} className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-2 truncate">
+                      <PlayerAvatar photo={p.photo} jerseyNumber={p.jerseyNumber} className="w-6 h-6 text-[10px]" />
+                      <span className="truncate">{playerName(p, lang)}</span>
+                    </span>
+                    <span className="pill-beige rounded px-2 py-0.5 text-xs font-bold flex items-center gap-1 shrink-0">
+                      <Star className="w-3 h-3" />{r.rating}/10
+                    </span>
+                  </div>
+                );
+              })}
+          </div>
+        )}
         <div className="grid gap-2 sm:grid-cols-2">
           {hasLineup && (
             <p className="sm:col-span-2 text-xs text-primary bg-primary/10 rounded-lg px-3 py-1.5">{t('perf.orderedByLineup')}</p>
@@ -167,6 +191,7 @@ function RatingsTab({ teamId, t }: { teamId: number; t: (k: string) => string })
             );
           })}
         </div>
+        </>
       )}
       </>
       )}

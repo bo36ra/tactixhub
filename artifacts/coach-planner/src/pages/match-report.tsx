@@ -27,7 +27,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
   const { data: cards } = useListCards(teamId);
   const { data: minutes } = useListPlayingTime(teamId);
   const [matchId, setMatchId] = useState<number | null>(null);
-  const { data: ratings, isLoading: ratingsLoading, isError: ratingsError, error: ratingsErrorObj } = useRatings(teamId, matchId);
+  const { data: ratings } = useRatings(teamId, matchId);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const updateMatch = useUpdateMatch();
@@ -80,11 +80,6 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
               ))}
             </SelectContent>
           </Select>
-          {matchId && (
-            <p className="text-[11px] text-muted-foreground mt-1" dir="ltr">
-              DEBUG — teamId:{teamId} matchId:{matchId} loading:{String(ratingsLoading)} error:{String(ratingsError)} errMsg:{ratingsErrorObj instanceof Error ? ratingsErrorObj.message : 'none'} ratingsCount:{ratings?.length ?? 'undefined'}
-            </p>
-          )}
         </div>
 
         {m && (
