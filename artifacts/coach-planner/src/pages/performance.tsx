@@ -9,7 +9,7 @@ import { useListPlayers, useListMatches } from '@workspace/api-client-react';
 import { useTactics, parseBoard } from '@/lib/tactics-api';
 import {
   useInjuries, useCreateInjury, useUpdateInjury, useDeleteInjury,
-  useRatings, useSaveRating,
+  useRatings, useSaveRating, useRatingsSummary,
 } from '@/lib/dev-api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,6 +53,15 @@ function RatingsTab({ teamId, t }: { teamId: number; t: (k: string) => string })
   const { data: allTactics } = useTactics(teamId);
 
   const ratingFor = (playerId: number) => (ratings ?? []).find((r) => r.playerId === playerId);
+  const [view, setView] = useState<'match' | 'season'>('match');
+  const { data: summary } = useRatingsSummary(teamId);
+  const summaryRows = React.useMemo(() => {
+    const byPlayer = new Map((summary ?? []).map((s) => [s.playerId, s]));
+    return (players ?? [])
+      .map((p: any) => ({ player: p, entry: byPlayer.get(p.id) }))
+      .filter((r) => r.entry)
+      .sort((a, b) => (b.entry!.avgRating - a.entry!.avgRating));
+  }, [players, summary]);
 
   // If a match-plan tactic is linked to this match, use its lineup to
   // order the ratings list — starting XI in their actual formation
@@ -77,6 +86,43 @@ function RatingsTab({ teamId, t }: { teamId: number; t: (k: string) => string })
 
   return (
     <div className="space-y-3">
+      <div className="flex gap-1.5">
+        <button
+          type="button"
+          onClick={() => setView('match')}
+          className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${view === 'match' ? 'bg-primary/15 text-primary border-primary/40' : 'border-border text-muted-foreground'}`}
+        >
+          {t('perf.matchView')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setView('season')}
+          className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${view === 'season' ? 'bg-primary/15 text-primary border-primary/40' : 'border-border text-muted-foreground'}`}
+        >
+          {t('perf.seasonView')}
+        </button>
+      </div>
+
+      {view === 'season' ? (
+        summaryRows.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">{t('perf.noRatingsYet')}</p>
+        ) : (
+          <div className="space-y-1.5">
+            {summaryRows.map(({ player, entry }, i) => (
+              <div key={player.id} className="flex items-center gap-3 border border-border rounded-lg p-2.5 bg-card">
+                <span className="text-xs text-muted-foreground w-5 text-center shrink-0">{i + 1}</span>
+                <PlayerAvatar photo={player.photo} jerseyNumber={player.jerseyNumber} className="w-8 h-8 text-xs shrink-0" />
+                <span className="flex-1 truncate font-medium">{playerName(player, lang)}</span>
+                <span className="text-xs text-muted-foreground shrink-0">{t('perf.ratingsCount').replace('{n}', String(entry!.count))}</span>
+                <span className="pill-beige rounded px-2 py-0.5 text-xs font-bold flex items-center gap-1 shrink-0">
+                  <Star className="w-3 h-3" />{entry!.avgRating}/10
+                </span>
+              </div>
+            ))}
+          </div>
+        )
+      ) : (
+      <>
       <Select value={matchId ? String(matchId) : ''} onValueChange={(v) => setMatchId(parseInt(v))}>
         <SelectTrigger className="max-w-72"><SelectValue placeholder={t('perf.pickMatch')} /></SelectTrigger>
         <SelectContent>
@@ -121,6 +167,8 @@ function RatingsTab({ teamId, t }: { teamId: number; t: (k: string) => string })
             );
           })}
         </div>
+      )}
+      </>
       )}
     </div>
   );

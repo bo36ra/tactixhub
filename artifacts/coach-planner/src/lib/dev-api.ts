@@ -411,6 +411,12 @@ export function useDeleteInjury(teamId: number) {
   });
 }
 
+export function useRatingsSummary(teamId: number) {
+  return useQuery({
+    queryKey: ['ratings-summary', teamId],
+    queryFn: () => customFetch<{ playerId: number; avgRating: number; count: number }[]>(`/api/teams/${teamId}/ratings/summary`),
+  });
+}
 export function useRatings(teamId: number, matchId: number | null) {
   return useQuery({
     queryKey: ['ratings', teamId, matchId],

@@ -1,6 +1,6 @@
 import { dbErrorMessage } from "../lib/dbError";
 import { Router } from "express";
-import { eq, and, desc, or, isNull, gte, lte } from "drizzle-orm";
+import { eq, and, desc, or, isNull, gte, lte, sql } from "drizzle-orm";
 import { db, trainingsTable, injuriesTable, ratingsTable, playersTable, teamsTable, matchesTable, matchPlansTable, weekCyclesTable, monthPlansTable, playerAvailabilityTable, trainingBlocksTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { verifyTeamAccess } from "../lib/teamAccess";
@@ -107,6 +107,22 @@ router.delete("/teams/:teamId/injuries/:id", requireAuth, guarded(async (req, re
 }));
 
 // ---------- Ratings (upsert per match+player) ----------
+// Season-wide summary — average rating and how many times each player
+// was rated, across every match, computed here in one grouped query
+// rather than the frontend fetching per-match or per-player and
+// averaging client-side.
+router.get("/teams/:teamId/ratings/summary", requireAuth, guarded(async (_req, res, teamId) => {
+  const rows = await db
+    .select({
+      playerId: ratingsTable.playerId,
+      avgRating: sql<string>`round(avg(${ratingsTable.rating})::numeric, 2)`,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(ratingsTable)
+    .where(eq(ratingsTable.teamId, teamId))
+    .groupBy(ratingsTable.playerId);
+  res.json(rows.map((r) => ({ playerId: r.playerId, avgRating: Number(r.avgRating), count: r.count })));
+}));
 router.get("/teams/:teamId/matches/:matchId/ratings", requireAuth, guarded(async (req, res, teamId) => {
   res.json(await db.select().from(ratingsTable)
     .where(and(eq(ratingsTable.teamId, teamId), eq(ratingsTable.matchId, parseInt(req.params.matchId)))));
