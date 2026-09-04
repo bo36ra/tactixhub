@@ -53,8 +53,17 @@ export function Readiness() {
   const recentRates = React.useMemo(() => {
     const cutoff = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     const map = new Map<number, { present: number; total: number }>();
+    // A player away on national-team duty (or otherwise called up, or
+    // excused) wasn't unreliable — they were exactly where their
+    // federation needed them. Counting that occurrence as a plain
+    // absence penalized it identically to a genuinely unexplained one,
+    // which is exactly backwards: these are the *committed* players,
+    // not the ones to flag. Same treatment as not_called, which was
+    // already excluded here for the same reason (not informative about
+    // reliability either way).
+    const NEUTRAL_STATUSES = ['not_called', 'national_duty', 'called_up', 'excused_absence'];
     for (const rec of allAttendance ?? []) {
-      if (rec.date < cutoff || rec.status === 'not_called') continue;
+      if (rec.date < cutoff || NEUTRAL_STATUSES.includes(rec.status ?? '')) continue;
       const cur = map.get(rec.playerId) ?? { present: 0, total: 0 };
       cur.total += 1;
       if (rec.present) cur.present += 1;
