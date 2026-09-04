@@ -13,6 +13,7 @@ import {
   ClipboardList,
   Dumbbell,
   BookOpen,
+  Star,
   FileText,
   Activity,
   Users, 
@@ -71,20 +72,46 @@ function SidebarContent() {
       links: [
         { href: '/players', label: t('nav.players'), icon: Users },
         { href: '/attendance', label: t('nav.attendance'), icon: CalendarCheck },
+      ],
+    },
+    {
+      // Everything tied to a specific match — previously split across
+      // "Competition" (matches, goals, cards, ...) and "Manage" (player
+      // ratings, match report), which is exactly what made "where do I
+      // find a match's ratings" genuinely ambiguous.
+      label: t('nav.section.match'),
+      links: [
+        { href: '/matches', label: t('nav.matches'), icon: Swords },
+        { href: '/calendar', label: t('nav.calendar'), icon: CalendarDays },
+        { href: '/readiness', label: t('nav.readiness'), icon: ClipboardCheck },
+        { href: '/availability', label: t('nav.availability'), icon: Plane },
+        { href: '/goals', label: t('nav.goals'), icon: Target },
+        { href: '/cards', label: t('nav.cards'), icon: CreditCard },
+        { href: '/playing-time', label: t('nav.playingTime'), icon: Clock },
+        { href: '/performance', label: t('nav.playerRatings'), icon: Star },
+        { href: '/match-report', label: t('nav.matchReport'), icon: FileText },
+      ],
+    },
+    {
+      // Coaching/planning tools — not tied to any one match, used to
+      // prepare and develop the team over time. "Performance Log" is a
+      // daily training-session plan (drills, focus, drawings) — it has
+      // nothing to do with players individually, which is exactly why
+      // it kept getting confused with "Player Ratings" when the two
+      // sat far apart under similar-sounding names.
+      label: t('nav.section.development'),
+      links: [
+        { href: '/tactics', label: t('nav.tactics'), icon: ClipboardList },
+        { href: '/trainings', label: t('nav.trainings'), icon: Dumbbell },
+        { href: '/exercise-library', label: t('nav.exerciseLibrary'), icon: BookOpen, pro: true },
         { href: '/training-load', label: t('nav.rpe'), icon: Activity, pro: true },
         { href: '/gym', label: t('nav.gym'), icon: Dumbbell, pro: true },
       ],
     },
     {
-      label: t('nav.section.competition'),
+      label: t('nav.section.library'),
       links: [
-        { href: '/matches', label: t('nav.matches'), icon: Swords },
-{ href: '/readiness', label: t('nav.readiness'), icon: ClipboardCheck },
-        { href: '/calendar', label: t('nav.calendar'), icon: CalendarDays },
-        { href: '/availability', label: t('nav.availability'), icon: Plane },
-        { href: '/goals', label: t('nav.goals'), icon: Target },
-        { href: '/cards', label: t('nav.cards'), icon: CreditCard },
-        { href: '/playing-time', label: t('nav.playingTime'), icon: Clock },
+        { href: '/library', label: t('nav.library'), icon: Library },
       ],
     },
     {
@@ -93,13 +120,7 @@ function SidebarContent() {
         { href: '/teams', label: t('nav.teams'), icon: Layers },
         { href: '/staff', label: t('nav.staff'), icon: UserCog },
         { href: '/notes', label: t('nav.notes'), icon: StickyNote },
-        { href: '/library', label: t('nav.library'), icon: Library },
         { href: '/reports', label: t('nav.reports'), icon: BarChart2 },
-        { href: '/tactics', label: t('nav.tactics'), icon: ClipboardList },
-        { href: '/trainings', label: t('nav.trainings'), icon: Dumbbell },
-        { href: '/exercise-library', label: t('nav.exerciseLibrary'), icon: BookOpen, pro: true },
-        { href: '/performance', label: t('nav.performance'), icon: Activity },
-        { href: '/match-report', label: t('nav.matchReport'), icon: FileText },
         ...(access?.isAdmin ? [{ href: '/admin', label: t('nav.admin'), icon: ShieldCheck }] : []),
       ],
     },
