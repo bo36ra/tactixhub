@@ -6,6 +6,7 @@ import { PlayerAvatar } from '@/components/player-avatar';
 import { JerseyNumber } from '@/components/jersey-number';
 import { useTeam } from '@/lib/team-context';
 import { useListPlayers, useListMatches } from '@workspace/api-client-react';
+import { useTactics, parseBoard } from '@/lib/tactics-api';
 import {
   useInjuries, useCreateInjury, useUpdateInjury, useDeleteInjury,
   useRatings, useSaveRating,
@@ -49,8 +50,30 @@ function RatingsTab({ teamId, t }: { teamId: number; t: (k: string) => string })
   const [matchId, setMatchId] = useState<number | null>(null);
   const { data: ratings } = useRatings(teamId, matchId);
   const save = useSaveRating(teamId, matchId);
+  const { data: allTactics } = useTactics(teamId);
 
   const ratingFor = (playerId: number) => (ratings ?? []).find((r) => r.playerId === playerId);
+
+  // If a match-plan tactic is linked to this match, use its lineup to
+  // order the ratings list — starting XI in their actual formation
+  // order (goalkeeper through attack, by pitch position) first, then
+  // whoever isn't in that lineup after. Falls back to plain roster
+  // order when no match plan exists for this match yet.
+  const { orderedPlayers, hasLineup } = React.useMemo(() => {
+    const roster = players ?? [];
+    if (!matchId) return { orderedPlayers: roster, hasLineup: false };
+    const plan = (allTactics ?? []).find((tc) => tc.kind === 'match_plan' && tc.matchId === matchId);
+    if (!plan) return { orderedPlayers: roster, hasLineup: false };
+    const lineupIds = parseBoard(plan.data).markers
+      .filter((m) => m.side === 'us' && m.playerId != null)
+      .sort((a, b) => a.y - b.y)
+      .map((m) => m.playerId as number);
+    if (lineupIds.length === 0) return { orderedPlayers: roster, hasLineup: false };
+    const byId = new Map(roster.map((p: any) => [p.id, p]));
+    const lineup = lineupIds.map((id) => byId.get(id)).filter(Boolean);
+    const rest = roster.filter((p: any) => !lineupIds.includes(p.id));
+    return { orderedPlayers: [...lineup, ...rest], hasLineup: true };
+  }, [players, matchId, allTactics]);
 
   return (
     <div className="space-y-3">
@@ -65,7 +88,10 @@ function RatingsTab({ teamId, t }: { teamId: number; t: (k: string) => string })
 
       {matchId && (
         <div className="grid gap-2 sm:grid-cols-2">
-          {(players ?? []).map((p: any) => {
+          {hasLineup && (
+            <p className="sm:col-span-2 text-xs text-primary bg-primary/10 rounded-lg px-3 py-1.5">{t('perf.orderedByLineup')}</p>
+          )}
+          {orderedPlayers.map((p: any) => {
             const r = ratingFor(p.id);
             return (
               <div key={p.id} className="border border-border rounded-lg p-3 bg-card">
