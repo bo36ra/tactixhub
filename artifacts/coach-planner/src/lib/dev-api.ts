@@ -432,3 +432,14 @@ export function useSaveRating(teamId: number, matchId: number | null) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['ratings', teamId, matchId] }),
   });
 }
+export function useDeleteRating(teamId: number, matchId: number | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (playerId: number) =>
+      customFetch<void>(`/api/teams/${teamId}/matches/${matchId}/ratings/${playerId}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['ratings', teamId, matchId] });
+      qc.invalidateQueries({ queryKey: ['ratings-summary', teamId] });
+    },
+  });
+}

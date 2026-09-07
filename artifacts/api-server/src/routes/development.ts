@@ -140,6 +140,16 @@ router.post("/teams/:teamId/matches/:matchId/ratings", requireAuth, guarded(asyn
         .values({ teamId, matchId, playerId, rating, note: note || null }).returning())[0];
   res.status(existing ? 200 : 201).json(row);
 }));
+// Clears an accidentally-entered rating entirely, back to unrated —
+// tapping a different number already corrects a wrong pick via the
+// upsert above, but there was previously no way to remove one outright.
+router.delete("/teams/:teamId/matches/:matchId/ratings/:playerId", requireAuth, guarded(async (req, res, teamId) => {
+  const matchId = parseInt(req.params.matchId);
+  const playerId = parseInt(req.params.playerId);
+  await db.delete(ratingsTable)
+    .where(and(eq(ratingsTable.teamId, teamId), eq(ratingsTable.matchId, matchId), eq(ratingsTable.playerId, playerId)));
+  res.status(204).end();
+}));
 
 router.patch("/teams/:teamId/trainings/:trainingId", requireAuth, guarded(async (req, res, teamId) => {
   const trainingId = parseInt(req.params.trainingId as string);

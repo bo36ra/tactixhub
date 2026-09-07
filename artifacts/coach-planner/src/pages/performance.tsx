@@ -9,7 +9,7 @@ import { useListPlayers, useListMatches } from '@workspace/api-client-react';
 import { useTactics, parseBoard } from '@/lib/tactics-api';
 import {
   useInjuries, useCreateInjury, useUpdateInjury, useDeleteInjury,
-  useRatings, useSaveRating, useRatingsSummary,
+  useRatings, useSaveRating, useDeleteRating, useRatingsSummary,
 } from '@/lib/dev-api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Activity, Star, Plus, Trash2, Save } from 'lucide-react';
+import { Activity, Star, Plus, Trash2, Save, X } from 'lucide-react';
 
 export default function Performance() {
   const { t, lang } = useLanguage();
@@ -50,6 +50,7 @@ function RatingsTab({ teamId, t }: { teamId: number; t: (k: string) => string })
   const [matchId, setMatchId] = useState<number | null>(null);
   const { data: ratings } = useRatings(teamId, matchId);
   const save = useSaveRating(teamId, matchId);
+  const del = useDeleteRating(teamId, matchId);
   const { data: allTactics } = useTactics(teamId);
 
   const ratingFor = (playerId: number) => (ratings ?? []).find((r) => r.playerId === playerId);
@@ -167,17 +168,38 @@ function RatingsTab({ teamId, t }: { teamId: number; t: (k: string) => string })
               <div key={p.id} className="border border-border rounded-lg p-3 bg-card">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-semibold flex items-center gap-2"><PlayerAvatar photo={p.photo} jerseyNumber={p.jerseyNumber} className="w-7 h-7 text-[11px]" /><span className="truncate">{playerName(p, lang)}</span></span>
-                  {r && <span className="pill-beige rounded px-2 py-0.5 text-xs flex items-center gap-1">
-                    <Star className="w-3 h-3" />{r.rating}/10</span>}
+                  {r && (
+                    <span className="flex items-center gap-1.5">
+                      <span className="pill-beige rounded px-2 py-0.5 text-xs flex items-center gap-1">
+                        <Star className="w-3 h-3" />{r.rating}/10
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => del.mutate(p.id, { onSuccess: () => toast({ title: t('perf.ratingCleared') }) })}
+                        className="text-muted-foreground hover:text-destructive"
+                        title={t('perf.clearRating')}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                     <button key={n}
-                      onClick={() => save.mutate({ playerId: p.id, rating: n },
-                        {
-                          onSuccess: () => toast({ title: t('tactics.saved') }),
-                          onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
-                        })}
+                      onClick={() => {
+                        // Tapping the number that's already selected
+                        // clears the rating entirely instead of no-op
+                        // re-saving the same value — previously the
+                        // only way to fix an accidental tap was
+                        // picking a *different* number, with no way to
+                        // remove one outright.
+                        if (r?.rating === n) {
+                          del.mutate(p.id, { onSuccess: () => toast({ title: t('perf.ratingCleared') }) });
+                        } else {
+                          save.mutate({ playerId: p.id, rating: n }, { onSuccess: () => toast({ title: t('tactics.saved') }) });
+                        }
+                      }}
                       className={`w-7 h-7 rounded text-xs font-bold border transition-colors ${
                         r?.rating === n
                           ? 'bg-primary text-primary-foreground border-primary'
