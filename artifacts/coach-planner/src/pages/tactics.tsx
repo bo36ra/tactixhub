@@ -822,13 +822,24 @@ function BoardsTab({
     setMode('move');
   };
 
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
   const doSave = () => {
-    if (!editing?.name.trim()) {
+    if (!editing) return;
+    // Falls back to the input's actual current DOM value if state
+    // looks empty — a known iOS Safari quirk can leave React's
+    // onChange-driven state stale when text is inserted via the
+    // predictive-text/autocomplete bar above the keyboard rather than
+    // typed key-by-key, even though the field visibly shows the text.
+    // Reading the DOM directly here is the authoritative fallback,
+    // not a replacement for the controlled input itself.
+    const currentName = editing.name.trim() || nameInputRef.current?.value.trim() || '';
+    if (!currentName) {
       toast({ variant: 'destructive', title: t('tactics.nameRequired') });
       return;
     }
     save.mutate(
-      { id: editing.id, name: editing.name.trim(), kind, matchId: editing.matchId, data: board },
+      { id: editing.id, name: currentName, kind, matchId: editing.matchId, data: board },
       {
         // Staying in the editor rather than kicking back to the list —
         // saving repeatedly while refining a tactic shouldn't mean
@@ -839,7 +850,7 @@ function BoardsTab({
         // undefined for a brand new one.
         onSuccess: (saved) => {
           toast({ title: t('tactics.saved') });
-          setEditing((prev) => (prev ? { ...prev, id: saved.id } : prev));
+          setEditing((prev) => (prev ? { ...prev, id: saved.id, name: currentName } : prev));
         },
       },
     );
@@ -852,7 +863,7 @@ function BoardsTab({
           <Button size="icon" variant="ghost" className="shrink-0" onClick={() => setEditing(null)} title={t('common.back')}>
             <ArrowLeft className={`w-4 h-4 ${isRtl ? 'rotate-180' : ''}`} />
           </Button>
-          <Input value={editing.name} placeholder={t('tactics.namePlaceholder')}
+          <Input ref={nameInputRef} value={editing.name} placeholder={t('tactics.namePlaceholder')}
             onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="max-w-56" />
           {kind === 'match_plan' && (
             <Select value={editing.matchId ? String(editing.matchId) : 'none'}
