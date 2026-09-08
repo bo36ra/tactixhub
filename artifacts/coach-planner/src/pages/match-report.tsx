@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
-import { useListMatches, useListPlayers, useListGoals, useListCards, useListPlayingTime, useUpdateMatch, getListMatchesQueryKey } from '@workspace/api-client-react';
+import { useListMatches, useListPlayers, useListGoals, useListCards, useListPlayingTime, useUpdateMatch, useGetLineup, getListMatchesQueryKey, getGetLineupQueryKey } from '@workspace/api-client-react';
 import { useRatings } from '@/lib/dev-api';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -28,6 +28,9 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
   const { data: minutes } = useListPlayingTime(teamId);
   const [matchId, setMatchId] = useState<number | null>(null);
   const { data: ratings } = useRatings(teamId, matchId);
+  const { data: lineup } = useGetLineup(matchId!, {
+    query: { enabled: !!matchId, queryKey: getGetLineupQueryKey(matchId!) },
+  });
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const updateMatch = useUpdateMatch();
@@ -97,6 +100,25 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
               )}
             </div>
 
+            {lineup && lineup.entries.length > 0 && (
+              <section>
+                <h3 className="font-bold mb-1">🧩 {t('match.lineup')} ({lineup.formation})</h3>
+                <div className="grid grid-cols-2 gap-x-4">
+                  {lineup.entries
+                    .slice()
+                    .sort((a, b) => (a.slotIndex ?? 0) - (b.slotIndex ?? 0))
+                    .map((e) => (
+                      <p key={e.id} className="text-sm flex items-center gap-1">
+                        <span className="text-muted-foreground">#{e.jerseyNumber}</span>
+                        {e.playerName}
+                        {e.isCaptain && <span className="text-primary">⭐</span>}
+                        <span className="text-muted-foreground text-xs">({e.position})</span>
+                      </p>
+                    ))}
+                </div>
+              </section>
+            )}
+
             {(m.videoUrl || editingVideo) && (
               <section className="print:hidden">
                 <h3 className="font-bold mb-1.5 flex items-center gap-1.5">🎥 {t('match.videoTitle')}</h3>
@@ -143,11 +165,17 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
             {mGoals.length > 0 && (
               <section>
                 <h3 className="font-bold mb-1">⚽ {t('nav.goals')}</h3>
-                {mGoals.map((g, i) => (
-                  <p key={i} className="text-sm">
-                    {g.minute}' — {g.type === 'scored' ? pName(g.scorerPlayerId) : t('report.conceded')} ({g.method})
-                  </p>
-                ))}
+                {mGoals.map((g, i) => {
+                  const assist = g.assistPlayerId ? pName(g.assistPlayerId) : g.assistName;
+                  return (
+                    <p key={i} className="text-sm">
+                      {g.minute}' — {g.type === 'scored' ? pName(g.scorerPlayerId) : t('report.conceded')} ({g.method})
+                      {g.type === 'scored' && assist && (
+                        <span className="text-muted-foreground"> · {t('report.assistBy')} {assist}</span>
+                      )}
+                    </p>
+                  );
+                })}
               </section>
             )}
 
