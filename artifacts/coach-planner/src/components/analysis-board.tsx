@@ -70,6 +70,7 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
 
   const [editingId, setEditingId] = React.useState<number | null>(null);
   const [sessionName, setSessionName] = React.useState('');
+  const sessionNameInputRef = React.useRef<HTMLInputElement>(null);
   const [board, setBoardRaw] = React.useState<BoardData>(emptyAnalysisBoard());
   const [sessionPickerOpen, setSessionPickerOpen] = React.useState(sessions.length === 0);
 
@@ -127,18 +128,24 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
   };
 
   const handleSave = () => {
-    if (!sessionName.trim()) {
+    // Same iOS Safari + React quirk as the tactic-name fix — text
+    // entered via the predictive-text/autocomplete bar can visibly
+    // fill the field without React's onChange-driven state ever
+    // catching up. Falls back to the input's actual current DOM value
+    // rather than trusting only the potentially-stale controlled one.
+    const currentName = sessionName.trim() || sessionNameInputRef.current?.value.trim() || '';
+    if (!currentName) {
       toast({ title: t('analysis.nameRequired'), variant: 'destructive' });
       return;
     }
     save.mutate(
-      { id: editingId ?? undefined, name: sessionName.trim(), kind: 'analysis', data: board },
+      { id: editingId ?? undefined, name: currentName, kind: 'analysis', data: board },
       {
         onSuccess: (saved) => {
           toast({ title: t('tactics.saved') });
           setEditingId(saved.id);
+          setSessionName(currentName);
         },
-        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
       },
     );
   };
@@ -555,7 +562,7 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
           <DialogHeader><DialogTitle>{t('analysis.sessions')}</DialogTitle></DialogHeader>
           <div className="space-y-2">
             <div className="flex gap-2">
-              <Input value={sessionName} onChange={(e) => setSessionName(e.target.value)} placeholder={t('analysis.sessionName')} className="flex-1" />
+              <Input ref={sessionNameInputRef} value={sessionName} onChange={(e) => setSessionName(e.target.value)} placeholder={t('analysis.sessionName')} className="flex-1" />
               <Button onClick={() => openSession()}>{t('analysis.newSession')}</Button>
             </div>
             {sessions.length > 0 && (
