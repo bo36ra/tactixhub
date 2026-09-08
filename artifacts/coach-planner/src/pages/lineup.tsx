@@ -18,9 +18,11 @@ import {
 import { useTeam } from '@/lib/team-context';
 import { FORMATIONS, FORMATION_NAMES } from '@/lib/formations';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, ArrowLeft, Star, Check } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Star, Check, X } from 'lucide-react';
 
 export function Lineup() {
   const { t, isRtl, lang } = useLanguage();
@@ -35,6 +37,8 @@ export function Lineup() {
   const [assignments, setAssignments] = useState<Record<number, number | undefined>>({});
   const [captainSlot, setCaptainSlot] = useState<number | undefined>(undefined);
   const [saved, setSaved] = useState(false);
+  const [pickingSlot, setPickingSlot] = useState<number | null>(null);
+  const [pickerSearch, setPickerSearch] = useState('');
 
   const { data: players, isLoading } = useListPlayers(activeTeamId!, {
     query: { enabled: !!activeTeamId, queryKey: getListPlayersQueryKey(activeTeamId!) },
@@ -163,8 +167,8 @@ export function Lineup() {
                   style={{ left: `${slot.x}%`, top: `${100 - slot.y}%` }}
                 >
                   <button
-                    onClick={() => player && setCaptainSlot(isCaptain ? undefined : slot.slotIndex)}
-                    className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold border-2 shadow-md transition-transform hover:scale-105 ${
+                    onClick={() => { setPickingSlot(slot.slotIndex); setPickerSearch(''); }}
+                    className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold border-2 shadow-md transition-transform hover:scale-105 relative ${
                       player
                         ? 'bg-primary text-primary-foreground border-white'
                         : 'bg-white/15 text-white/70 border-white/40 border-dashed'
@@ -230,6 +234,78 @@ export function Lineup() {
           </div>
         </div>
       </div>
+
+      {/* Tap-the-circle player picker — the pitch circles previously only
+          toggled captain status once a player was already assigned; picking
+          or changing who's in a slot required scrolling to the list below.
+          This opens from any circle (empty or filled) as a faster, more
+          direct alternative — the list below still works exactly as before
+          for anyone who prefers it, both stay in sync against the same
+          assignments state. */}
+      <Sheet open={pickingSlot !== null} onOpenChange={(o) => !o && setPickingSlot(null)}>
+        <SheetContent side="bottom" className="max-h-[75vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>
+              {pickingSlot !== null && (slots.find((s) => s.slotIndex === pickingSlot)?.label ?? '')}
+              {' — '}{t('lineup.selectPlayer')}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="space-y-3 py-2">
+            {pickingSlot !== null && playerById(assignments[pickingSlot]) && (() => {
+              const current = playerById(assignments[pickingSlot])!;
+              const isCurrentCaptain = captainSlot === pickingSlot;
+              return (
+                <div className="flex items-center gap-2 p-2 rounded-lg border bg-muted/30">
+                  <JerseyNumber n={current.jerseyNumber} className="" />
+                  <span className="flex-1 truncate text-sm font-medium">{playerName(current, lang)}</span>
+                  <Button
+                    size="sm" variant={isCurrentCaptain ? 'default' : 'outline'}
+                    onClick={() => setCaptainSlot(isCurrentCaptain ? undefined : pickingSlot)}
+                  >
+                    <Star className={`w-3.5 h-3.5 ${isCurrentCaptain ? 'fill-current' : ''}`} />
+                  </Button>
+                  <Button
+                    size="sm" variant="ghost" className="text-destructive hover:text-destructive"
+                    onClick={() => { handleAssign(pickingSlot, ''); setPickingSlot(null); }}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              );
+            })()}
+
+            <Input
+              autoFocus
+              placeholder={t('tactics.searchPlayerPlaceholder')}
+              value={pickerSearch}
+              onChange={(e) => setPickerSearch(e.target.value)}
+            />
+
+            <div className="space-y-1">
+              {(players ?? [])
+                .filter((p) => !assignedPlayerIds.has(p.id) || (pickingSlot !== null && assignments[pickingSlot] === p.id))
+                .filter((p) => {
+                  const q = pickerSearch.trim().toLowerCase();
+                  return !q || playerName(p, lang).toLowerCase().includes(q) || String(p.jerseyNumber).includes(q);
+                })
+                .map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 text-start"
+                    onClick={() => {
+                      if (pickingSlot !== null) handleAssign(pickingSlot, String(p.id));
+                      setPickingSlot(null);
+                    }}
+                  >
+                    <JerseyNumber n={p.jerseyNumber} className="" />
+                    <span className="truncate text-sm">{playerName(p, lang)}</span>
+                  </button>
+                ))}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </PullToRefresh>
     </AppLayout>
   );
