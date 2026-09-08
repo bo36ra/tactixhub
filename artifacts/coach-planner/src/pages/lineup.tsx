@@ -168,15 +168,19 @@ export function Lineup() {
                 >
                   <button
                     onClick={() => { setPickingSlot(slot.slotIndex); setPickerSearch(''); }}
-                    className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold border-2 shadow-md transition-transform hover:scale-105 relative ${
+                    className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold border-2 shadow-md transition-transform hover:scale-105 relative overflow-hidden ${
                       player
                         ? 'bg-primary text-primary-foreground border-white'
                         : 'bg-white/15 text-white/70 border-white/40 border-dashed'
                     }`}
                   >
-                    {player ? player.jerseyNumber : slot.label}
+                    {player?.photo ? (
+                      <img src={player.photo} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    ) : (
+                      player ? player.jerseyNumber : slot.label
+                    )}
                     {isCaptain && (
-                      <Star className="w-3 h-3 absolute -top-1 -right-1 fill-yellow-400 text-yellow-400" />
+                      <Star className="w-3 h-3 absolute -top-1 -right-1 fill-yellow-400 text-yellow-400 z-10" />
                     )}
                   </button>
                   <span className="text-[10px] font-medium text-white bg-black/40 px-1.5 py-0.5 rounded max-w-[72px] truncate">
@@ -256,7 +260,11 @@ export function Lineup() {
               const isCurrentCaptain = captainSlot === pickingSlot;
               return (
                 <div className="flex items-center gap-2 p-2 rounded-lg border bg-muted/30">
-                  <JerseyNumber n={current.jerseyNumber} className="" />
+                  {current.photo ? (
+                    <img src={current.photo} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
+                  ) : (
+                    <JerseyNumber n={current.jerseyNumber} className="" />
+                  )}
                   <span className="flex-1 truncate text-sm font-medium">{playerName(current, lang)}</span>
                   <Button
                     size="sm" variant={isCurrentCaptain ? 'default' : 'outline'}
@@ -298,7 +306,11 @@ export function Lineup() {
                       setPickingSlot(null);
                     }}
                   >
-                    <JerseyNumber n={p.jerseyNumber} className="" />
+                    {p.photo ? (
+                      <img src={p.photo} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <JerseyNumber n={p.jerseyNumber} className="" />
+                    )}
                     <span className="truncate text-sm">{playerName(p, lang)}</span>
                   </button>
                 ))}
