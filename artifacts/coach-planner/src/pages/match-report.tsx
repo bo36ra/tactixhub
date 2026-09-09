@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearch } from 'wouter';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
@@ -27,6 +28,16 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
   const { data: cards } = useListCards(teamId);
   const { data: minutes } = useListPlayingTime(teamId);
   const [matchId, setMatchId] = useState<number | null>(null);
+  // Lets other pages (the Reports match table, for one) deep-link
+  // straight to a specific match's report via ?matchId=123 instead of
+  // landing here and having to re-pick the same match from the
+  // dropdown a second time.
+  const search = useSearch();
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const fromUrl = params.get('matchId');
+    if (fromUrl) setMatchId(parseInt(fromUrl, 10));
+  }, [search]);
   const { data: ratings } = useRatings(teamId, matchId);
   const { data: lineup } = useGetLineup(matchId!, {
     query: { enabled: !!matchId, queryKey: getGetLineupQueryKey(matchId!) },

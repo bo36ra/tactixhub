@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
 import { PullToRefresh } from '@/components/pull-to-refresh';
 import { StickyHeader, PageTitle } from '@/components/page-header';
@@ -49,6 +50,7 @@ export function Reports() {
   const queryClient = useQueryClient();
   const { activeTeamId } = useTeam();
   const [tab, setTab] = React.useState<TabId>('games');
+  const [, setLocation] = useLocation();
 
   const enabled = !!activeTeamId;
   const tid = activeTeamId!;
@@ -317,7 +319,11 @@ export function Reports() {
                       const pillClass =
                         result === 'win' ? 'pill-green' : result === 'loss' ? 'pill-red' : 'pill-yellow';
                       return (
-                        <tr key={m.id} className="hover:bg-muted/40 transition-colors">
+                        <tr
+                          key={m.id}
+                          onClick={() => setLocation(`/match-report?matchId=${m.id}`)}
+                          className="hover:bg-muted/40 transition-colors cursor-pointer"
+                        >
                           <td className="px-5 py-3.5 text-muted-foreground">
                             {format(new Date(m.date + 'T00:00:00'), 'MMM d, yyyy')}
                           </td>
@@ -327,9 +333,12 @@ export function Reports() {
                             {m.ourGoals} – {m.theirGoals}
                           </td>
                           <td className="px-5 py-3.5 text-center">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${pillClass}`}>
-                              {t(`match.${result}`)}
-                            </span>
+                            <div className="flex items-center justify-center gap-2">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${pillClass}`}>
+                                {t(`match.${result}`)}
+                              </span>
+                              {isRtl ? <ChevronLeft className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />}
+                            </div>
                           </td>
                         </tr>
                       );
