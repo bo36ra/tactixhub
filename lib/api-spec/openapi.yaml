@@ -1461,6 +1461,18 @@ components:
         videoUrl:
           type: string
           nullable: true
+        teamPerformanceNotes:
+          type: string
+          nullable: true
+        strengthsNotes:
+          type: string
+          nullable: true
+        improvementNotes:
+          type: string
+          nullable: true
+        generalNotes:
+          type: string
+          nullable: true
         createdAt:
           type: string
 
@@ -1583,6 +1595,14 @@ components:
           type: integer
           minimum: 0
         videoUrl:
+          type: string
+        teamPerformanceNotes:
+          type: string
+        strengthsNotes:
+          type: string
+        improvementNotes:
+          type: string
+        generalNotes:
           type: string
 
     MatchInput:

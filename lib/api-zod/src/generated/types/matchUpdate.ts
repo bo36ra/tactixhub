@@ -17,4 +17,8 @@ export interface MatchUpdate {
   /** @minimum 0 */
   theirGoals?: number;
   videoUrl?: string;
+  teamPerformanceNotes?: string;
+  strengthsNotes?: string;
+  improvementNotes?: string;
+  generalNotes?: string;
 }

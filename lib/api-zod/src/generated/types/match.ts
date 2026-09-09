@@ -17,5 +17,9 @@ export interface Match {
   ourGoals: number;
   theirGoals: number;
   videoUrl?: string | null;
+  teamPerformanceNotes?: string | null;
+  strengthsNotes?: string | null;
+  improvementNotes?: string | null;
+  generalNotes?: string | null;
   createdAt: string;
 }

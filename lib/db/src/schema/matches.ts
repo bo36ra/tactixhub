@@ -19,6 +19,16 @@ export const matchesTable = pgTable("matches", {
   // bigger undertaking than this needs. Linking out to wherever the
   // coach already keeps the footage is the practical path.
   videoUrl: text("video_url"),
+  // Post-match coach analysis, kept as separate structured fields rather
+  // than one combined free-text box — mirrors a printed match-report
+  // template's own breakdown (team performance / strengths / areas to
+  // improve / general notes) so each stays its own quick-scannable
+  // section on the report rather than one wall of text to search
+  // through later.
+  teamPerformanceNotes: text("team_performance_notes"),
+  strengthsNotes: text("strengths_notes"),
+  improvementNotes: text("improvement_notes"),
+  generalNotes: text("general_notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -3,16 +3,17 @@ import { useSearch } from 'wouter';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
-import { useListMatches, useListPlayers, useListGoals, useListCards, useListPlayingTime, useUpdateMatch, useGetLineup, getListMatchesQueryKey, getGetLineupQueryKey } from '@workspace/api-client-react';
+import { useListMatches, useListPlayers, useListGoals, useListCards, useListPlayingTime, useUpdateMatch, useGetLineup, useCreateCard, useDeleteCard, getListMatchesQueryKey, getGetLineupQueryKey, getListCardsQueryKey } from '@workspace/api-client-react';
 import { useRatings } from '@/lib/dev-api';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { VideoWithTags } from '@/components/video-with-tags';
 import { HighlightClips } from '@/components/highlight-clips';
-import { FileText, Printer, Video, Pencil, X, Check } from 'lucide-react';
+import { FileText, Printer, Video, Pencil, X, Check, Plus, Trash2 } from 'lucide-react';
 
 export default function MatchReport() {
   const { t } = useLanguage();
@@ -47,6 +48,14 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
   const updateMatch = useUpdateMatch();
   const [editingVideo, setEditingVideo] = useState(false);
   const [videoDraft, setVideoDraft] = useState('');
+  const createCard = useCreateCard();
+  const deleteCard = useDeleteCard();
+  const [addingCard, setAddingCard] = useState(false);
+  const [cardPlayerId, setCardPlayerId] = useState('');
+  const [cardMinute, setCardMinute] = useState('');
+  const [cardType, setCardType] = useState<'yellow' | 'red'>('yellow');
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesDraft, setNotesDraft] = useState({ teamPerformanceNotes: '', strengthsNotes: '', improvementNotes: '', generalNotes: '' });
 
   const m = (matches ?? []).find((x) => x.id === matchId);
   const pName = (id: number | null | undefined) =>
@@ -64,6 +73,57 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(teamId) });
           setEditingVideo(false);
+        },
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
+      },
+    );
+  };
+
+  const handleAddCard = () => {
+    if (!matchId || !cardPlayerId || !cardMinute) return;
+    createCard.mutate(
+      { teamId, data: { matchId, playerId: Number(cardPlayerId), cardType, minute: Number(cardMinute) } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListCardsQueryKey(teamId) });
+          setAddingCard(false);
+          setCardPlayerId('');
+          setCardMinute('');
+          setCardType('yellow');
+        },
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
+      },
+    );
+  };
+
+  const handleDeleteCard = (cardId: number) => {
+    deleteCard.mutate(
+      { teamId, cardId },
+      {
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: getListCardsQueryKey(teamId) }),
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
+      },
+    );
+  };
+
+  const openNotesEditor = () => {
+    setNotesDraft({
+      teamPerformanceNotes: m?.teamPerformanceNotes ?? '',
+      strengthsNotes: m?.strengthsNotes ?? '',
+      improvementNotes: m?.improvementNotes ?? '',
+      generalNotes: m?.generalNotes ?? '',
+    });
+    setEditingNotes(true);
+  };
+
+  const saveNotes = () => {
+    if (!matchId) return;
+    updateMatch.mutate(
+      { teamId, matchId, data: notesDraft },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(teamId) });
+          setEditingNotes(false);
         },
         onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
       },
@@ -145,6 +205,107 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
               </section>
             )}
 
+            {mGoals.length > 0 && (
+              <section>
+                <h3 className="font-bold mb-1">⚽ {t('nav.goals')}</h3>
+                {mGoals.map((g, i) => {
+                  const assist = g.assistPlayerId ? pName(g.assistPlayerId) : g.assistName;
+                  return (
+                    <p key={i} className="text-sm">
+                      {g.minute}' — {g.type === 'scored' ? pName(g.scorerPlayerId) : t('report.conceded')} ({g.method})
+                      {g.type === 'scored' && assist && (
+                        <span className="text-muted-foreground"> · {t('report.assistBy')} {assist}</span>
+                      )}
+                    </p>
+                  );
+                })}
+              </section>
+            )}
+
+            <section>
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="font-bold flex items-center gap-1.5">🟨 {t('nav.cards')}</h3>
+                {!addingCard && (
+                  <button type="button" className="print:hidden text-xs text-primary hover:underline flex items-center gap-1" onClick={() => setAddingCard(true)}>
+                    <Plus className="w-3.5 h-3.5" /> {t('report.addCard')}
+                  </button>
+                )}
+              </div>
+              {mCards.map((c) => (
+                <div key={c.id} className="flex items-center justify-between text-sm group">
+                  <p>{c.minute}' — {pName(c.playerId)} ({c.cardType})</p>
+                  <button
+                    type="button"
+                    className="print:hidden text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleDeleteCard(c.id)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+              {mCards.length === 0 && !addingCard && (
+                <p className="text-sm text-muted-foreground print:hidden">{t('report.noCards')}</p>
+              )}
+              {addingCard && (
+                <div className="print:hidden flex flex-wrap items-center gap-2 mt-2 p-2 rounded-lg border bg-muted/30">
+                  <Select value={cardPlayerId} onValueChange={setCardPlayerId}>
+                    <SelectTrigger className="h-8 text-xs w-40"><SelectValue placeholder={t('lineup.selectPlayer')} /></SelectTrigger>
+                    <SelectContent>
+                      {(players ?? []).map((p) => (
+                        <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    className="h-8 text-xs w-20"
+                    placeholder={t('report.minute')}
+                    inputMode="numeric"
+                    value={cardMinute}
+                    onChange={(e) => setCardMinute(e.target.value.replace(/\D/g, ''))}
+                  />
+                  <Select value={cardType} onValueChange={(v) => setCardType(v as 'yellow' | 'red')}>
+                    <SelectTrigger className="h-8 text-xs w-28"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yellow">{t('report.yellowCard')}</SelectItem>
+                      <SelectItem value="red">{t('report.redCard')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" disabled={!cardPlayerId || !cardMinute || createCard.isPending} onClick={handleAddCard}>
+                    <Check className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setAddingCard(false)}>
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              )}
+            </section>
+
+            {(ratings ?? []).length > 0 && (
+              <section>
+                <h3 className="font-bold mb-1">📊 {t('perf.tabRatings')}</h3>
+                <div className="grid grid-cols-2 gap-x-4">
+                  {(ratings ?? []).slice().sort((a, b) => b.rating - a.rating).map((r) => (
+                    <p key={r.id} className="text-sm flex justify-between">
+                      <span>{pName(r.playerId)}</span><b>{r.rating}/10</b>
+                    </p>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {mMinutes.length > 0 && (
+              <section>
+                <h3 className="font-bold mb-1">⏱ {t('nav.playingTime')}</h3>
+                <div className="grid grid-cols-2 gap-x-4">
+                  {mMinutes.sort((a, b) => b.minutes - a.minutes).map((x, i) => (
+                    <p key={i} className="text-sm flex justify-between">
+                      <span>{pName(x.playerId)}</span><span>{x.minutes}'</span>
+                    </p>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {(m.videoUrl || editingVideo) && (
               <section className="print:hidden">
                 <h3 className="font-bold mb-1.5 flex items-center gap-1.5">🎥 {t('match.videoTitle')}</h3>
@@ -188,57 +349,60 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
               <HighlightClips teamId={teamId} matchId={m.id} />
             </section>
 
-            {mGoals.length > 0 && (
-              <section>
-                <h3 className="font-bold mb-1">⚽ {t('nav.goals')}</h3>
-                {mGoals.map((g, i) => {
-                  const assist = g.assistPlayerId ? pName(g.assistPlayerId) : g.assistName;
-                  return (
-                    <p key={i} className="text-sm">
-                      {g.minute}' — {g.type === 'scored' ? pName(g.scorerPlayerId) : t('report.conceded')} ({g.method})
-                      {g.type === 'scored' && assist && (
-                        <span className="text-muted-foreground"> · {t('report.assistBy')} {assist}</span>
-                      )}
-                    </p>
-                  );
-                })}
-              </section>
-            )}
-
-            {mCards.length > 0 && (
-              <section>
-                <h3 className="font-bold mb-1">🟨 {t('nav.cards')}</h3>
-                {mCards.map((c, i) => (
-                  <p key={i} className="text-sm">{c.minute}' — {pName(c.playerId)} ({c.cardType})</p>
-                ))}
-              </section>
-            )}
-
-            {(ratings ?? []).length > 0 && (
-              <section>
-                <h3 className="font-bold mb-1">📊 {t('perf.tabRatings')}</h3>
-                <div className="grid grid-cols-2 gap-x-4">
-                  {(ratings ?? []).slice().sort((a, b) => b.rating - a.rating).map((r) => (
-                    <p key={r.id} className="text-sm flex justify-between">
-                      <span>{pName(r.playerId)}</span><b>{r.rating}/10</b>
-                    </p>
+            <section>
+              <div className="flex items-center justify-between mb-1.5">
+                <h3 className="font-bold flex items-center gap-1.5">📝 {t('report.coachNotes')}</h3>
+                {!editingNotes && (
+                  <button type="button" className="print:hidden text-xs text-primary hover:underline flex items-center gap-1" onClick={openNotesEditor}>
+                    <Pencil className="w-3.5 h-3.5" /> {t('common.edit')}
+                  </button>
+                )}
+              </div>
+              {editingNotes ? (
+                <div className="print:hidden space-y-3">
+                  {([
+                    ['teamPerformanceNotes', t('report.teamPerformance')],
+                    ['strengthsNotes', t('report.strengths')],
+                    ['improvementNotes', t('report.improvementAreas')],
+                    ['generalNotes', t('report.generalNotes')],
+                  ] as const).map(([field, label]) => (
+                    <div key={field}>
+                      <label className="text-xs font-semibold text-muted-foreground">{label}</label>
+                      <Textarea
+                        value={notesDraft[field]}
+                        onChange={(e) => setNotesDraft((prev) => ({ ...prev, [field]: e.target.value }))}
+                        rows={3}
+                      />
+                    </div>
                   ))}
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={saveNotes} disabled={updateMatch.isPending}>
+                      <Check className="w-3.5 h-3.5 me-1" />{t('common.save')}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingNotes(false)}>
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 </div>
-              </section>
-            )}
-
-            {mMinutes.length > 0 && (
-              <section>
-                <h3 className="font-bold mb-1">⏱ {t('nav.playingTime')}</h3>
-                <div className="grid grid-cols-2 gap-x-4">
-                  {mMinutes.sort((a, b) => b.minutes - a.minutes).map((x, i) => (
-                    <p key={i} className="text-sm flex justify-between">
-                      <span>{pName(x.playerId)}</span><span>{x.minutes}'</span>
-                    </p>
-                  ))}
+              ) : (m.teamPerformanceNotes || m.strengthsNotes || m.improvementNotes || m.generalNotes) ? (
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {m.teamPerformanceNotes && (
+                    <div><p className="text-xs font-semibold text-muted-foreground mb-0.5">{t('report.teamPerformance')}</p><p className="text-sm whitespace-pre-wrap">{m.teamPerformanceNotes}</p></div>
+                  )}
+                  {m.strengthsNotes && (
+                    <div><p className="text-xs font-semibold text-muted-foreground mb-0.5">{t('report.strengths')}</p><p className="text-sm whitespace-pre-wrap">{m.strengthsNotes}</p></div>
+                  )}
+                  {m.improvementNotes && (
+                    <div><p className="text-xs font-semibold text-muted-foreground mb-0.5">{t('report.improvementAreas')}</p><p className="text-sm whitespace-pre-wrap">{m.improvementNotes}</p></div>
+                  )}
+                  {m.generalNotes && (
+                    <div className="sm:col-span-2"><p className="text-xs font-semibold text-muted-foreground mb-0.5">{t('report.generalNotes')}</p><p className="text-sm whitespace-pre-wrap">{m.generalNotes}</p></div>
+                  )}
                 </div>
-              </section>
-            )}
+              ) : (
+                <p className="text-sm text-muted-foreground print:hidden">{t('report.noNotesYet')}</p>
+              )}
+            </section>
           </div>
         )}
       </div>

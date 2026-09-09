@@ -245,6 +245,10 @@ export const ListMatchesResponseItem = zod.object({
   "ourGoals": zod.number(),
   "theirGoals": zod.number(),
   "videoUrl": zod.string().nullish(),
+  "teamPerformanceNotes": zod.string().nullish(),
+  "strengthsNotes": zod.string().nullish(),
+  "improvementNotes": zod.string().nullish(),
+  "generalNotes": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const ListMatchesResponse = zod.array(ListMatchesResponseItem)
@@ -283,6 +287,10 @@ export const CreateMatchResponse = zod.object({
   "ourGoals": zod.number(),
   "theirGoals": zod.number(),
   "videoUrl": zod.string().nullish(),
+  "teamPerformanceNotes": zod.string().nullish(),
+  "strengthsNotes": zod.string().nullish(),
+  "improvementNotes": zod.string().nullish(),
+  "generalNotes": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -308,7 +316,11 @@ export const UpdateMatchBody = zod.object({
   "type": zod.enum(['league', 'friendly', 'cup']).optional(),
   "ourGoals": zod.number().min(updateMatchBodyOurGoalsMin).optional(),
   "theirGoals": zod.number().min(updateMatchBodyTheirGoalsMin).optional(),
-  "videoUrl": zod.string().optional()
+  "videoUrl": zod.string().optional(),
+  "teamPerformanceNotes": zod.string().optional(),
+  "strengthsNotes": zod.string().optional(),
+  "improvementNotes": zod.string().optional(),
+  "generalNotes": zod.string().optional()
 })
 
 export const UpdateMatchResponse = zod.object({
@@ -321,6 +333,10 @@ export const UpdateMatchResponse = zod.object({
   "ourGoals": zod.number(),
   "theirGoals": zod.number(),
   "videoUrl": zod.string().nullish(),
+  "teamPerformanceNotes": zod.string().nullish(),
+  "strengthsNotes": zod.string().nullish(),
+  "improvementNotes": zod.string().nullish(),
+  "generalNotes": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -962,6 +978,10 @@ export const GetDashboardResponse = zod.object({
   "ourGoals": zod.number(),
   "theirGoals": zod.number(),
   "videoUrl": zod.string().nullish(),
+  "teamPerformanceNotes": zod.string().nullish(),
+  "strengthsNotes": zod.string().nullish(),
+  "improvementNotes": zod.string().nullish(),
+  "generalNotes": zod.string().nullish(),
   "createdAt": zod.string()
 })),
   "topScorers": zod.array(zod.object({
@@ -999,6 +1019,10 @@ export const GetDashboardResponse = zod.object({
   "ourGoals": zod.number(),
   "theirGoals": zod.number(),
   "videoUrl": zod.string().nullish(),
+  "teamPerformanceNotes": zod.string().nullish(),
+  "strengthsNotes": zod.string().nullish(),
+  "improvementNotes": zod.string().nullish(),
+  "generalNotes": zod.string().nullish(),
   "createdAt": zod.string()
 })),
   "attendanceMarked": zod.boolean()

@@ -189,6 +189,10 @@ export interface Match {
   ourGoals: number;
   theirGoals: number;
   videoUrl?: string | null;
+  teamPerformanceNotes?: string | null;
+  strengthsNotes?: string | null;
+  improvementNotes?: string | null;
+  generalNotes?: string | null;
   createdAt: string;
 }
 
@@ -273,6 +277,10 @@ export interface MatchUpdate {
   /** @minimum 0 */
   theirGoals?: number;
   videoUrl?: string;
+  teamPerformanceNotes?: string;
+  strengthsNotes?: string;
+  improvementNotes?: string;
+  generalNotes?: string;
 }
 
 export type MatchInputType = typeof MatchInputType[keyof typeof MatchInputType];

@@ -326,6 +326,10 @@ const STATEMENTS = [
       WHERE m."team_id" = t."id" AND m."user_id" = t."user_id"
     )`,
   `ALTER TABLE "matches" ADD COLUMN IF NOT EXISTS "video_url" text`,
+  `ALTER TABLE "matches" ADD COLUMN IF NOT EXISTS "team_performance_notes" text`,
+  `ALTER TABLE "matches" ADD COLUMN IF NOT EXISTS "strengths_notes" text`,
+  `ALTER TABLE "matches" ADD COLUMN IF NOT EXISTS "improvement_notes" text`,
+  `ALTER TABLE "matches" ADD COLUMN IF NOT EXISTS "general_notes" text`,
   `CREATE TABLE IF NOT EXISTS "library_documents" (
     "id" serial PRIMARY KEY,
     "user_id" text NOT NULL,

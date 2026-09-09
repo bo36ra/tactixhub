@@ -71,11 +71,14 @@ router.patch("/teams/:teamId/matches/:matchId", requireAuth, async (req, res) =>
   const userId = (req as any).userId as string;
   const teamId = parseInt(req.params.teamId as string);
   const matchId = parseInt(req.params.matchId as string);
-  const { opponent, date, type, ourGoals, theirGoals, videoUrl } = req.body ?? {};
+  const { opponent, date, type, ourGoals, theirGoals, videoUrl, teamPerformanceNotes, strengthsNotes, improvementNotes, generalNotes } = req.body ?? {};
   if (!(await verifyTeamOwnership(userId, teamId))) {
     res.status(403).json({ error: "Forbidden" });
     return;
   }
+  // Same shape for every note field: a string (even empty, to allow
+  // clearing) gets trimmed and capped; anything else is left alone.
+  const noteField = (v: unknown) => (typeof v === "string" ? { value: v.trim() ? v.trim().slice(0, 4000) : null } : null);
   try {
     const [match] = await db
       .update(matchesTable)
@@ -86,6 +89,10 @@ router.patch("/teams/:teamId/matches/:matchId", requireAuth, async (req, res) =>
         ...(Number.isInteger(ourGoals) && ourGoals >= 0 && { ourGoals }),
         ...(Number.isInteger(theirGoals) && theirGoals >= 0 && { theirGoals }),
         ...(typeof videoUrl === "string" && { videoUrl: videoUrl.trim() ? videoUrl.trim().slice(0, 2000) : null }),
+        ...(noteField(teamPerformanceNotes) && { teamPerformanceNotes: noteField(teamPerformanceNotes)!.value }),
+        ...(noteField(strengthsNotes) && { strengthsNotes: noteField(strengthsNotes)!.value }),
+        ...(noteField(improvementNotes) && { improvementNotes: noteField(improvementNotes)!.value }),
+        ...(noteField(generalNotes) && { generalNotes: noteField(generalNotes)!.value }),
       })
       .where(and(eq(matchesTable.id, matchId), eq(matchesTable.teamId, teamId)))
       .returning();
@@ -130,6 +137,10 @@ function mapMatch(m: typeof matchesTable.$inferSelect) {
     ourGoals: m.ourGoals,
     theirGoals: m.theirGoals,
     videoUrl: m.videoUrl,
+    teamPerformanceNotes: m.teamPerformanceNotes,
+    strengthsNotes: m.strengthsNotes,
+    improvementNotes: m.improvementNotes,
+    generalNotes: m.generalNotes,
     createdAt: m.createdAt.toISOString(),
   };
 }
