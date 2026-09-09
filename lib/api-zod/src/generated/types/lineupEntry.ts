@@ -8,10 +8,10 @@
 
 export interface LineupEntry {
   id: number;
-  playerId: number;
+  playerId: number | null;
   slotIndex: number | null;
   isCaptain: boolean;
-  playerName: string;
-  jerseyNumber: number;
+  playerName: string | null;
+  jerseyNumber: number | null;
   position: string;
 }

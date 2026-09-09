@@ -381,11 +381,11 @@ export const GetLineupResponse = zod.object({
   "formation": zod.string(),
   "entries": zod.array(zod.object({
   "id": zod.number(),
-  "playerId": zod.number(),
+  "playerId": zod.number().nullable(),
   "slotIndex": zod.number().nullable(),
   "isCaptain": zod.boolean(),
-  "playerName": zod.string(),
-  "jerseyNumber": zod.number(),
+  "playerName": zod.string().nullable(),
+  "jerseyNumber": zod.number().nullable(),
   "position": zod.string()
 }))
 })
@@ -401,7 +401,9 @@ export const SaveLineupParams = zod.object({
 export const SaveLineupBody = zod.object({
   "formation": zod.string(),
   "entries": zod.array(zod.object({
-  "playerId": zod.number(),
+  "playerId": zod.number().nullish(),
+  "guestName": zod.string().nullish(),
+  "guestJerseyNumber": zod.number().nullish(),
   "slotIndex": zod.number().nullable(),
   "isCaptain": zod.boolean().optional()
 }))

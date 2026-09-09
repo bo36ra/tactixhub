@@ -64,19 +64,37 @@ router.get("/matches/:matchId/lineup", requireAuth, async (req, res) => {
   }
   try {
     const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, matchId));
-    const entries = await db
+    const rows = await db
       .select({
         id: lineupEntriesTable.id,
         playerId: lineupEntriesTable.playerId,
         slotIndex: lineupEntriesTable.slotIndex,
         isCaptain: lineupEntriesTable.isCaptain,
+        guestName: lineupEntriesTable.guestName,
+        guestJerseyNumber: lineupEntriesTable.guestJerseyNumber,
         playerName: playersTable.name,
         jerseyNumber: playersTable.jerseyNumber,
         position: playersTable.position,
       })
       .from(lineupEntriesTable)
-      .innerJoin(playersTable, eq(playersTable.id, lineupEntriesTable.playerId))
+      // LEFT JOIN (not INNER) so guest entries — playerId is null — still
+      // come back, rather than silently disappearing the way an INNER
+      // JOIN would drop them.
+      .leftJoin(playersTable, eq(playersTable.id, lineupEntriesTable.playerId))
       .where(eq(lineupEntriesTable.matchId, matchId));
+
+    // Guests have no roster record to draw a position from, hence the
+    // fallback empty string — the frontend only shows this label
+    // alongside a real assigned slot, which a guest can still have.
+    const entries = rows.map((r) => ({
+      id: r.id,
+      playerId: r.playerId,
+      slotIndex: r.slotIndex,
+      isCaptain: r.isCaptain,
+      playerName: r.playerId ? r.playerName : r.guestName,
+      jerseyNumber: r.playerId ? r.jerseyNumber : r.guestJerseyNumber,
+      position: r.playerId ? r.position : "",
+    }));
 
     res.json({
       matchId,
@@ -103,11 +121,28 @@ router.put("/matches/:matchId/lineup", requireAuth, async (req, res) => {
 
   const { formation, entries } = req.body as {
     formation: string;
-    entries: { playerId: number; slotIndex: number | null; isCaptain?: boolean }[];
+    entries: {
+      playerId?: number | null;
+      guestName?: string | null;
+      guestJerseyNumber?: number | null;
+      slotIndex: number | null;
+      isCaptain?: boolean;
+    }[];
   };
   if (!formation || !Array.isArray(entries)) {
     res.status(400).json({ error: "formation and entries are required" });
     return;
+  }
+  // Exactly one of playerId or guestName per entry — enforced here since
+  // there's no clean way to express "at least one of these two columns"
+  // as a DB check constraint for this shape.
+  for (const e of entries) {
+    const hasPlayer = e.playerId != null;
+    const hasGuest = typeof e.guestName === "string" && e.guestName.trim().length > 0;
+    if (hasPlayer === hasGuest) {
+      res.status(400).json({ error: "Each lineup entry needs exactly one of playerId or guestName" });
+      return;
+    }
   }
 
   try {
@@ -117,7 +152,9 @@ router.put("/matches/:matchId/lineup", requireAuth, async (req, res) => {
       await db.insert(lineupEntriesTable).values(
         entries.map((e) => ({
           matchId,
-          playerId: e.playerId,
+          playerId: e.playerId ?? null,
+          guestName: e.playerId == null ? (e.guestName ?? null) : null,
+          guestJerseyNumber: e.playerId == null ? (e.guestJerseyNumber ?? null) : null,
           slotIndex: e.slotIndex,
           isCaptain: e.isCaptain ?? false,
         })),

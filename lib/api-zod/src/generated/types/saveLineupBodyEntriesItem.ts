@@ -7,7 +7,9 @@
  */
 
 export type SaveLineupBodyEntriesItem = {
-  playerId: number;
+  playerId?: number | null;
+  guestName?: string | null;
+  guestJerseyNumber?: number | null;
   slotIndex: number | null;
   isCaptain?: boolean;
 };

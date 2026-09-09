@@ -236,11 +236,11 @@ export interface PlayerTimeline {
 
 export interface LineupEntry {
   id: number;
-  playerId: number;
+  playerId: number | null;
   slotIndex: number | null;
   isCaptain: boolean;
-  playerName: string;
-  jerseyNumber: number;
+  playerName: string | null;
+  jerseyNumber: number | null;
   position: string;
 }
 
@@ -810,7 +810,9 @@ export interface UnreadCount {
 }
 
 export type SaveLineupBodyEntriesItem = {
-  playerId: number;
+  playerId?: number | null;
+  guestName?: string | null;
+  guestJerseyNumber?: number | null;
   slotIndex: number | null;
   isCaptain?: boolean;
 };

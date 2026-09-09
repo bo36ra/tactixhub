@@ -376,6 +376,15 @@ const STATEMENTS = [
     ALTER TABLE "week_cycles" ADD CONSTRAINT "week_cycles_team_month_day_key" UNIQUE ("team_id", "month", "day_of_week");
   EXCEPTION WHEN duplicate_object THEN NULL;
   END $$`,
+  // Supports a "guest" lineup entry — a player not in the roster at all
+  // (e.g. someone promoted up from a younger age group just for this
+  // match). player_id becomes optional; guest_name/guest_jersey_number
+  // stand in for the real player's fields when it's null. DROP NOT NULL
+  // is idempotent on its own (a no-op if already nullable), same safe-
+  // to-retry property every other statement here has.
+  `ALTER TABLE "lineup_entries" ALTER COLUMN "player_id" DROP NOT NULL`,
+  `ALTER TABLE "lineup_entries" ADD COLUMN IF NOT EXISTS "guest_name" text`,
+  `ALTER TABLE "lineup_entries" ADD COLUMN IF NOT EXISTS "guest_jersey_number" integer`,
 ];
 
 export async function ensureSchema(): Promise<void> {

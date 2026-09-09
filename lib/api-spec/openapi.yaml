@@ -384,10 +384,17 @@ paths:
                   type: array
                   items:
                     type: object
-                    required: [playerId, slotIndex]
+                    required: [slotIndex]
                     properties:
                       playerId:
                         type: integer
+                        nullable: true
+                      guestName:
+                        type: string
+                        nullable: true
+                      guestJerseyNumber:
+                        type: integer
+                        nullable: true
                       slotIndex:
                         type: integer
                         nullable: true
@@ -1524,6 +1531,7 @@ components:
           type: integer
         playerId:
           type: integer
+          nullable: true
         slotIndex:
           type: integer
           nullable: true
@@ -1531,8 +1539,10 @@ components:
           type: boolean
         playerName:
           type: string
+          nullable: true
         jerseyNumber:
           type: integer
+          nullable: true
         position:
           type: string
 
