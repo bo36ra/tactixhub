@@ -63,7 +63,7 @@ export function Readiness() {
     // already excluded here for the identical not-informative reason.
     // Late arrivals (excused or not) were never an issue in the first
     // place — the backend already records those as present, not absent.
-    const NEUTRAL_STATUSES = ['not_called', 'national_duty', 'called_up'];
+    const NEUTRAL_STATUSES = ['not_called', 'national_duty', 'called_up', 'rest_day'];
     for (const rec of allAttendance ?? []) {
       if (rec.date < cutoff || NEUTRAL_STATUSES.includes(rec.status ?? '')) continue;
       const cur = map.get(rec.playerId) ?? { present: 0, total: 0 };

@@ -168,7 +168,14 @@ router.get("/teams/:teamId/attendance/summary", requireAuth, async (req, res) =>
               eq(attendanceTable.playerId, p.id),
             ),
           );
-        const counted = records.filter((r) => r.status !== "not_called");
+        // Same neutral-status reasoning as readiness.tsx's own rate
+        // calculation: none of these represent an actual absence, so
+        // none should count against (or for) attendance here. rest_day
+        // means no training happened for the whole team; national_duty/
+        // called_up mean the player was legitimately elsewhere; not_called
+        // was already excluded before this and stays that way.
+        const NEUTRAL_STATUSES = ["not_called", "national_duty", "called_up", "rest_day"];
+        const counted = records.filter((r) => !NEUTRAL_STATUSES.includes(r.status ?? ""));
         const totalPresent = counted.filter((r) => r.present).length;
         const totalAbsent = counted.filter((r) => !r.present).length;
         const total = totalPresent + totalAbsent;
