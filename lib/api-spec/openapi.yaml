@@ -1318,6 +1318,9 @@ components:
           type: string
         tier:
           type: string
+        weekStartDay:
+          type: integer
+          description: 0 = Sunday ... 6 = Saturday
         createdAt:
           type: string
 
@@ -1343,6 +1346,9 @@ components:
           type: string
         season:
           type: string
+        weekStartDay:
+          type: integer
+          description: 0 = Sunday ... 6 = Saturday
 
     Player:
       type: object

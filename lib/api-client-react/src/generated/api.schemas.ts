@@ -18,6 +18,8 @@ export interface Team {
   season?: string | null;
   userId: string;
   tier?: string;
+  /** 0 = Sunday ... 6 = Saturday */
+  weekStartDay?: number;
   createdAt: string;
 }
 
@@ -33,6 +35,8 @@ export interface TeamUpdate {
   name?: string;
   ageGroup?: string;
   season?: string;
+  /** 0 = Sunday ... 6 = Saturday */
+  weekStartDay?: number;
 }
 
 export type PlayerPosition = typeof PlayerPosition[keyof typeof PlayerPosition];

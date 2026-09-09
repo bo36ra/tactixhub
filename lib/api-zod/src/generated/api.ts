@@ -26,6 +26,7 @@ export const ListTeamsResponseItem = zod.object({
   "season": zod.string().nullish(),
   "userId": zod.string(),
   "tier": zod.string().optional(),
+  "weekStartDay": zod.number().optional().describe('0 = Sunday ... 6 = Saturday'),
   "createdAt": zod.string()
 })
 export const ListTeamsResponse = zod.array(ListTeamsResponseItem)
@@ -50,6 +51,7 @@ export const CreateTeamResponse = zod.object({
   "season": zod.string().nullish(),
   "userId": zod.string(),
   "tier": zod.string().optional(),
+  "weekStartDay": zod.number().optional().describe('0 = Sunday ... 6 = Saturday'),
   "createdAt": zod.string()
 })
 
@@ -68,6 +70,7 @@ export const GetTeamResponse = zod.object({
   "season": zod.string().nullish(),
   "userId": zod.string(),
   "tier": zod.string().optional(),
+  "weekStartDay": zod.number().optional().describe('0 = Sunday ... 6 = Saturday'),
   "createdAt": zod.string()
 })
 
@@ -85,7 +88,8 @@ export const UpdateTeamParams = zod.object({
 export const UpdateTeamBody = zod.object({
   "name": zod.string().min(1).optional(),
   "ageGroup": zod.string().optional(),
-  "season": zod.string().optional()
+  "season": zod.string().optional(),
+  "weekStartDay": zod.number().optional().describe('0 = Sunday ... 6 = Saturday')
 })
 
 export const UpdateTeamResponse = zod.object({
@@ -95,6 +99,7 @@ export const UpdateTeamResponse = zod.object({
   "season": zod.string().nullish(),
   "userId": zod.string(),
   "tier": zod.string().optional(),
+  "weekStartDay": zod.number().optional().describe('0 = Sunday ... 6 = Saturday'),
   "createdAt": zod.string()
 })
 

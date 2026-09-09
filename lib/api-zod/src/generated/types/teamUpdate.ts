@@ -11,4 +11,6 @@ export interface TeamUpdate {
   name?: string;
   ageGroup?: string;
   season?: string;
+  /** 0 = Sunday ... 6 = Saturday */
+  weekStartDay?: number;
 }

@@ -5,7 +5,7 @@ import { PullToRefresh } from '@/components/pull-to-refresh';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
-import { useListMatches, getListMatchesQueryKey, useListAttendance, getListAttendanceQueryKey, useListPlayers, getListPlayersQueryKey, useCreateMatch, useUpdateMatch, useDeleteMatch, useListGoals, getListGoalsQueryKey, type MatchInputType } from '@workspace/api-client-react';
+import { useListMatches, getListMatchesQueryKey, useListAttendance, getListAttendanceQueryKey, useListPlayers, getListPlayersQueryKey, useCreateMatch, useUpdateMatch, useDeleteMatch, useListGoals, getListGoalsQueryKey, useGetTeam, useUpdateTeam, getGetTeamQueryKey, type MatchInputType } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -41,6 +41,15 @@ import { endOfMonth as eom } from 'date-fns';
 export function CalendarPage() {
   const { t, isRtl, lang } = useLanguage();
   const { activeTeamId } = useTeam();
+  const { data: team } = useGetTeam(activeTeamId!, {
+    query: { enabled: !!activeTeamId, queryKey: getGetTeamQueryKey(activeTeamId!) },
+  });
+  // 0 = Sunday ... 6 = Saturday, matching date-fns's own Day type
+  // directly — falls back to Monday (1) while the team hasn't loaded
+  // yet, matching what every one of these calls was hardcoded to
+  // before this became configurable.
+  const weekStartDay = (team?.weekStartDay ?? 1) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  const updateTeam = useUpdateTeam();
   const [viewMode, setViewMode] = React.useState<'calendar' | 'grid'>('calendar');
   const tid = activeTeamId ?? 0;
   const enabled = !!activeTeamId;
@@ -132,8 +141,8 @@ export function CalendarPage() {
       return { from: format(monthStart, 'yyyy-MM-dd'), to: format(eom(month), 'yyyy-MM-dd') };
     }
     if (applyRangePreset === 'week') {
-      const weekStart = startOfWeek(monthStart, { weekStartsOn: 1 });
-      const weekEnd = endOfWeek(monthStart, { weekStartsOn: 1 });
+      const weekStart = startOfWeek(monthStart, { weekStartsOn: weekStartDay });
+      const weekEnd = endOfWeek(monthStart, { weekStartsOn: weekStartDay });
       return { from: format(weekStart > monthStart ? weekStart : monthStart, 'yyyy-MM-dd'), to: format(weekEnd, 'yyyy-MM-dd') };
     }
     if (applyFromCustom && applyToCustom) return { from: applyFromCustom, to: applyToCustom };
@@ -245,7 +254,7 @@ export function CalendarPage() {
 
   // Build the 6-week grid (Mon-first) covering the month
   const days = React.useMemo(() => {
-    const gridStart = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
+    const gridStart = startOfWeek(startOfMonth(month), { weekStartsOn: weekStartDay });
     const gridEnd = endOfMonth(month);
     const out: Date[] = [];
     let cursor = gridStart;
@@ -296,9 +305,21 @@ export function CalendarPage() {
   }, [days, month, matches, trainings, t]);
 
   const weekdayLabels = React.useMemo(() => {
-    const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const monday = startOfWeek(new Date(), { weekStartsOn: weekStartDay });
     return Array.from({ length: 7 }, (_, i) =>
       new Intl.DateTimeFormat(isRtl ? 'ar' : 'en', { weekday: 'short' }).format(addDays(monday, i)),
+    );
+  }, [isRtl, weekStartDay]);
+
+  // Fixed Sunday(0)-through-Saturday(6) labels for the week-start-day
+  // picker itself — unlike weekdayLabels above, these must NOT reorder
+  // based on the current setting, since the picker needs to always
+  // offer "every day of the week" as options regardless of which one
+  // is currently chosen as the start.
+  const fixedWeekdayNames = React.useMemo(() => {
+    const aSunday = startOfWeek(new Date(), { weekStartsOn: 0 });
+    return Array.from({ length: 7 }, (_, i) =>
+      new Intl.DateTimeFormat(isRtl ? 'ar' : 'en', { weekday: 'long' }).format(addDays(aSunday, i)),
     );
   }, [isRtl]);
 
@@ -561,6 +582,27 @@ export function CalendarPage() {
               <DialogTitle>{t('cal.cycle')} — {format(month, 'MM / yyyy')}</DialogTitle>
             </DialogHeader>
             <p className="text-xs text-muted-foreground -mt-2">{t('cal.cycleHint')}</p>
+            <div className="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-2">
+              <span className="text-xs font-medium shrink-0">{t('cal.weekStartsOn')}</span>
+              <Select
+                value={String(weekStartDay)}
+                onValueChange={(v) => {
+                  if (!activeTeamId) return;
+                  const next = Number(v);
+                  updateTeam.mutate(
+                    { teamId: activeTeamId, data: { weekStartDay: next } },
+                    { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetTeamQueryKey(activeTeamId) }) },
+                  );
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs flex-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {fixedWeekdayNames.map((name, i) => (
+                    <SelectItem key={i} value={String(i)}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <p className="text-[11px] text-primary bg-primary/10 rounded-lg px-3 py-1.5">{t('cal.cycleMonthNote')}</p>
             {cycleInferred && (
               <p className="text-xs bg-primary/10 text-primary rounded-lg px-3 py-2">{t('cal.cycleInferredNote')}</p>

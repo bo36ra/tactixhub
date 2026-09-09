@@ -270,6 +270,7 @@ const STATEMENTS = [
     UNIQUE ("team_id", "month")
   )`,
   `ALTER TABLE "teams" ADD COLUMN IF NOT EXISTS "tier" text NOT NULL DEFAULT 'free'`,
+  `ALTER TABLE "teams" ADD COLUMN IF NOT EXISTS "week_start_day" integer NOT NULL DEFAULT 1`,
   `CREATE TABLE IF NOT EXISTS "access_requests" (
     "id" serial PRIMARY KEY,
     "user_id" text NOT NULL UNIQUE,

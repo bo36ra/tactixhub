@@ -167,7 +167,7 @@ router.get("/teams/:teamId", requireAuth, async (req, res) => {
 router.patch("/teams/:teamId", requireAuth, async (req, res) => {
   const userId = (req as any).userId as string;
   const teamId = parseInt(req.params.teamId as string);
-  const { name, ageGroup, season } = req.body;
+  const { name, ageGroup, season, weekStartDay } = req.body;
   try {
     const role = await getTeamRole(userId, teamId);
     if (!role) {
@@ -184,6 +184,7 @@ router.patch("/teams/:teamId", requireAuth, async (req, res) => {
         ...(name !== undefined && { name }),
         ...(ageGroup !== undefined && { ageGroup }),
         ...(season !== undefined && { season }),
+        ...(weekStartDay !== undefined && { weekStartDay }),
       })
       .where(eq(teamsTable.id, teamId))
       .returning();
@@ -223,6 +224,7 @@ function mapTeam(t: typeof teamsTable.$inferSelect) {
     season: t.season,
     userId: t.userId,
     tier: t.tier,
+    weekStartDay: t.weekStartDay,
     createdAt: t.createdAt.toISOString(),
   };
 }
