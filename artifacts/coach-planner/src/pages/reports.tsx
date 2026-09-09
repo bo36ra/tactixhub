@@ -7,6 +7,7 @@ import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
 import { JerseyNumber } from '@/components/jersey-number';
+import { Button } from '@/components/ui/button';
 import { useTeam } from '@/lib/team-context';
 import {
   useListAttendance,
@@ -25,7 +26,7 @@ import {
   getGetAttendanceSummaryQueryKey,
 } from '@workspace/api-client-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, addMonths, addDays, getDaysInMonth } from 'date-fns';
-import { FileBarChart2, User, CalendarDays, ChevronLeft, ChevronRight, GitCompareArrows } from 'lucide-react';
+import { FileBarChart2, User, CalendarDays, ChevronLeft, ChevronRight, GitCompareArrows, Printer } from 'lucide-react';
 import { STATUS_STYLES } from '@/pages/attendance';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -256,10 +257,12 @@ export function Reports() {
     <AppLayout>
       <PullToRefresh onRefresh={() => queryClient.invalidateQueries()}>
       <div className="space-y-6">
-        <StickyHeader><PageTitle>{t('nav.reports')}</PageTitle></StickyHeader>
+        <div className="print:hidden">
+          <StickyHeader><PageTitle>{t('nav.reports')}</PageTitle></StickyHeader>
+        </div>
 
         {/* Tab switcher */}
-        <div className="flex gap-1 bg-muted p-1 rounded-lg w-fit">
+        <div className="flex gap-1 bg-muted p-1 rounded-lg w-fit print:hidden">
           {tabs.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -513,13 +516,19 @@ export function Reports() {
 
         {tab === 'schedule' && (
           <div className="space-y-3">
+            <div className="flex items-center justify-end print:hidden">
+              <Button onClick={() => window.print()}>
+                <Printer className="w-4 h-4 me-1" />{t('report.share')}
+              </Button>
+            </div>
+
             {/* Attendance rate for whatever range the grid below is
                 currently showing — one set of controls (the grid's own
                 daily/weekly/monthly toggle + date picker) now drives
                 both the rate and the detailed breakdown, instead of two
                 separate, disconnected navigation controls. */}
             {rateSummary && (
-              <div className="bg-card border rounded-xl p-4 flex items-center justify-between gap-3">
+              <div className="bg-card border rounded-xl p-4 flex items-center justify-between gap-3 print:hidden">
                 <div>
                   <p className="font-semibold text-foreground text-sm">{t('reports.attendanceRate')}</p>
                   <p className="text-xs text-muted-foreground">
@@ -543,7 +552,7 @@ export function Reports() {
                 <h3 className="font-bold text-sm sm:text-base">
                   {gridViewMode === 'daily' ? t('reports.dayGrid') : gridViewMode === 'weekly' ? t('reports.weekGrid') : t('reports.monthGrid')}
                 </h3>
-                <div className="flex gap-1.5">
+                <div className="flex gap-1.5 print:hidden">
                   {(['daily', 'weekly', 'monthly'] as const).map((mode) => (
                     <button
                       key={mode}
@@ -557,7 +566,7 @@ export function Reports() {
                     </button>
                   ))}
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 print:hidden">
                   <Input
                     type="date"
                     value={format(gridDate, 'yyyy-MM-dd')}
