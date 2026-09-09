@@ -24,6 +24,8 @@ const VALID_STATUSES = [
   "national_duty",
   "injured",
   "excused_absence",
+  "rest_day",
+  "match_day",
   "other",
 ];
 const PRESENT_STATUSES = ["present", "late_excused", "late_unexcused", "starter", "substitute", "bench"];
