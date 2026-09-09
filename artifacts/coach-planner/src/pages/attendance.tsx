@@ -23,10 +23,12 @@ import { useToast } from '@/hooks/use-toast';
 
 // Statuses differ by session type: trainings track lateness with/without
 // an excuse; match days track the call-up (starter / sub / not called).
-// rest_day is training-only — a match always happens, so "the whole
-// team has the day off" doesn't apply there the way it does for a
-// training session that's simply not happening.
-export const TRAINING_STATUSES = ['present', 'late_excused', 'late_unexcused', 'absent', 'excused_absence', 'injured', 'called_up', 'national_duty', 'rest_day', 'other'] as const;
+// rest_day and match_day are training-only, whole-day overrides rather
+// than individual statuses — "today isn't a regular training session,
+// it's a rest day" / "...it's a match day instead" — which is exactly
+// why they're the only two options in the bulk "apply to all" control
+// below rather than mixing in with the individual-player statuses.
+export const TRAINING_STATUSES = ['present', 'late_excused', 'late_unexcused', 'absent', 'excused_absence', 'injured', 'called_up', 'national_duty', 'rest_day', 'match_day', 'other'] as const;
 export const MATCH_STATUSES = ['starter', 'substitute', 'bench', 'not_called', 'excused_absence', 'injured', 'called_up', 'national_duty', 'other'] as const;
 // Statuses where the coach usually wants to record the reason
 export const NOTE_STATUSES = ['late_excused', 'late_unexcused', 'absent', 'not_called', 'excused_absence', 'injured', 'called_up', 'national_duty', 'other'];
@@ -45,6 +47,7 @@ export const STATUS_STYLES: Record<string, string> = {
   called_up: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
   national_duty: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
   rest_day: 'bg-teal-500/15 text-teal-400 border-teal-500/30',
+  match_day: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
   other: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
 };
 
@@ -60,7 +63,6 @@ export function Attendance() {
     toast({ title: t('common.saveFailed'), description: err instanceof Error ? err.message : undefined, variant: 'destructive' });
   const [records, setRecords] = React.useState<Record<number, string>>({});
   const [notes, setNotes] = React.useState<Record<number, string>>({});
-  const [bulkStatus, setBulkStatus] = React.useState('');
 
   const { data: players, isLoading: playersLoading } = useListPlayers(activeTeamId!, {
     query: { enabled: !!activeTeamId, queryKey: getListPlayersQueryKey(activeTeamId!) }
@@ -110,9 +112,6 @@ export function Attendance() {
   // Default statuses: trainings assume everyone showed up; match days
   // assume everyone is on the bench (fewest taps for a typical squad).
   const defaultStatus = sessionType === 'match' ? 'substitute' : 'present';
-  useEffect(() => {
-    setBulkStatus(defaultStatus);
-  }, [sessionType]);
   useEffect(() => {
     if (!players) return;
     // If this date+session already has saved records, prefill the form
@@ -227,30 +226,30 @@ export function Attendance() {
               <div className="pt-6 border-t space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
                   <NameFilterInput value={nameQuery} onChange={setNameQuery} />
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Select value={bulkStatus} onValueChange={setBulkStatus}>
-                      <SelectTrigger className="h-9 text-xs w-40">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {statuses.map((status) => (
-                          <SelectItem key={status} value={status}>{t(`att.status.${status}`)}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const allSame: Record<number, string> = {};
-                        (players ?? []).forEach((p) => { allSame[p.id] = bulkStatus; });
-                        setRecords(allSame);
-                      }}
-                    >
-                      {t('attendance.applyToAll')}
-                    </Button>
-                  </div>
+                  {sessionType === 'training' && (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Button
+                        type="button" variant="outline" size="sm"
+                        onClick={() => {
+                          const all: Record<number, string> = {};
+                          (players ?? []).forEach((p) => { all[p.id] = 'rest_day'; });
+                          setRecords(all);
+                        }}
+                      >
+                        {t('att.status.rest_day')}
+                      </Button>
+                      <Button
+                        type="button" variant="outline" size="sm"
+                        onClick={() => {
+                          const all: Record<number, string> = {};
+                          (players ?? []).forEach((p) => { all[p.id] = 'match_day'; });
+                          setRecords(all);
+                        }}
+                      >
+                        {t('att.status.match_day')}
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 {/* Render's free-tier server can take 30-60s to wake on
                     the day's first request — without a loading state the
