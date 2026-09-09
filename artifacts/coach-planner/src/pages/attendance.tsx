@@ -60,6 +60,7 @@ export function Attendance() {
     toast({ title: t('common.saveFailed'), description: err instanceof Error ? err.message : undefined, variant: 'destructive' });
   const [records, setRecords] = React.useState<Record<number, string>>({});
   const [notes, setNotes] = React.useState<Record<number, string>>({});
+  const [bulkStatus, setBulkStatus] = React.useState('');
 
   const { data: players, isLoading: playersLoading } = useListPlayers(activeTeamId!, {
     query: { enabled: !!activeTeamId, queryKey: getListPlayersQueryKey(activeTeamId!) }
@@ -109,6 +110,9 @@ export function Attendance() {
   // Default statuses: trainings assume everyone showed up; match days
   // assume everyone is on the bench (fewest taps for a typical squad).
   const defaultStatus = sessionType === 'match' ? 'substitute' : 'present';
+  useEffect(() => {
+    setBulkStatus(defaultStatus);
+  }, [sessionType]);
   useEffect(() => {
     if (!players) return;
     // If this date+session already has saved records, prefill the form
@@ -223,21 +227,30 @@ export function Attendance() {
               <div className="pt-6 border-t space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
                   <NameFilterInput value={nameQuery} onChange={setNameQuery} />
-                  {sessionType === 'training' && (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Select value={bulkStatus} onValueChange={setBulkStatus}>
+                      <SelectTrigger className="h-9 text-xs w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statuses.map((status) => (
+                          <SelectItem key={status} value={status}>{t(`att.status.${status}`)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="shrink-0"
                       onClick={() => {
-                        const allRestDay: Record<number, string> = {};
-                        (players ?? []).forEach((p) => { allRestDay[p.id] = 'rest_day'; });
-                        setRecords(allRestDay);
+                        const allSame: Record<number, string> = {};
+                        (players ?? []).forEach((p) => { allSame[p.id] = bulkStatus; });
+                        setRecords(allSame);
                       }}
                     >
-                      {t('attendance.markAllRestDay')}
+                      {t('attendance.applyToAll')}
                     </Button>
-                  )}
+                  </div>
                 </div>
                 {/* Render's free-tier server can take 30-60s to wake on
                     the day's first request — without a loading state the
