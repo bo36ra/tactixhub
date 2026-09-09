@@ -36,6 +36,13 @@ export function Lineup() {
   // slotIndex -> playerId
   const [assignments, setAssignments] = useState<Record<number, number | undefined>>({});
   const [captainSlot, setCaptainSlot] = useState<number | undefined>(undefined);
+  // Named substitutes for this specific match — a curated subset of
+  // "everyone not starting" (benchPlayers below), not the same thing.
+  // A 20-player squad has plenty who aren't even in the matchday squad
+  // at all; this tracks who specifically is on the bench, saved with
+  // slotIndex: null (already supported by the schema/backend, just
+  // never had UI to set it before this).
+  const [substituteIds, setSubstituteIds] = useState<Set<number>>(new Set());
   const [saved, setSaved] = useState(false);
   const [pickingSlot, setPickingSlot] = useState<number | null>(null);
   const [pickerSearch, setPickerSearch] = useState('');
@@ -56,14 +63,18 @@ export function Lineup() {
     setFormation(lineup.formation || '4-3-3');
     const next: Record<number, number | undefined> = {};
     let captain: number | undefined;
+    const subs = new Set<number>();
     lineup.entries.forEach((e) => {
       if (e.slotIndex !== null && e.slotIndex !== undefined) {
         next[e.slotIndex] = e.playerId;
         if (e.isCaptain) captain = e.slotIndex;
+      } else {
+        subs.add(e.playerId);
       }
     });
     setAssignments(next);
     setCaptainSlot(captain);
+    setSubstituteIds(subs);
   }, [lineup]);
 
   if (!activeTeamId) return <NoTeamState />;
@@ -77,6 +88,14 @@ export function Lineup() {
 
   const handleAssign = (slotIndex: number, playerId: string) => {
     setAssignments((prev) => ({ ...prev, [slotIndex]: playerId ? Number(playerId) : undefined }));
+    if (playerId) {
+      setSubstituteIds((prev) => {
+        if (!prev.has(Number(playerId))) return prev;
+        const next = new Set(prev);
+        next.delete(Number(playerId));
+        return next;
+      });
+    }
   };
 
   const handleFormationChange = (next: string) => {
@@ -88,13 +107,19 @@ export function Lineup() {
   };
 
   const handleSave = () => {
-    const entries = Object.entries(assignments)
+    const startingEntries = Object.entries(assignments)
       .filter(([, playerId]) => !!playerId)
       .map(([slotIndex, playerId]) => ({
         playerId: playerId as number,
         slotIndex: Number(slotIndex),
         isCaptain: Number(slotIndex) === captainSlot,
       }));
+    const substituteEntries = Array.from(substituteIds).map((playerId) => ({
+      playerId,
+      slotIndex: null,
+      isCaptain: false,
+    }));
+    const entries = [...startingEntries, ...substituteEntries];
 
     saveLineup.mutate(
       { matchId, data: { formation, entries } },
@@ -222,14 +247,34 @@ export function Lineup() {
             </div>
 
             <div>
-              <p className="text-sm font-semibold mb-2">{t('lineup.bench')} ({benchPlayers.length})</p>
+              <p className="text-sm font-semibold mb-1">{t('lineup.bench')} ({substituteIds.size})</p>
+              <p className="text-xs text-muted-foreground mb-2">{t('lineup.benchHint')}</p>
               <div className="flex flex-wrap gap-1.5">
                 {isLoading && [1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-6 w-16 rounded-full" />)}
-                {benchPlayers.map((p) => (
-                  <span key={p.id} className="text-xs bg-card border rounded-full px-2.5 py-1 text-muted-foreground">
-                    <JerseyNumber n={p.jerseyNumber} className="" /> {playerName(p, lang)}
-                  </span>
-                ))}
+                {benchPlayers.map((p) => {
+                  const isSub = substituteIds.has(p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() =>
+                        setSubstituteIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(p.id)) next.delete(p.id);
+                          else next.add(p.id);
+                          return next;
+                        })
+                      }
+                      className={`text-xs rounded-full px-2.5 py-1 border transition-colors ${
+                        isSub
+                          ? 'bg-primary/15 border-primary text-primary font-semibold'
+                          : 'bg-card border-border text-muted-foreground'
+                      }`}
+                    >
+                      <JerseyNumber n={p.jerseyNumber} className="" /> {playerName(p, lang)}
+                    </button>
+                  );
+                })}
                 {!isLoading && benchPlayers.length === 0 && (
                   <span className="text-xs text-muted-foreground">—</span>
                 )}

@@ -105,6 +105,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
                 <h3 className="font-bold mb-1">🧩 {t('match.lineup')} ({lineup.formation})</h3>
                 <div className="grid grid-cols-2 gap-x-4">
                   {lineup.entries
+                    .filter((e) => e.slotIndex !== null)
                     .slice()
                     .sort((a, b) => (a.slotIndex ?? 0) - (b.slotIndex ?? 0))
                     .map((e) => (
@@ -116,6 +117,20 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
                       </p>
                     ))}
                 </div>
+                {lineup.entries.some((e) => e.slotIndex === null) && (
+                  <>
+                    <p className="text-sm font-semibold mt-2 mb-1">{t('lineup.bench')}</p>
+                    <div className="grid grid-cols-2 gap-x-4">
+                      {lineup.entries
+                        .filter((e) => e.slotIndex === null)
+                        .map((e) => (
+                          <p key={e.id} className="text-sm text-muted-foreground">
+                            #{e.jerseyNumber} {e.playerName}
+                          </p>
+                        ))}
+                    </div>
+                  </>
+                )}
               </section>
             )}
 
