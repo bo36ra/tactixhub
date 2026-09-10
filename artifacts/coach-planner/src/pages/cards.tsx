@@ -5,7 +5,7 @@ import { AppLayout, NoTeamState } from '@/components/layout';
 import { useTeam } from '@/lib/team-context';
 import { useLanguage } from '@/lib/i18n';
 import { playerName } from '@/lib/player-name';
-import { useListCards, useCreateCard, useDeleteCard, useGetCardsSummary, useListMatches, useListPlayers, getListCardsQueryKey, getGetCardsSummaryQueryKey, getListMatchesQueryKey, getListPlayersQueryKey } from '@workspace/api-client-react';
+import { useListCards, useCreateCard, useUpdateCard, useDeleteCard, useGetCardsSummary, useListMatches, useListPlayers, getListCardsQueryKey, getGetCardsSummaryQueryKey, getListMatchesQueryKey, getListPlayersQueryKey } from '@workspace/api-client-react';
 import { CardInputCardType } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQueryClient } from '@tanstack/react-query';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -24,6 +24,10 @@ export function Cards() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [open, setOpen] = React.useState(false);
+  // null means the dialog is adding a new card; a number means it's
+  // editing that existing card instead — same dialog and form fields
+  // either way, just routed to a different mutation on submit.
+  const [editingCardId, setEditingCardId] = React.useState<number | null>(null);
 
   const [formData, setFormData] = React.useState({
     matchId: '',
@@ -38,11 +42,32 @@ export function Cards() {
   const { data: players } = useListPlayers(activeTeamId!, { query: { enabled: !!activeTeamId, queryKey: getListPlayersQueryKey(activeTeamId!) } });
 
   const createCard = useCreateCard();
+  const updateCard = useUpdateCard();
   const deleteCard = useDeleteCard();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeTeamId || !formData.matchId || !formData.playerId) return;
+    if (editingCardId !== null) {
+      updateCard.mutate({
+        teamId: activeTeamId,
+        cardId: editingCardId,
+        data: {
+          playerId: parseInt(formData.playerId, 10),
+          cardType: formData.cardType,
+          minute: parseInt(formData.minute, 10)
+        }
+      }, {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListCardsQueryKey(activeTeamId) });
+          queryClient.invalidateQueries({ queryKey: getGetCardsSummaryQueryKey(activeTeamId) });
+          setOpen(false);
+          setEditingCardId(null);
+        },
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
+      });
+      return;
+    }
     createCard.mutate({
       teamId: activeTeamId,
       data: {
@@ -60,6 +85,17 @@ export function Cards() {
       },
       onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
     });
+  };
+
+  const startEdit = (card: { id: number; matchId: number; playerId: number; cardType: CardInputCardType; minute: number }) => {
+    setEditingCardId(card.id);
+    setFormData({
+      matchId: String(card.matchId),
+      playerId: String(card.playerId),
+      cardType: card.cardType,
+      minute: String(card.minute),
+    });
+    setOpen(true);
   };
 
   const handleDelete = (cardId: number) => {
@@ -81,13 +117,13 @@ export function Cards() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <PageTitle>{t('nav.cards')}</PageTitle>
           
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditingCardId(null); }}>
             <DialogTrigger asChild>
-              <Button className="gap-2"><Plus className="w-4 h-4" /> {t('card.add')}</Button>
+              <Button className="gap-2" onClick={() => { setEditingCardId(null); setFormData({ matchId: '', playerId: '', cardType: 'yellow', minute: '' }); }}><Plus className="w-4 h-4" /> {t('card.add')}</Button>
             </DialogTrigger>
             <DialogContent dir={isRtl ? 'rtl' : 'ltr'} className="max-h-[85vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>{t('card.add')}</DialogTitle>
+                <DialogTitle>{editingCardId !== null ? t('common.edit') : t('card.add')}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
@@ -137,7 +173,7 @@ export function Cards() {
 
                 <div className="flex justify-end gap-2 pt-4">
                   <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
-                  <Button type="submit" disabled={createCard.isPending || !formData.matchId || !formData.playerId}>{t('common.save')}</Button>
+                  <Button type="submit" disabled={createCard.isPending || updateCard.isPending || !formData.matchId || !formData.playerId}>{t('common.save')}</Button>
                 </div>
               </form>
             </DialogContent>
@@ -224,6 +260,12 @@ export function Cards() {
                         </td>
                         <td className="px-4 py-3 font-semibold">{card.playerName}</td>
                         <td className="px-4 py-3 text-right">
+                          <Button
+                            variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary active:text-primary"
+                            onClick={() => startEdit({ id: card.id, matchId: card.matchId, playerId: card.playerId, cardType: card.cardType as CardInputCardType, minute: card.minute })}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/60 hover:text-destructive active:text-destructive" onClick={() => handleDelete(card.id)}>
                             <Trash2 className="w-4 h-4" />
                           </Button>

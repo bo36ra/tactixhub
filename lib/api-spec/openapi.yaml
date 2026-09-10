@@ -663,6 +663,34 @@ paths:
                 $ref: "#/components/schemas/Card"
 
   /teams/{teamId}/cards/{cardId}:
+    patch:
+      operationId: updateCard
+      tags: [cards]
+      summary: Update a card record
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardUpdate"
+      responses:
+        "200":
+          description: Updated card record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Card"
     delete:
       operationId: deleteCard
       tags: [cards]
@@ -1827,6 +1855,21 @@ components:
       properties:
         matchId:
           type: integer
+        playerId:
+          type: integer
+        cardType:
+          type: string
+          enum: [yellow, red]
+        minute:
+          type: integer
+          minimum: 0
+        period:
+          type: string
+          enum: [first_half, second_half, extra_time]
+
+    CardUpdate:
+      type: object
+      properties:
         playerId:
           type: integer
         cardType:

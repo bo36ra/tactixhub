@@ -551,6 +551,31 @@ export interface CardInput {
   period?: CardInputPeriod;
 }
 
+export type CardUpdateCardType = typeof CardUpdateCardType[keyof typeof CardUpdateCardType];
+
+
+export const CardUpdateCardType = {
+  yellow: 'yellow',
+  red: 'red',
+} as const;
+
+export type CardUpdatePeriod = typeof CardUpdatePeriod[keyof typeof CardUpdatePeriod];
+
+
+export const CardUpdatePeriod = {
+  first_half: 'first_half',
+  second_half: 'second_half',
+  extra_time: 'extra_time',
+} as const;
+
+export interface CardUpdate {
+  playerId?: number;
+  cardType?: CardUpdateCardType;
+  /** @minimum 0 */
+  minute?: number;
+  period?: CardUpdatePeriod;
+}
+
 export type CardSummaryStatus = typeof CardSummaryStatus[keyof typeof CardSummaryStatus];
 
 

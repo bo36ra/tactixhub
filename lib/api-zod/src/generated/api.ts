@@ -694,6 +694,38 @@ export const CreateCardResponse = zod.object({
 
 
 /**
+ * @summary Update a card record
+ */
+export const UpdateCardParams = zod.object({
+  "teamId": zod.coerce.number(),
+  "cardId": zod.coerce.number()
+})
+
+export const updateCardBodyMinuteMin = 0;
+
+
+
+export const UpdateCardBody = zod.object({
+  "playerId": zod.number().optional(),
+  "cardType": zod.enum(['yellow', 'red']).optional(),
+  "minute": zod.number().min(updateCardBodyMinuteMin).optional(),
+  "period": zod.enum(['first_half', 'second_half', 'extra_time']).optional()
+})
+
+export const UpdateCardResponse = zod.object({
+  "id": zod.number(),
+  "teamId": zod.number(),
+  "matchId": zod.number(),
+  "playerId": zod.number(),
+  "playerName": zod.string().nullish(),
+  "cardType": zod.enum(['yellow', 'red']),
+  "minute": zod.number(),
+  "period": zod.enum(['first_half', 'second_half', 'extra_time']).optional(),
+  "createdAt": zod.string()
+})
+
+
+/**
  * @summary Delete a card record
  */
 export const DeleteCardParams = zod.object({

@@ -67,6 +67,44 @@ router.post("/teams/:teamId/cards", requireAuth, async (req, res) => {
   }
 });
 
+// Update card — the fix for an accidentally-wrong minute (or player,
+// or card type) that previously needed a delete-and-recreate instead
+// of a direct correction.
+router.patch("/teams/:teamId/cards/:cardId", requireAuth, async (req, res) => {
+  const userId = (req as any).userId as string;
+  const teamId = parseInt(req.params.teamId as string);
+  const cardId = parseInt(req.params.cardId as string);
+  if (!(await verifyTeamOwnership(userId, teamId))) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  const { playerId, cardType, minute, period } = req.body ?? {};
+  try {
+    const [card] = await db
+      .update(cardsTable)
+      .set({
+        ...(Number.isInteger(playerId) && { playerId }),
+        ...(["yellow", "red"].includes(cardType) && { cardType }),
+        ...(Number.isInteger(minute) && minute >= 0 && { minute }),
+        ...(period !== undefined && { period: typeof period === "string" && period.trim() ? period.trim() : null }),
+      })
+      .where(and(eq(cardsTable.id, cardId), eq(cardsTable.teamId, teamId)))
+      .returning();
+    if (!card) {
+      res.status(404).json({ error: "Card not found" });
+      return;
+    }
+    const [player] = await db
+      .select()
+      .from(playersTable)
+      .where(eq(playersTable.id, card.playerId));
+    res.json(mapCard(card, player?.name || null));
+  } catch (err) {
+    req.log.error({ err }, "Failed to update card");
+    res.status(500).json({ error: dbErrorMessage(err) });
+  }
+});
+
 // Delete card
 router.delete("/teams/:teamId/cards/:cardId", requireAuth, async (req, res) => {
   const userId = (req as any).userId as string;

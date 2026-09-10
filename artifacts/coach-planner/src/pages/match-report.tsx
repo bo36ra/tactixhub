@@ -3,7 +3,7 @@ import { useSearch } from 'wouter';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
-import { useListMatches, useListPlayers, useListGoals, useListCards, useListPlayingTime, useUpdateMatch, useGetLineup, useCreateCard, useDeleteCard, getListMatchesQueryKey, getGetLineupQueryKey, getListCardsQueryKey } from '@workspace/api-client-react';
+import { useListMatches, useListPlayers, useListGoals, useListCards, useListPlayingTime, useUpdateMatch, useGetLineup, useCreateCard, useUpdateCard, useDeleteCard, getListMatchesQueryKey, getGetLineupQueryKey, getListCardsQueryKey, getGetCardsSummaryQueryKey } from '@workspace/api-client-react';
 import { useRatings } from '@/lib/dev-api';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -49,11 +49,17 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
   const [editingVideo, setEditingVideo] = useState(false);
   const [videoDraft, setVideoDraft] = useState('');
   const createCard = useCreateCard();
+  const updateCard = useUpdateCard();
   const deleteCard = useDeleteCard();
   const [addingCard, setAddingCard] = useState(false);
   const [cardPlayerId, setCardPlayerId] = useState('');
   const [cardMinute, setCardMinute] = useState('');
   const [cardType, setCardType] = useState<'yellow' | 'red'>('yellow');
+  // Editing an existing card reuses the same three fields/inputs as
+  // the add form below — editingCardId tracks which card (if any) is
+  // currently being edited, null meaning the fields belong to the add
+  // form instead.
+  const [editingCardId, setEditingCardId] = useState<number | null>(null);
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesDraft, setNotesDraft] = useState({ teamPerformanceNotes: '', strengthsNotes: '', improvementNotes: '', generalNotes: '' });
 
@@ -85,8 +91,40 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
       { teamId, data: { matchId, playerId: Number(cardPlayerId), cardType, minute: Number(cardMinute) } },
       {
         onSuccess: () => {
+          // Also invalidates the cards summary — previously missed
+          // here, meaning the dedicated Cards page's discipline table
+          // (yellow/red totals, suspension status per player) could
+          // show stale numbers after adding a card from this page
+          // until something else happened to refetch it.
           queryClient.invalidateQueries({ queryKey: getListCardsQueryKey(teamId) });
+          queryClient.invalidateQueries({ queryKey: getGetCardsSummaryQueryKey(teamId) });
           setAddingCard(false);
+          setCardPlayerId('');
+          setCardMinute('');
+          setCardType('yellow');
+        },
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
+      },
+    );
+  };
+
+  const startEditCard = (cardId: number, playerId: number, minute: number, type: 'yellow' | 'red') => {
+    setAddingCard(false);
+    setEditingCardId(cardId);
+    setCardPlayerId(String(playerId));
+    setCardMinute(String(minute));
+    setCardType(type);
+  };
+
+  const handleSaveCardEdit = () => {
+    if (!editingCardId || !cardPlayerId || !cardMinute) return;
+    updateCard.mutate(
+      { teamId, cardId: editingCardId, data: { playerId: Number(cardPlayerId), cardType, minute: Number(cardMinute) } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListCardsQueryKey(teamId) });
+          queryClient.invalidateQueries({ queryKey: getGetCardsSummaryQueryKey(teamId) });
+          setEditingCardId(null);
           setCardPlayerId('');
           setCardMinute('');
           setCardType('yellow');
@@ -100,7 +138,10 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
     deleteCard.mutate(
       { teamId, cardId },
       {
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: getListCardsQueryKey(teamId) }),
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListCardsQueryKey(teamId) });
+          queryClient.invalidateQueries({ queryKey: getGetCardsSummaryQueryKey(teamId) });
+        },
         onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
       },
     );
@@ -225,7 +266,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
             <section>
               <div className="flex items-center justify-between mb-1">
                 <h3 className="font-bold flex items-center gap-1.5">🟨 {t('nav.cards')}</h3>
-                {!addingCard && (
+                {!addingCard && editingCardId === null && (
                   <button type="button" className="print:hidden text-xs text-primary hover:underline flex items-center gap-1" onClick={() => setAddingCard(true)}>
                     <Plus className="w-3.5 h-3.5" /> {t('report.addCard')}
                   </button>
@@ -233,7 +274,14 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
               </div>
               {mCards.map((c) => (
                 <div key={c.id} className="flex items-center justify-between text-sm group">
-                  <p>{c.minute}' — {pName(c.playerId)} ({c.cardType})</p>
+                  <button
+                    type="button"
+                    className="print:hidden text-start hover:text-primary flex-1"
+                    onClick={() => startEditCard(c.id, c.playerId, c.minute, c.cardType as 'yellow' | 'red')}
+                  >
+                    {c.minute}' — {pName(c.playerId)} ({c.cardType})
+                  </button>
+                  <p className="hidden print:block">{c.minute}' — {pName(c.playerId)} ({c.cardType})</p>
                   <button
                     type="button"
                     className="print:hidden text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
@@ -246,7 +294,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
               {mCards.length === 0 && !addingCard && (
                 <p className="text-sm text-muted-foreground print:hidden">{t('report.noCards')}</p>
               )}
-              {addingCard && (
+              {(addingCard || editingCardId !== null) && (
                 <div className="print:hidden flex flex-wrap items-center gap-2 mt-2 p-2 rounded-lg border bg-muted/30">
                   <Select value={cardPlayerId} onValueChange={setCardPlayerId}>
                     <SelectTrigger className="h-8 text-xs w-40"><SelectValue placeholder={t('lineup.selectPlayer')} /></SelectTrigger>
@@ -270,10 +318,14 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
                       <SelectItem value="red">{t('report.redCard')}</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button size="sm" disabled={!cardPlayerId || !cardMinute || createCard.isPending} onClick={handleAddCard}>
+                  <Button
+                    size="sm"
+                    disabled={!cardPlayerId || !cardMinute || createCard.isPending || updateCard.isPending}
+                    onClick={editingCardId !== null ? handleSaveCardEdit : handleAddCard}
+                  >
                     <Check className="w-3.5 h-3.5" />
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setAddingCard(false)}>
+                  <Button size="sm" variant="ghost" onClick={() => { setAddingCard(false); setEditingCardId(null); }}>
                     <X className="w-3.5 h-3.5" />
                   </Button>
                 </div>
