@@ -326,25 +326,6 @@ input[type='time']::-webkit-calendar-picker-indicator {
     margin: 8mm;
   }
 
-  /* The app is dark-themed everywhere (html/body background is a
-     near-black CSS variable) — only the report card itself was
-     switched to a white background for print, leaving the app's own
-     dark background showing through as dark strips anywhere there was
-     surrounding padding/margin (the main content area's own padding,
-     any gap around the card). Forcing white here applies to any page
-     printed from this app, not just the match report, since the same
-     dark-background-bleeding would happen on literally any of them. */
-  html, body, #root {
-    background: white !important;
-  }
-  /* AppLayout's own outer wrapper div sets bg-background explicitly
-     (a Tailwind utility class), which is more specific than the
-     html/body/#root override above and would otherwise still show
-     the dark background through regardless of it. */
-  .bg-background {
-    background: white !important;
-  }
-
   .match-report-print {
     padding: 0 !important;
   }

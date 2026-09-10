@@ -213,6 +213,17 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
           )}
         </div>
 
+        {/* Repeats on every printed page — position: fixed is the
+            standard technique for this, since everything else in this
+            report is in normal document flow and only ever appears
+            once, wherever it naturally falls across however many pages
+            the content spans. Hidden on screen; this page already has
+            its own header via StickyHeader/PageTitle up in AppLayout. */}
+        <div className="hidden print:flex print:fixed print:top-0 print:inset-x-0 print:items-center print:gap-2 print:pb-2 print:mb-2 print:border-b print:border-border">
+          <img src="/logo-icon.svg" alt="" className="w-5 h-5" />
+          <span className="font-display font-bold text-sm">{team?.name ?? t('app.title')}</span>
+        </div>
+
         <div className="print:hidden">
           <Select value={matchId ? String(matchId) : ''} onValueChange={(v) => setMatchId(parseInt(v))}>
             <SelectTrigger className="max-w-72"><SelectValue placeholder={t('perf.pickMatch')} /></SelectTrigger>
@@ -225,7 +236,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
         </div>
 
         {m && (
-          <div className="match-report-print border border-border rounded-xl bg-card p-5 space-y-4 print:border-0 print:bg-white print:text-black">
+          <div className="match-report-print border border-border rounded-xl bg-card p-5 space-y-4 print:border-0 print:mt-8">
             <div className="text-center space-y-1">
               <div className="flex items-center justify-center gap-4">
                 <div className="flex flex-col items-center gap-1">
@@ -278,7 +289,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
                 />
               </div>
               <h2 className="text-xl font-bold">{t('report.vs')} {m.opponent}</h2>
-              <p className="text-sm text-muted-foreground print:text-gray-600">{m.date} · {m.type} · {m.formation}</p>
+              <p className="text-sm text-muted-foreground">{m.date} · {m.type} · {m.formation}</p>
               <p className="text-4xl font-display font-bold">{m.ourGoals} – {m.theirGoals}</p>
               {best && (
                 <p className="text-sm">⭐ {t('report.motm')}: <b>{pName(best.playerId)}</b> ({best.rating}/10)</p>
