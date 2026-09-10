@@ -219,13 +219,12 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
                   {lineup.entries
                     .filter((e) => e.slotIndex !== null)
                     .slice()
-                    .sort((a, b) => (a.slotIndex ?? 0) - (b.slotIndex ?? 0))
+                    .sort((a, b) => a.id - b.id)
                     .map((e) => (
                       <p key={e.id} className="text-sm flex items-center gap-1">
                         <span className="text-muted-foreground">#{e.jerseyNumber}</span>
                         {e.playerName}
                         {e.isCaptain && <span className="text-primary">⭐</span>}
-                        <span className="text-muted-foreground text-xs">({e.position})</span>
                       </p>
                     ))}
                 </div>
