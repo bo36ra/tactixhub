@@ -1595,7 +1595,11 @@ export function Tactics() {
             />
           </TabsContent>
           <TabsContent value="analysis">
-            <AnalysisBoard teamId={activeTeamId} />
+            <AnalysisBoard
+              teamId={activeTeamId}
+              openId={pending?.kind === 'analysis' ? pending.id : null}
+              onOpened={() => setPending(null)}
+            />
           </TabsContent>
           <TabsContent value="setpieces">
             <BoardsTab

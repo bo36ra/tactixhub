@@ -58,7 +58,7 @@ function distToSeg(px: number, py: number, x1: number, y1: number, x2: number, y
   return dist(px, py, x1 + t * dx, y1 + t * dy);
 }
 
-export function AnalysisBoard({ teamId }: { teamId: number }) {
+export function AnalysisBoard({ teamId, openId, onOpened }: { teamId: number; openId?: number | null; onOpened?: () => void }) {
   const { t, lang, isRtl } = useLanguage();
   const { toast } = useToast();
   const { data: tactics } = useTactics(teamId);
@@ -67,6 +67,22 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
   const del = useDeleteTactic(teamId);
 
   const sessions = (tactics ?? []).filter((tc) => tc.kind === 'analysis');
+
+  // Same pattern as BoardsTab's own effect for the other three tactic
+  // kinds (general/set_piece/match_plan) — this was missing here
+  // entirely, which is the actual root cause of clicking an analysis
+  // session from the "All" tab landing on a new, empty session instead
+  // of the one actually clicked: there was no mechanism at all for
+  // this component to receive "open this specific session."
+  React.useEffect(() => {
+    if (openId == null) return;
+    const tc = sessions.find((x) => x.id === openId);
+    if (tc) {
+      openSession(tc);
+      onOpened?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId, sessions.length]);
 
   const [editingId, setEditingId] = React.useState<number | null>(null);
   const [sessionName, setSessionName] = React.useState('');
@@ -576,7 +592,7 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
                 {sessions.map((s) => (
                   <div key={s.id} className="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-2">
                     <button type="button" className="flex-1 text-start text-sm font-medium truncate" onClick={() => openSession(s)}>
-                      {s.name} <span dir="ltr" className="text-[10px] text-muted-foreground">[DEBUG len={s.data?.length ?? 'n/a'}]</span>
+                      {s.name}
                     </button>
                     <button type="button" className="text-destructive/60 hover:text-destructive p-1" onClick={() => del.mutate(s.id)}>
                       <Trash2 className="w-3.5 h-3.5" />
