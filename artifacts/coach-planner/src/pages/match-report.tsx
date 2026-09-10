@@ -225,7 +225,7 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
         </div>
 
         {m && (
-          <div className="border border-border rounded-xl bg-card p-5 space-y-4 print:border-0 print:bg-white print:text-black">
+          <div className="match-report-print border border-border rounded-xl bg-card p-5 space-y-4 print:border-0 print:bg-white print:text-black">
             <div className="text-center space-y-1">
               <div className="flex items-center justify-center gap-4">
                 <div className="flex flex-col items-center gap-1">

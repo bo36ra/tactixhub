@@ -302,3 +302,65 @@ input[type='time']::-webkit-calendar-picker-indicator {
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+
+/* No @page rule existed anywhere before this — every printed page in
+   the app was using the browser's own default margins (often ~2cm on
+   every side) stacked on top of whatever padding the page itself
+   already had, wasting real page space before a single line of actual
+   content. Tightening this here applies globally, not just to one
+   page, since nothing else had a reason to want the browser default
+   either.
+
+   Also compacts the match report specifically — it was built with
+   normal on-screen spacing/sizing throughout (lineup, goals, cards,
+   ratings, playing time, notes, each its own section with its own
+   heading), which reliably overflowed onto 2-3 printed pages once a
+   match had a few of each recorded. !important is used deliberately
+   throughout since this needs to override Tailwind utility classes on
+   many descendant elements, which is the accepted tradeoff for a
+   print stylesheet doing this kind of blanket compaction rather than
+   touching every individual class by hand. */
+@media print {
+  @page {
+    size: A4;
+    margin: 8mm;
+  }
+
+  .match-report-print {
+    padding: 0 !important;
+  }
+  .match-report-print > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 4px !important;
+  }
+  .match-report-print h2 {
+    font-size: 15px !important;
+    margin: 0 !important;
+  }
+  .match-report-print h3 {
+    font-size: 12px !important;
+    margin-bottom: 2px !important;
+  }
+  .match-report-print p,
+  .match-report-print span,
+  .match-report-print label {
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+  }
+  .match-report-print section {
+    margin-bottom: 5px !important;
+  }
+  .match-report-print .grid {
+    gap: 2px 12px !important;
+  }
+  /* The score itself stays legibly large — everything else shrinks
+     around it, not the one number that matters most on the page. */
+  .match-report-print p.text-4xl {
+    font-size: 26px !important;
+  }
+  /* Team/opponent crest circles, sized for on-screen tapping (56px) —
+     shrunk since a printed page has no tap targets to preserve. */
+  .match-report-print img[alt=""] {
+    width: 32px !important;
+    height: 32px !important;
+  }
+}
