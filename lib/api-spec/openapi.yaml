@@ -1349,6 +1349,9 @@ components:
         weekStartDay:
           type: integer
           description: 0 = Sunday ... 6 = Saturday
+        logo:
+          type: string
+          nullable: true
         createdAt:
           type: string
 
@@ -1377,6 +1380,9 @@ components:
         weekStartDay:
           type: integer
           description: 0 = Sunday ... 6 = Saturday
+        logo:
+          type: string
+          description: Base64 data URI, or empty string to remove
 
     Player:
       type: object
@@ -1499,6 +1505,9 @@ components:
           type: string
           nullable: true
         generalNotes:
+          type: string
+          nullable: true
+        opponentLogo:
           type: string
           nullable: true
         createdAt:
@@ -1632,6 +1641,9 @@ components:
           type: string
         generalNotes:
           type: string
+        opponentLogo:
+          type: string
+          description: Base64 data URI, or empty string to remove
 
     MatchInput:
       type: object

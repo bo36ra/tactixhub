@@ -21,6 +21,11 @@ export const teamsTable = pgTable("teams", {
   // the day after whatever day their match falls on, which shifts
   // fixture to fixture rather than landing on the same weekday every time.
   weekStartDay: integer("week_start_day").notNull().default(1),
+  // Same storage shape as player photos (base64 data URI) — shown on
+  // the match report next to the score, alongside the opponent's own
+  // logo (which lives on the match itself instead, since the opponent
+  // changes fixture to fixture while the team's own logo doesn't).
+  logo: text("logo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

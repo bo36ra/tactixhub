@@ -13,4 +13,6 @@ export interface TeamUpdate {
   season?: string;
   /** 0 = Sunday ... 6 = Saturday */
   weekStartDay?: number;
+  /** Base64 data URI, or empty string to remove */
+  logo?: string;
 }

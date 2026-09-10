@@ -17,5 +17,6 @@ export interface Team {
   tier?: string;
   /** 0 = Sunday ... 6 = Saturday */
   weekStartDay?: number;
+  logo?: string | null;
   createdAt: string;
 }

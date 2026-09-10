@@ -21,5 +21,6 @@ export interface Match {
   strengthsNotes?: string | null;
   improvementNotes?: string | null;
   generalNotes?: string | null;
+  opponentLogo?: string | null;
   createdAt: string;
 }

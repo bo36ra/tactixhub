@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearch } from 'wouter';
 import { AppLayout, NoTeamState } from '@/components/layout';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
-import { useListMatches, useListPlayers, useListGoals, useListCards, useListPlayingTime, useUpdateMatch, useGetLineup, useCreateCard, useUpdateCard, useDeleteCard, getListMatchesQueryKey, getGetLineupQueryKey, getListCardsQueryKey, getGetCardsSummaryQueryKey } from '@workspace/api-client-react';
+import { useListMatches, useListPlayers, useListGoals, useListCards, useListPlayingTime, useUpdateMatch, useGetLineup, useCreateCard, useUpdateCard, useDeleteCard, useGetTeam, useUpdateTeam, getListMatchesQueryKey, getGetLineupQueryKey, getListCardsQueryKey, getGetCardsSummaryQueryKey, getGetTeamQueryKey } from '@workspace/api-client-react';
+import { compressImageFile } from '@/lib/image';
 import { useRatings } from '@/lib/dev-api';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -171,6 +172,32 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
     );
   };
 
+  const { data: team } = useGetTeam(teamId, { query: { queryKey: getGetTeamQueryKey(teamId) } });
+  const updateTeam = useUpdateTeam();
+  const teamLogoInputRef = useRef<HTMLInputElement>(null);
+  const opponentLogoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleTeamLogoChange = async (file: File) => {
+    try {
+      const dataUrl = await compressImageFile(file);
+      updateTeam.mutate(
+        { teamId, data: { logo: dataUrl } },
+        { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetTeamQueryKey(teamId) }) },
+      );
+    } catch { /* unreadable file — leave the previous logo as is */ }
+  };
+
+  const handleOpponentLogoChange = async (file: File) => {
+    if (!matchId) return;
+    try {
+      const dataUrl = await compressImageFile(file);
+      updateMatch.mutate(
+        { teamId, matchId, data: { opponentLogo: dataUrl } },
+        { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(teamId) }) },
+      );
+    } catch { /* unreadable file — leave the previous logo as is */ }
+  };
+
   return (
     <AppLayout>
       <div className="space-y-4">
@@ -200,9 +227,55 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
         {m && (
           <div className="border border-border rounded-xl bg-card p-5 space-y-4 print:border-0 print:bg-white print:text-black">
             <div className="text-center space-y-1">
-              <div className="flex items-center justify-center gap-2">
-                <img src="/logo-icon.svg" alt="" className="w-6 h-6" />
-                <span className="font-display font-bold">{t('app.title')}</span>
+              <div className="flex items-center justify-center gap-4">
+                <div className="flex flex-col items-center gap-1">
+                  <button
+                    type="button"
+                    className="print:pointer-events-none relative"
+                    onClick={() => teamLogoInputRef.current?.click()}
+                    title={t('report.changeTeamLogo')}
+                  >
+                    {team?.logo ? (
+                      <img src={team.logo} alt="" className="w-14 h-14 rounded-full object-cover border border-border" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full border border-dashed border-border flex items-center justify-center print:hidden" />
+                    )}
+                    <span className="print:hidden absolute -bottom-0.5 -end-0.5 w-5 h-5 rounded-full bg-primary flex items-center justify-center border-2 border-background">
+                      <Pencil className="w-2.5 h-2.5 text-primary-foreground" />
+                    </span>
+                  </button>
+                  <span className="text-xs font-semibold">{team?.name ?? t('app.title')}</span>
+                </div>
+
+                <span className="text-sm text-muted-foreground">{t('report.vsShort')}</span>
+
+                <div className="flex flex-col items-center gap-1">
+                  <button
+                    type="button"
+                    className="print:pointer-events-none relative"
+                    onClick={() => opponentLogoInputRef.current?.click()}
+                    title={t('report.changeOpponentLogo')}
+                  >
+                    {m.opponentLogo ? (
+                      <img src={m.opponentLogo} alt="" className="w-14 h-14 rounded-full object-cover border border-border" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full border border-dashed border-border flex items-center justify-center print:hidden" />
+                    )}
+                    <span className="print:hidden absolute -bottom-0.5 -end-0.5 w-5 h-5 rounded-full bg-primary flex items-center justify-center border-2 border-background">
+                      <Pencil className="w-2.5 h-2.5 text-primary-foreground" />
+                    </span>
+                  </button>
+                  <span className="text-xs font-semibold">{m.opponent}</span>
+                </div>
+
+                <input
+                  ref={teamLogoInputRef} type="file" accept="image/*" className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) handleTeamLogoChange(f); }}
+                />
+                <input
+                  ref={opponentLogoInputRef} type="file" accept="image/*" className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) handleOpponentLogoChange(f); }}
+                />
               </div>
               <h2 className="text-xl font-bold">{t('report.vs')} {m.opponent}</h2>
               <p className="text-sm text-muted-foreground print:text-gray-600">{m.date} · {m.type} · {m.formation}</p>

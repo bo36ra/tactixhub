@@ -4,6 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { db, playersTable, teamsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { verifyTeamAccess } from "../lib/teamAccess";
+import { sanitizeImage as sanitizePhoto } from "../lib/sanitizeImage";
 
 const router = Router({ mergeParams: true });
 
@@ -12,18 +13,6 @@ function sanitizeBirthYear(value: unknown): number | null {
   const year = Number(value);
   const current = new Date().getFullYear();
   return Number.isInteger(year) && year >= 1950 && year <= current ? year : null;
-}
-
-// Photos arrive as data URLs; cap them well under the body limit and
-// reject anything that isn't an image payload.
-const MAX_PHOTO_LENGTH = 500_000;
-function sanitizePhoto(photo: unknown): string | null | undefined {
-  if (photo === undefined) return undefined; // not provided — leave as is
-  if (photo === null || photo === "") return null; // explicit removal
-  if (typeof photo !== "string" || !photo.startsWith("data:image/") || photo.length > MAX_PHOTO_LENGTH) {
-    return undefined;
-  }
-  return photo;
 }
 
 // Team data is shared across the whole staff — any active member

@@ -20,6 +20,7 @@ export interface Team {
   tier?: string;
   /** 0 = Sunday ... 6 = Saturday */
   weekStartDay?: number;
+  logo?: string | null;
   createdAt: string;
 }
 
@@ -37,6 +38,8 @@ export interface TeamUpdate {
   season?: string;
   /** 0 = Sunday ... 6 = Saturday */
   weekStartDay?: number;
+  /** Base64 data URI, or empty string to remove */
+  logo?: string;
 }
 
 export type PlayerPosition = typeof PlayerPosition[keyof typeof PlayerPosition];
@@ -193,6 +196,7 @@ export interface Match {
   strengthsNotes?: string | null;
   improvementNotes?: string | null;
   generalNotes?: string | null;
+  opponentLogo?: string | null;
   createdAt: string;
 }
 
@@ -281,6 +285,8 @@ export interface MatchUpdate {
   strengthsNotes?: string;
   improvementNotes?: string;
   generalNotes?: string;
+  /** Base64 data URI, or empty string to remove */
+  opponentLogo?: string;
 }
 
 export type MatchInputType = typeof MatchInputType[keyof typeof MatchInputType];

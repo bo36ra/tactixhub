@@ -27,6 +27,7 @@ export const ListTeamsResponseItem = zod.object({
   "userId": zod.string(),
   "tier": zod.string().optional(),
   "weekStartDay": zod.number().optional().describe('0 = Sunday ... 6 = Saturday'),
+  "logo": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const ListTeamsResponse = zod.array(ListTeamsResponseItem)
@@ -52,6 +53,7 @@ export const CreateTeamResponse = zod.object({
   "userId": zod.string(),
   "tier": zod.string().optional(),
   "weekStartDay": zod.number().optional().describe('0 = Sunday ... 6 = Saturday'),
+  "logo": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -71,6 +73,7 @@ export const GetTeamResponse = zod.object({
   "userId": zod.string(),
   "tier": zod.string().optional(),
   "weekStartDay": zod.number().optional().describe('0 = Sunday ... 6 = Saturday'),
+  "logo": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -89,7 +92,8 @@ export const UpdateTeamBody = zod.object({
   "name": zod.string().min(1).optional(),
   "ageGroup": zod.string().optional(),
   "season": zod.string().optional(),
-  "weekStartDay": zod.number().optional().describe('0 = Sunday ... 6 = Saturday')
+  "weekStartDay": zod.number().optional().describe('0 = Sunday ... 6 = Saturday'),
+  "logo": zod.string().optional().describe('Base64 data URI, or empty string to remove')
 })
 
 export const UpdateTeamResponse = zod.object({
@@ -100,6 +104,7 @@ export const UpdateTeamResponse = zod.object({
   "userId": zod.string(),
   "tier": zod.string().optional(),
   "weekStartDay": zod.number().optional().describe('0 = Sunday ... 6 = Saturday'),
+  "logo": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -249,6 +254,7 @@ export const ListMatchesResponseItem = zod.object({
   "strengthsNotes": zod.string().nullish(),
   "improvementNotes": zod.string().nullish(),
   "generalNotes": zod.string().nullish(),
+  "opponentLogo": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const ListMatchesResponse = zod.array(ListMatchesResponseItem)
@@ -291,6 +297,7 @@ export const CreateMatchResponse = zod.object({
   "strengthsNotes": zod.string().nullish(),
   "improvementNotes": zod.string().nullish(),
   "generalNotes": zod.string().nullish(),
+  "opponentLogo": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -320,7 +327,8 @@ export const UpdateMatchBody = zod.object({
   "teamPerformanceNotes": zod.string().optional(),
   "strengthsNotes": zod.string().optional(),
   "improvementNotes": zod.string().optional(),
-  "generalNotes": zod.string().optional()
+  "generalNotes": zod.string().optional(),
+  "opponentLogo": zod.string().optional().describe('Base64 data URI, or empty string to remove')
 })
 
 export const UpdateMatchResponse = zod.object({
@@ -337,6 +345,7 @@ export const UpdateMatchResponse = zod.object({
   "strengthsNotes": zod.string().nullish(),
   "improvementNotes": zod.string().nullish(),
   "generalNotes": zod.string().nullish(),
+  "opponentLogo": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -1014,6 +1023,7 @@ export const GetDashboardResponse = zod.object({
   "strengthsNotes": zod.string().nullish(),
   "improvementNotes": zod.string().nullish(),
   "generalNotes": zod.string().nullish(),
+  "opponentLogo": zod.string().nullish(),
   "createdAt": zod.string()
 })),
   "topScorers": zod.array(zod.object({
@@ -1055,6 +1065,7 @@ export const GetDashboardResponse = zod.object({
   "strengthsNotes": zod.string().nullish(),
   "improvementNotes": zod.string().nullish(),
   "generalNotes": zod.string().nullish(),
+  "opponentLogo": zod.string().nullish(),
   "createdAt": zod.string()
 })),
   "attendanceMarked": zod.boolean()

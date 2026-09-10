@@ -271,6 +271,7 @@ const STATEMENTS = [
   )`,
   `ALTER TABLE "teams" ADD COLUMN IF NOT EXISTS "tier" text NOT NULL DEFAULT 'free'`,
   `ALTER TABLE "teams" ADD COLUMN IF NOT EXISTS "week_start_day" integer NOT NULL DEFAULT 1`,
+  `ALTER TABLE "teams" ADD COLUMN IF NOT EXISTS "logo" text`,
   `CREATE TABLE IF NOT EXISTS "access_requests" (
     "id" serial PRIMARY KEY,
     "user_id" text NOT NULL UNIQUE,
@@ -330,6 +331,7 @@ const STATEMENTS = [
   `ALTER TABLE "matches" ADD COLUMN IF NOT EXISTS "strengths_notes" text`,
   `ALTER TABLE "matches" ADD COLUMN IF NOT EXISTS "improvement_notes" text`,
   `ALTER TABLE "matches" ADD COLUMN IF NOT EXISTS "general_notes" text`,
+  `ALTER TABLE "matches" ADD COLUMN IF NOT EXISTS "opponent_logo" text`,
   `CREATE TABLE IF NOT EXISTS "library_documents" (
     "id" serial PRIMARY KEY,
     "user_id" text NOT NULL,

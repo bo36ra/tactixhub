@@ -4,6 +4,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { db, matchesTable, teamsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { verifyTeamAccess } from "../lib/teamAccess";
+import { sanitizeImage } from "../lib/sanitizeImage";
 
 const router = Router();
 
@@ -71,7 +72,7 @@ router.patch("/teams/:teamId/matches/:matchId", requireAuth, async (req, res) =>
   const userId = (req as any).userId as string;
   const teamId = parseInt(req.params.teamId as string);
   const matchId = parseInt(req.params.matchId as string);
-  const { opponent, date, type, ourGoals, theirGoals, videoUrl, teamPerformanceNotes, strengthsNotes, improvementNotes, generalNotes } = req.body ?? {};
+  const { opponent, date, type, ourGoals, theirGoals, videoUrl, teamPerformanceNotes, strengthsNotes, improvementNotes, generalNotes, opponentLogo } = req.body ?? {};
   if (!(await verifyTeamOwnership(userId, teamId))) {
     res.status(403).json({ error: "Forbidden" });
     return;
@@ -79,6 +80,7 @@ router.patch("/teams/:teamId/matches/:matchId", requireAuth, async (req, res) =>
   // Same shape for every note field: a string (even empty, to allow
   // clearing) gets trimmed and capped; anything else is left alone.
   const noteField = (v: unknown) => (typeof v === "string" ? { value: v.trim() ? v.trim().slice(0, 4000) : null } : null);
+  const cleanOpponentLogo = sanitizeImage(opponentLogo);
   try {
     const [match] = await db
       .update(matchesTable)
@@ -93,6 +95,7 @@ router.patch("/teams/:teamId/matches/:matchId", requireAuth, async (req, res) =>
         ...(noteField(strengthsNotes) && { strengthsNotes: noteField(strengthsNotes)!.value }),
         ...(noteField(improvementNotes) && { improvementNotes: noteField(improvementNotes)!.value }),
         ...(noteField(generalNotes) && { generalNotes: noteField(generalNotes)!.value }),
+        ...(cleanOpponentLogo !== undefined && { opponentLogo: cleanOpponentLogo }),
       })
       .where(and(eq(matchesTable.id, matchId), eq(matchesTable.teamId, teamId)))
       .returning();
@@ -141,6 +144,7 @@ function mapMatch(m: typeof matchesTable.$inferSelect) {
     strengthsNotes: m.strengthsNotes,
     improvementNotes: m.improvementNotes,
     generalNotes: m.generalNotes,
+    opponentLogo: m.opponentLogo,
     createdAt: m.createdAt.toISOString(),
   };
 }

@@ -6,6 +6,7 @@ import { requireAuth } from "../middlewares/requireAuth";
 import { getTeamRole, verifyTeamOwner } from "../lib/teamAccess";
 import { getClerkUserInfo } from "../lib/clerkUsers";
 import { isSuperAdmin } from "../lib/superAdmin";
+import { sanitizeImage } from "../lib/sanitizeImage";
 import { accessRequestsTable } from "@workspace/db";
 import { notifyUser, notifyTeamMembers } from "../lib/notify";
 
@@ -167,7 +168,7 @@ router.get("/teams/:teamId", requireAuth, async (req, res) => {
 router.patch("/teams/:teamId", requireAuth, async (req, res) => {
   const userId = (req as any).userId as string;
   const teamId = parseInt(req.params.teamId as string);
-  const { name, ageGroup, season, weekStartDay } = req.body;
+  const { name, ageGroup, season, weekStartDay, logo } = req.body;
   try {
     const role = await getTeamRole(userId, teamId);
     if (!role) {
@@ -178,6 +179,7 @@ router.patch("/teams/:teamId", requireAuth, async (req, res) => {
       res.status(403).json({ error: "Only the owner or a coach can update the team" });
       return;
     }
+    const cleanLogo = sanitizeImage(logo);
     const [team] = await db
       .update(teamsTable)
       .set({
@@ -185,6 +187,7 @@ router.patch("/teams/:teamId", requireAuth, async (req, res) => {
         ...(ageGroup !== undefined && { ageGroup }),
         ...(season !== undefined && { season }),
         ...(weekStartDay !== undefined && { weekStartDay }),
+        ...(cleanLogo !== undefined && { logo: cleanLogo }),
       })
       .where(eq(teamsTable.id, teamId))
       .returning();
@@ -225,6 +228,7 @@ function mapTeam(t: typeof teamsTable.$inferSelect) {
     userId: t.userId,
     tier: t.tier,
     weekStartDay: t.weekStartDay,
+    logo: t.logo,
     createdAt: t.createdAt.toISOString(),
   };
 }

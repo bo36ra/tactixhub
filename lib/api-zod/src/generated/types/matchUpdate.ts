@@ -21,4 +21,6 @@ export interface MatchUpdate {
   strengthsNotes?: string;
   improvementNotes?: string;
   generalNotes?: string;
+  /** Base64 data URI, or empty string to remove */
+  opponentLogo?: string;
 }

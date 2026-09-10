@@ -29,6 +29,10 @@ export const matchesTable = pgTable("matches", {
   strengthsNotes: text("strengths_notes"),
   improvementNotes: text("improvement_notes"),
   generalNotes: text("general_notes"),
+  // Same base64-data-URI storage as player photos and the team's own
+  // logo. Lives on the match (not the team) since the opponent changes
+  // fixture to fixture.
+  opponentLogo: text("opponent_logo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
