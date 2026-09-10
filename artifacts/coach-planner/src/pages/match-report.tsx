@@ -302,18 +302,13 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
                     ))}
                 </div>
                 {lineup.entries.some((e) => e.slotIndex === null) && (
-                  <>
-                    <p className="text-sm font-semibold mt-2 mb-1">{t('lineup.bench')}</p>
-                    <div className="grid grid-cols-2 gap-x-4">
-                      {lineup.entries
-                        .filter((e) => e.slotIndex === null)
-                        .map((e) => (
-                          <p key={e.id} className="text-sm text-muted-foreground">
-                            #{e.jerseyNumber} {e.playerName}
-                          </p>
-                        ))}
-                    </div>
-                  </>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    <span className="font-semibold text-foreground">{t('lineup.bench')}: </span>
+                    {lineup.entries
+                      .filter((e) => e.slotIndex === null)
+                      .map((e) => `#${e.jerseyNumber} ${e.playerName}`)
+                      .join(' · ')}
+                  </p>
                 )}
               </section>
             )}
@@ -321,17 +316,19 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
             {mGoals.length > 0 && (
               <section>
                 <h3 className="font-bold mb-1">⚽ {t('nav.goals')}</h3>
-                {mGoals.map((g, i) => {
-                  const assist = g.assistPlayerId ? pName(g.assistPlayerId) : g.assistName;
-                  return (
-                    <p key={i} className="text-sm">
-                      {g.minute}' — {g.type === 'scored' ? pName(g.scorerPlayerId) : t('report.conceded')} ({g.method})
-                      {g.type === 'scored' && assist && (
-                        <span className="text-muted-foreground"> · {t('report.assistBy')} {assist}</span>
-                      )}
-                    </p>
-                  );
-                })}
+                <p className="text-sm">
+                  {mGoals.slice().sort((a, b) => a.minute - b.minute).map((g, i) => {
+                    const assist = g.assistPlayerId ? pName(g.assistPlayerId) : g.assistName;
+                    const scorer = g.type === 'scored' ? pName(g.scorerPlayerId) : t('report.conceded');
+                    const assistPart = g.type === 'scored' && assist ? ` (${t('report.assistBy')} ${assist})` : '';
+                    return (
+                      <React.Fragment key={i}>
+                        {i > 0 && ' · '}
+                        {g.minute}' — {scorer} ({g.method}){assistPart}
+                      </React.Fragment>
+                    );
+                  })}
+                </p>
               </section>
             )}
 
