@@ -363,4 +363,15 @@ input[type='time']::-webkit-calendar-picker-indicator {
     width: 32px !important;
     height: 32px !important;
   }
+  /* Defends against exactly what was reported: a long name (a guest
+     player's, in the specific case seen — "صقر تحت 18") getting
+     clipped at the page edge inside a narrow grid column instead of
+     wrapping onto a second line. The bench section itself was already
+     changed to one wrapping line rather than a grid, but this makes
+     every text element in the report robust against the same failure
+     mode regardless of column width. */
+  .match-report-print * {
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+  }
 }
