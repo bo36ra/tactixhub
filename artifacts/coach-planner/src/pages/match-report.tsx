@@ -273,24 +273,29 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
                 )}
               </div>
               {mCards.map((c) => (
-                <div key={c.id} className="flex items-center justify-between text-sm group">
-                  <button
-                    type="button"
-                    className="print:hidden text-start hover:text-primary flex-1"
-                    onClick={() => startEditCard(c.id, c.playerId, c.minute, c.cardType as 'yellow' | 'red')}
-                  >
-                    {c.minute}' — {pName(c.playerId)} ({c.cardType})
-                  </button>
-                  <p className="hidden print:block">{c.minute}' — {pName(c.playerId)} ({c.cardType})</p>
-                  <button
-                    type="button"
-                    className="print:hidden text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => handleDeleteCard(c.id)}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                <div key={c.id} className="print:hidden flex items-center justify-between gap-2 text-sm rounded-lg border bg-card px-3 py-2 mb-1.5">
+                  <span className="flex-1">{c.minute}' — {pName(c.playerId)} ({c.cardType})</span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      onClick={() => startEditCard(c.id, c.playerId, c.minute, c.cardType as 'yellow' | 'red')}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDeleteCard(c.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
+              <p className="hidden print:block">
+                {mCards.map((c) => (
+                  <span key={c.id} className="block text-sm">{c.minute}' — {pName(c.playerId)} ({c.cardType})</span>
+                ))}
+              </p>
               {mCards.length === 0 && !addingCard && (
                 <p className="text-sm text-muted-foreground print:hidden">{t('report.noCards')}</p>
               )}
