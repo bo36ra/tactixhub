@@ -576,7 +576,7 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
                 {sessions.map((s) => (
                   <div key={s.id} className="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-2">
                     <button type="button" className="flex-1 text-start text-sm font-medium truncate" onClick={() => openSession(s)}>
-                      {s.name}
+                      {s.name} <span dir="ltr" className="text-[10px] text-muted-foreground">[DEBUG len={s.data?.length ?? 'n/a'}]</span>
                     </button>
                     <button type="button" className="text-destructive/60 hover:text-destructive p-1" onClick={() => del.mutate(s.id)}>
                       <Trash2 className="w-3.5 h-3.5" />
