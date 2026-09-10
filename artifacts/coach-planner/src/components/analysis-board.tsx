@@ -117,7 +117,13 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
       historyIndexRef.current = 0;
     } else {
       setEditingId(null);
-      setSessionName('');
+      // Deliberately NOT resetting sessionName here — this is the real
+      // bug the "name required" complaint traced back to. The name
+      // input sits right next to this "New Session" button, so typing
+      // a name then clicking it is the obvious, natural flow — but
+      // this used to hard-reset the name to empty regardless of what
+      // was just typed, silently discarding it. The name a coach
+      // types before creating a new session should carry over to it.
       const fresh = emptyAnalysisBoard();
       setBoardRaw(fresh);
       historyRef.current = [fresh];
@@ -362,7 +368,7 @@ export function AnalysisBoard({ teamId }: { teamId: number }) {
     <div className="flex flex-col rounded-xl border border-border overflow-hidden bg-card" style={{ height: 'calc(100vh - 13rem)', minHeight: '32rem' }}>
       {/* Top toolbar */}
       <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border shrink-0">
-        <button type="button" onClick={() => setSessionPickerOpen(true)} className="flex items-center gap-1.5 text-sm font-semibold truncate min-w-0">
+        <button type="button" onClick={() => { setSessionName(''); setSessionPickerOpen(true); }} className="flex items-center gap-1.5 text-sm font-semibold truncate min-w-0">
           <span className="truncate">{sessionName || t('analysis.untitled')}</span>
           <ChevronDown className="w-3.5 h-3.5 shrink-0" />
         </button>
