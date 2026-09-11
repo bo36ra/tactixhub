@@ -363,7 +363,15 @@ export function AnalysisBoard({ teamId, openId, onOpened }: { teamId: number; op
     gesture.current = { kind: 'none', startClientX: 0, startClientY: 0, startPercent: { x: 0, y: 0 }, moved: false };
   };
 
-  const events = (board.events ?? []).slice().sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0) || a.createdAt - b.createdAt);
+  const [halfFilter, setHalfFilter] = React.useState<'all' | 'first' | 'second'>('all');
+  const events = (board.events ?? [])
+    .filter((e) => {
+      if (halfFilter === 'all') return true;
+      const minute = e.minute ?? 0;
+      return halfFilter === 'first' ? minute <= 45 : minute > 45;
+    })
+    .slice()
+    .sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0) || a.createdAt - b.createdAt);
 
   const addEvent = (type: TacticalEventType, subtype: string | null, customLabel: string | null, resultedInGoal: boolean, team: 'us' | 'them', playerId: number | null, minute: number | null) => {
     if (!pendingPos) return;
@@ -529,8 +537,22 @@ export function AnalysisBoard({ teamId, openId, onOpened }: { teamId: number; op
 
         {/* Right events panel (desktop) */}
         <div className="hidden md:flex flex-col w-72 border-s border-border shrink-0 overflow-hidden">
-          <div className="px-3 py-2 border-b border-border shrink-0">
+          <div className="px-3 py-2 border-b border-border shrink-0 space-y-1.5">
             <p className="text-xs font-semibold text-muted-foreground">{t('analysis.eventsList')} ({events.length})</p>
+            <div className="flex gap-1">
+              {(['all', 'first', 'second'] as const).map((half) => (
+                <button
+                  key={half}
+                  type="button"
+                  onClick={() => setHalfFilter(half)}
+                  className={`px-2 py-0.5 rounded-full text-[11px] font-medium border transition-colors ${
+                    halfFilter === half ? 'bg-primary text-primary-foreground border-primary' : 'border-border/60 text-muted-foreground hover:bg-white/[0.04]'
+                  }`}
+                >
+                  {t(`analysis.half.${half}`)}
+                </button>
+              ))}
+            </div>
           </div>
           <EventsList events={events} players={players ?? []} lang={lang} t={t} onDelete={deleteEvent} />
         </div>
@@ -557,8 +579,22 @@ export function AnalysisBoard({ teamId, openId, onOpened }: { teamId: number; op
       {/* Mobile events sheet */}
       <Sheet open={eventsPanelOpen} onOpenChange={setEventsPanelOpen}>
         <SheetContent side={isRtl ? 'left' : 'right'} className="w-full sm:max-w-sm p-0 flex flex-col">
-          <SheetHeader className="px-3 py-2 border-b border-border shrink-0">
+          <SheetHeader className="px-3 py-2 border-b border-border shrink-0 space-y-1.5">
             <SheetTitle className="text-sm">{t('analysis.eventsList')} ({events.length})</SheetTitle>
+            <div className="flex gap-1">
+              {(['all', 'first', 'second'] as const).map((half) => (
+                <button
+                  key={half}
+                  type="button"
+                  onClick={() => setHalfFilter(half)}
+                  className={`px-2 py-0.5 rounded-full text-[11px] font-medium border transition-colors ${
+                    halfFilter === half ? 'bg-primary text-primary-foreground border-primary' : 'border-border/60 text-muted-foreground hover:bg-white/[0.04]'
+                  }`}
+                >
+                  {t(`analysis.half.${half}`)}
+                </button>
+              ))}
+            </div>
           </SheetHeader>
           <EventsList events={events} players={players ?? []} lang={lang} t={t} onDelete={deleteEvent} />
         </SheetContent>
