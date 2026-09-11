@@ -1512,6 +1512,8 @@ function AllTab({
   const { t } = useLanguage();
   const { data: tactics, isLoading } = useTactics(teamId);
   const { data: matches } = useListMatches(teamId, { query: { enabled: true, queryKey: getListMatchesQueryKey(teamId) } });
+  const del = useDeleteTactic(teamId);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   const sorted = React.useMemo(
     () => [...(tactics ?? [])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
@@ -1529,27 +1531,47 @@ function AllTab({
   if (sorted.length === 0) return <p className="text-muted-foreground text-sm">{t('tactics.emptyAll')}</p>;
 
   return (
+    <>
     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
       {sorted.map((tc) => (
-        <button
+        <div
           key={`${tc.kind}-${tc.id}`}
-          className="text-start border border-border rounded-lg p-3 bg-card hover:bg-white/[0.03] transition-colors"
-          onClick={() => onOpen(tc.kind, tc.id)}
+          className="relative border border-border rounded-lg p-3 bg-card hover:bg-white/[0.03] transition-colors"
         >
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-semibold truncate">{tc.name}</span>
-            <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] ${KIND_STYLES[tc.kind]}`}>
-              {t(`tactics.kind.${tc.kind}`)}
-            </span>
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">
-            {new Date(tc.createdAt).toLocaleDateString()}
-            {tc.matchId && (matches ?? []).find((m: any) => m.id === tc.matchId)
-              ? ` · ${(matches ?? []).find((m) => m.id === tc.matchId)?.opponent}` : ''}
-          </div>
-        </button>
+          <button className="text-start w-full pe-6" onClick={() => onOpen(tc.kind, tc.id)}>
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-semibold truncate">{tc.name}</span>
+              <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] ${KIND_STYLES[tc.kind]}`}>
+                {t(`tactics.kind.${tc.kind}`)}
+              </span>
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {new Date(tc.createdAt).toLocaleDateString()}
+              {tc.matchId && (matches ?? []).find((m: any) => m.id === tc.matchId)
+                ? ` · ${(matches ?? []).find((m) => m.id === tc.matchId)?.opponent}` : ''}
+            </div>
+          </button>
+          <button
+            type="button"
+            className="absolute top-2 end-2 text-muted-foreground hover:text-destructive p-1"
+            onClick={() => setConfirmDeleteId(tc.id)}
+            title={t('common.delete')}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
       ))}
     </div>
+    <ConfirmDialog
+      open={confirmDeleteId !== null}
+      title={t('tactics.deleteConfirm')}
+      onConfirm={() => {
+        if (confirmDeleteId !== null) del.mutate(confirmDeleteId);
+        setConfirmDeleteId(null);
+      }}
+      onOpenChange={(o) => !o && setConfirmDeleteId(null)}
+    />
+    </>
   );
 }
 
