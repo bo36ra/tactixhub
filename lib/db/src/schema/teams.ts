@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -26,13 +26,14 @@ export const teamsTable = pgTable("teams", {
   // logo (which lives on the match itself instead, since the opponent
   // changes fixture to fixture while the team's own logo doesn't).
   logo: text("logo"),
-  // Tracks whether this team's exercise library has ever been seeded
-  // with the starter catalog (see exercise-library.ts's GET route).
-  // Deliberately separate from "does the library currently have zero
-  // rows" — a coach who deletes every starter exercise down to zero
-  // should see an empty library from then on, not have it silently
-  // repopulate the next time they open the page.
-  exerciseLibrarySeeded: boolean("exercise_library_seeded").notNull().default(false),
+  // JSON array of starter-exercise keys ever introduced to this team
+  // (see STARTER_EXERCISES in exercise-library.ts) — not "which starter
+  // exercises currently exist," which can't survive a coach deleting
+  // one on purpose, and not a plain seeded/not-seeded boolean either,
+  // since the starter catalog keeps growing over time and an existing
+  // team needs to pick up newly-added drills without re-getting ones
+  // it already received (or ones it deliberately deleted).
+  seededExerciseKeys: text("seeded_exercise_keys"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -21,7 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useToast } from '@/hooks/use-toast';
 import { BookOpen, Plus, Search, ImagePlus, Trash2, Pencil } from 'lucide-react';
 
-const CATEGORIES = ['warm_up', 'possession', 'finishing', 'defending', 'set_piece', 'conditioning', 'small_sided_game', 'cool_down', 'other'] as const;
+const CATEGORIES = ['warm_up', 'possession', 'transition', 'finishing', 'defending', 'set_piece', 'conditioning', 'small_sided_game', 'cool_down', 'other'] as const;
 
 const EMPTY_FORM = {
   title: '', category: 'other' as string, objectiveOffense: '', objectiveDefense: '',
