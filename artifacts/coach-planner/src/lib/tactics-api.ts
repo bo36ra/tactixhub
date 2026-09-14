@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { customFetch } from '@workspace/api-client-react';
 
 // Board format stored as a JSON string in the `data` column.
-export type EquipmentType = 'cone' | 'barrier' | 'goal' | 'flag' | 'point' | 'number';
+export type EquipmentType = 'cone' | 'barrier' | 'goal' | 'flag' | 'point' | 'number' | 'mannequin';
 export interface BoardMarker {
   id: string;
   x: number; // 0..100 (percent of pitch width)

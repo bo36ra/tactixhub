@@ -542,6 +542,7 @@ const en: Translations = {
   "tactics.equipGoal": "Mini goal",
   "tactics.equipFlag": "Flag",
   "tactics.equipPoint": "Point",
+  "tactics.equipMannequin": "Mannequin",
   "tactics.equipNumber": "Number",
 
   "tactics.clearAll": "Clear all",
@@ -1500,6 +1501,7 @@ const ar: Translations = {
   "tactics.equipGoal": "مرمى مصغر",
   "tactics.equipFlag": "علم",
   "tactics.equipPoint": "نقطة",
+  "tactics.equipMannequin": "مجسم",
   "tactics.equipNumber": "رقم",
 
   "tactics.clearAll": "مسح الكل",

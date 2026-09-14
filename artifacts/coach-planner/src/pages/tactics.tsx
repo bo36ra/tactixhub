@@ -157,6 +157,18 @@ function EquipmentShape({ type, color, label }: { type: EquipmentType; color?: s
       </g>
     );
   }
+  if (type === 'mannequin') {
+    // A simplified human silhouette — head + tapered body — reads as
+    // "a training dummy" (free-kick walls, dribbling gates, defensive
+    // shape practice) rather than "a player," the same way the other
+    // equipment shapes each read as their own distinct object.
+    return (
+      <g fill={color ?? '#8A8A8A'} stroke="#2a2a2a" strokeWidth="0.3">
+        <circle cx="0" cy="-2.4" r="1.3" />
+        <path d="M -2.2,3.2 L -1.3,-1 L 1.3,-1 L 2.2,3.2 Z" />
+      </g>
+    );
+  }
   // flag
   return (
     <g>
@@ -998,7 +1010,7 @@ function BoardsTab({
               <div className="space-y-1.5">
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{t('tactics.addEquipment')}</p>
                 <div className="grid grid-cols-3 gap-1.5">
-                  {(['cone', 'barrier', 'goal', 'flag', 'point'] as EquipmentType[]).map((eq) => (
+                  {(['cone', 'barrier', 'goal', 'flag', 'point', 'mannequin'] as EquipmentType[]).map((eq) => (
                     <Button
                       key={eq} variant="outline" className="h-12 text-xs"
                       onClick={() => {
