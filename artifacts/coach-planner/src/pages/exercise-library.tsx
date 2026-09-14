@@ -107,13 +107,13 @@ function ExerciseEditor({
             <div className="sm:w-40 shrink-0">
               {form.image ? (
                 <div className="relative">
-                  <img src={form.image} alt="" className="w-full aspect-video object-cover rounded-lg border border-border/60" />
+                  <img src={form.image} alt="" className="w-full aspect-[10/7] object-contain bg-black/20 rounded-lg border border-border/60" />
                   <button type="button" className="absolute top-1 end-1 bg-black/60 text-white rounded-md p-1" onClick={() => setForm({ ...form, image: null })}>
                     <Trash2 className="w-3 h-3" />
                   </button>
                 </div>
               ) : (
-                <label className="flex flex-col items-center justify-center gap-1 aspect-video rounded-lg border border-dashed border-border/60 text-muted-foreground cursor-pointer hover:bg-white/[0.03] text-xs">
+                <label className="flex flex-col items-center justify-center gap-1 aspect-[10/7] rounded-lg border border-dashed border-border/60 text-muted-foreground cursor-pointer hover:bg-white/[0.03] text-xs">
                   <ImagePlus className="w-5 h-5" />
                   {t('sessionPlan.uploadImage')}
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImage(f); e.target.value = ''; }} />
@@ -174,6 +174,7 @@ export function ExerciseLibraryPage() {
   const [search, setSearch] = React.useState('');
   const [category, setCategory] = React.useState('all');
   const [editing, setEditing] = React.useState<LibraryExercise | null>(null);
+  const [previewImage, setPreviewImage] = React.useState<string | null>(null);
   const [creating, setCreating] = React.useState(false);
 
   const filtered = (exercises ?? []).filter((ex) => {
@@ -222,7 +223,7 @@ export function ExerciseLibraryPage() {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="bg-card border rounded-xl overflow-hidden">
-                  <Skeleton className="w-full aspect-video rounded-none" />
+                  <Skeleton className="w-full aspect-[10/7] rounded-none" />
                   <div className="p-3 space-y-1.5">
                     <Skeleton className="h-4 w-2/3" />
                     <Skeleton className="h-3 w-1/3" />
@@ -239,9 +240,11 @@ export function ExerciseLibraryPage() {
               {filtered.map((ex) => (
                 <div key={ex.id} className="bg-card border rounded-xl overflow-hidden group">
                   {ex.image ? (
-                    <img src={ex.image} alt="" className="w-full aspect-video object-cover" />
+                    <button type="button" className="block w-full" onClick={() => setPreviewImage(ex.image!)}>
+                      <img src={ex.image} alt="" className="w-full aspect-[10/7] object-contain bg-black/20" />
+                    </button>
                   ) : (
-                    <div className="w-full aspect-video bg-white/[0.03] flex items-center justify-center">
+                    <div className="w-full aspect-[10/7] bg-white/[0.03] flex items-center justify-center">
                       <BookOpen className="w-8 h-8 text-muted-foreground/40" />
                     </div>
                   )}
@@ -274,6 +277,14 @@ export function ExerciseLibraryPage() {
         {(creating || editing) && (
           <ExerciseEditor teamId={tid} exercise={editing} onClose={() => { setCreating(false); setEditing(null); }} />
         )}
+
+        <Dialog open={previewImage !== null} onOpenChange={(open) => !open && setPreviewImage(null)}>
+          <DialogContent className="max-w-2xl p-2">
+            {previewImage && (
+              <img src={previewImage} alt="" className="w-full h-auto rounded-lg" />
+            )}
+          </DialogContent>
+        </Dialog>
       </PullToRefresh>
     </AppLayout>
     </ProPage>
