@@ -157,6 +157,7 @@ const STATEMENTS = [
     "image" text,
     "created_at" timestamp DEFAULT now() NOT NULL
   )`,
+  `ALTER TABLE "exercise_library" ADD COLUMN IF NOT EXISTS "is_starter_image" boolean NOT NULL DEFAULT false`,
   `CREATE TABLE IF NOT EXISTS "wellness_entries" (
     "id" serial PRIMARY KEY,
     "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
