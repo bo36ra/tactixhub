@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
 import { PullToRefresh } from '@/components/pull-to-refresh';
 import { StickyHeader, PageTitle } from '@/components/page-header';
@@ -403,10 +403,10 @@ export function Reports() {
                           {p.jerseyNumber}
                         </td>
                         <td className="px-4 py-3 font-semibold">
-                          <span className="flex items-center gap-2.5">
+                          <Link href={`/players/${p.id}`} className="flex items-center gap-2.5 hover:text-primary transition-colors">
                             <PlayerAvatar photo={p.photo} jerseyNumber={p.jerseyNumber} className="w-8 h-8 text-xs" />
                             {playerName(p, lang)}
-                          </span>
+                          </Link>
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{t(`position.${p.position}`)}</td>
                         <td className="px-4 py-3">
