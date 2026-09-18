@@ -671,6 +671,19 @@ function IntervalTimerTab() {
   workSecondsRef.current = workSeconds;
   restSecondsRef.current = restSeconds;
   transitionSecondsRef.current = transitionSeconds;
+  // Which second value the last countdown tick beep played for —
+  // the interval ticks every 200ms, so without this a 3-second window
+  // would fire 5 ticks per second instead of exactly one.
+  const lastTickSecondRef = React.useRef<number | null>(null);
+
+  const tick = React.useCallback(() => {
+    if (!soundOnRef.current) return;
+    // Short and quiet relative to the phase-change beeps — this fires
+    // every second for the last 3 seconds of every phase, so it needs
+    // to read as a background countdown cue, not compete with the
+    // more important "phase just changed" sound.
+    playBeep(1000, 80, 0.15);
+  }, []);
 
   const beep = React.useCallback((kind: 'work' | 'rest' | 'transition' | 'done') => {
     if (!soundOnRef.current) return;
@@ -694,6 +707,7 @@ function IntervalTimerTab() {
     setCurrentRound(round);
     setTimeLeft(seconds);
     phaseEndRef.current = Date.now() + seconds * 1000;
+    lastTickSecondRef.current = null;
     if (next === 'work' || next === 'rest' || next === 'transition') beep(next);
     if (next === 'done') beep('done');
   }, [beep]);
@@ -735,6 +749,10 @@ function IntervalTimerTab() {
       const remainingSec = Math.ceil(remainingMs / 1000);
       if (remainingSec > 0) {
         setTimeLeft(remainingSec);
+        if (remainingSec <= 3 && lastTickSecondRef.current !== remainingSec) {
+          lastTickSecondRef.current = remainingSec;
+          tick();
+        }
         return;
       }
       // Current phase just ended — decide what comes next, reading the
@@ -760,7 +778,7 @@ function IntervalTimerTab() {
       }
     }, 200);
     return () => clearInterval(id);
-  }, [isRunning, startPhase]);
+  }, [isRunning, startPhase, tick]);
 
   const phaseLabel = phase === 'work' ? t('gym.timerWork')
     : phase === 'rest' ? t('gym.timerRest')
