@@ -6,17 +6,16 @@ import { AppLayout, NoTeamState } from '@/components/layout';
 import { useIsPro } from '@/lib/feature-gate';
 import { useLanguage } from '@/lib/i18n';
 import { useTeam } from '@/lib/team-context';
-import { useTrainings, useCreateTraining, useDeleteTraining, useExerciseLibrary, type LibraryExercise } from '@/lib/dev-api';
-import { Link } from 'wouter';
+import { useTrainings, useCreateTraining, useDeleteTraining } from '@/lib/dev-api';
+import { Link, useLocation } from 'wouter';
 import { NotebookPen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { CHART_COLORS } from '@/lib/chart-theme';
-import { Dumbbell, Plus, Trash2, Save, BookOpen } from 'lucide-react';
+import { Dumbbell, Plus, Trash2, Save } from 'lucide-react';
 
 export const FOCUS_KEYS = [
   'preparation',
@@ -63,6 +62,7 @@ export default function Trainings() {
 }
 
 function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
+  const [, setLocation] = useLocation();
   const { data: trainings, isLoading } = useTrainings(teamId);
   // Weekly training load = Σ intensity-factor × minutes, bucketed into
   // the last 6 ISO weeks. Turns the intensity/duration fields into an
@@ -89,18 +89,8 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
 
   const create = useCreateTraining(teamId);
   const del = useDeleteTraining(teamId);
-  const [form, setForm] = useState<{ date: string; time: string; focus: string[]; customFocus: string; intensity: string; duration: string; drills: string; notes: string } | null>(null);
   const isPro = useIsPro();
-  const { data: library } = useExerciseLibrary(isPro ? teamId : 0);
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerSearch, setPickerSearch] = useState('');
-
-  const addFromLibrary = (ex: LibraryExercise) => {
-    if (!form) return;
-    const line = ex.explanation ? `${ex.title}: ${ex.explanation}` : ex.title;
-    setForm({ ...form, drills: form.drills ? `${form.drills}\n${line}` : line });
-    setPickerOpen(false);
-  };
+  const [form, setForm] = useState<{ date: string; time: string; focus: string[]; customFocus: string; intensity: string; duration: string; drills: string; notes: string } | null>(null);
 
   const save = () => {
     const customTrimmed = form?.customFocus.trim() ?? '';
@@ -119,7 +109,24 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
         drills: form.drills || undefined,
         notes: form.notes || undefined,
       },
-      { onSuccess: () => { toast({ title: t('tactics.saved') }); setForm(null); }, onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }) },
+      {
+        // Straight into the detailed plan page rather than just closing
+        // the form — that page already has the full structured-block
+        // system (each exercise from the library becomes its own timed
+        // card, with a running total), so a coach adding exercises from
+        // here lands exactly where that actually happens instead of the
+        // old plain-text "type or paste a line per drill" box.
+        // Only Pro coaches get redirected — the detailed plan page
+        // itself is Pro-gated (ProRoute in App.tsx), so sending a
+        // non-Pro coach there right after saving would immediately
+        // greet them with an upgrade wall instead of their session.
+        onSuccess: (training) => {
+          toast({ title: t('tactics.saved') });
+          setForm(null);
+          if (isPro) setLocation(`/training-plan/${training.id}`);
+        },
+        onError: () => toast({ title: t('common.saveFailed'), variant: 'destructive' }),
+      },
     );
   };
 
@@ -207,13 +214,9 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
                 onChange={(e) => setForm({ ...form, duration: e.target.value })}
               />
             </div>
-            {isPro && (
-              <Button type="button" size="sm" variant="outline" className="gap-1.5 w-fit" onClick={() => setPickerOpen(true)}>
-                <BookOpen className="w-4 h-4" /> {t('library.addFromGallery')}
-              </Button>
-            )}
             <Textarea rows={3} placeholder={t('train.drills')} value={form.drills}
               onChange={(e) => setForm({ ...form, drills: e.target.value })} />
+            {isPro && <p className="text-xs text-muted-foreground">{t('train.detailedPlanHint')}</p>}
             <Textarea rows={2} placeholder={t('train.notes')} value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             <div className="flex gap-2">
@@ -287,48 +290,6 @@ function Inner({ teamId, t }: { teamId: number; t: (k: string) => string }) {
           );
         })()}
       </div>
-
-      {isPro && (
-        <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
-          <DialogContent className="max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{t('library.pickTitle')}</DialogTitle>
-            </DialogHeader>
-            <Input
-              placeholder={t('library.searchPh')}
-              value={pickerSearch}
-              onChange={(e) => setPickerSearch(e.target.value)}
-            />
-            <div className="space-y-2 pt-1">
-              {(library ?? [])
-                .filter((ex) => !pickerSearch.trim() || ex.title.toLowerCase().includes(pickerSearch.trim().toLowerCase()))
-                .map((ex) => (
-                  <button
-                    key={ex.id}
-                    type="button"
-                    className="w-full flex items-center gap-3 rounded-lg border border-border/60 p-2 text-start hover:bg-white/[0.04]"
-                    onClick={() => addFromLibrary(ex)}
-                  >
-                    {ex.image ? (
-                      <img src={ex.image} alt="" className="w-14 h-14 rounded-md object-cover shrink-0" />
-                    ) : (
-                      <div className="w-14 h-14 rounded-md bg-white/[0.04] flex items-center justify-center shrink-0">
-                        <BookOpen className="w-5 h-5 text-muted-foreground/40" />
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold truncate">{ex.title}</p>
-                      <p className="text-xs text-muted-foreground">{t(`library.category.${ex.category}`)}{ex.minutes ? ` · ${ex.minutes}′` : ''}</p>
-                    </div>
-                  </button>
-                ))}
-              {(library ?? []).length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-6">{t('library.empty')}</p>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </AppLayout>
   );
 }
