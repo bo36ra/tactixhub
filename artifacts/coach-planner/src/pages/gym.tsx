@@ -23,7 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Dumbbell, Weight, Trash2, Plus, ClipboardList, Calculator } from 'lucide-react';
+import { Dumbbell, Weight, Trash2, Plus, ClipboardList, Calculator, Timer as TimerIcon, Play, Pause, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import { format } from 'date-fns';
 import { useWeightUnit, type WeightUnit } from '@/lib/weight-unit';
 
@@ -581,15 +581,254 @@ export default function Gym() {
               <TabsTrigger value="orm" className="gap-1.5"><Dumbbell className="w-3.5 h-3.5" />{t('gym.tabOrm')}</TabsTrigger>
               <TabsTrigger value="log" className="gap-1.5"><ClipboardList className="w-3.5 h-3.5" />{t('gym.tabLog')}</TabsTrigger>
               <TabsTrigger value="calc" className="gap-1.5"><Calculator className="w-3.5 h-3.5" />{t('gym.tabCalc')}</TabsTrigger>
+              <TabsTrigger value="timer" className="gap-1.5"><TimerIcon className="w-3.5 h-3.5" />{t('gym.tabTimer')}</TabsTrigger>
             </TabsList>
             <TabsContent value="weight"><BodyWeightTab teamId={activeTeamId} unit={unit} toDisplay={toDisplay} toKg={toKg} /></TabsContent>
             <TabsContent value="orm"><OneRepMaxTab teamId={activeTeamId} unit={unit} toDisplay={toDisplay} toKg={toKg} /></TabsContent>
             <TabsContent value="log"><TrainingLogTab teamId={activeTeamId} unit={unit} toDisplay={toDisplay} toKg={toKg} /></TabsContent>
             <TabsContent value="calc"><CalculatorTab unit={unit} /></TabsContent>
+            <TabsContent value="timer"><IntervalTimerTab /></TabsContent>
           </Tabs>
         </div>
       </PullToRefresh>
     </AppLayout>
     </ProPage>
+  );
+}
+
+// ------------------------------------------------------------ interval timer
+
+type TimerPhase = 'idle' | 'work' | 'rest' | 'transition' | 'done';
+
+// Generates short beep tones directly via the Web Audio API rather than
+// loading external sound files — no licensing to worry about, no asset
+// to fetch, and it works the instant the tab opens. A fresh
+// AudioContext per beep is simplest and avoids ever needing to manage
+// a shared context's suspended/running state across renders.
+function playBeep(frequency: number, durationMs: number, volume = 0.25) {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = frequency;
+    gain.gain.value = volume;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    // Fade out instead of a hard stop, avoiding an audible click at
+    // the end of the beep.
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + durationMs / 1000);
+    osc.stop(ctx.currentTime + durationMs / 1000);
+    osc.onended = () => ctx.close();
+  } catch {
+    // Web Audio unavailable (very old browser, or blocked) — the
+    // visual countdown still works fine without sound.
+  }
+}
+
+function IntervalTimerTab() {
+  const { t } = useLanguage();
+
+  // Settings — kept editable at all times except mid-run, matching how
+  // every interval-timer app works: you set it up, then start it.
+  const [rounds, setRounds] = React.useState(8);
+  const [workSeconds, setWorkSeconds] = React.useState(20);
+  const [restSeconds, setRestSeconds] = React.useState(20);
+  const [transitionSeconds, setTransitionSeconds] = React.useState(10);
+  const [soundOn, setSoundOn] = React.useState(true);
+
+  const [phase, setPhase] = React.useState<TimerPhase>('idle');
+  const [currentRound, setCurrentRound] = React.useState(0);
+  const [timeLeft, setTimeLeft] = React.useState(0);
+  const [isRunning, setIsRunning] = React.useState(false);
+
+  // Tracks the real wall-clock moment the current phase ends, not just
+  // a countdown decremented once per tick — setInterval ticks can be
+  // throttled or delayed (especially if the tab loses focus), so
+  // deriving timeLeft from Date.now() vs this timestamp on every tick
+  // keeps the countdown accurate regardless of exactly when ticks fire.
+  const phaseEndRef = React.useRef<number>(0);
+  const pausedRemainingRef = React.useRef<number>(0);
+  const soundOnRef = React.useRef(soundOn);
+  soundOnRef.current = soundOn;
+
+  // The interval effect only re-runs when isRunning changes (it must
+  // not restart the countdown every time a setting changes), so its
+  // callback closes over stale values of phase/currentRound/rounds/etc.
+  // if it reads plain state directly. Refs mirroring each value sidestep
+  // that: the callback always reads the latest via .current, and
+  // settings are only editable before starting anyway so reading them
+  // fresh from refs here is equivalent to reading current state.
+  const phaseRef = React.useRef<TimerPhase>('idle');
+  const roundRef = React.useRef(0);
+  const roundsRef = React.useRef(rounds);
+  const workSecondsRef = React.useRef(workSeconds);
+  const restSecondsRef = React.useRef(restSeconds);
+  const transitionSecondsRef = React.useRef(transitionSeconds);
+  roundsRef.current = rounds;
+  workSecondsRef.current = workSeconds;
+  restSecondsRef.current = restSeconds;
+  transitionSecondsRef.current = transitionSeconds;
+
+  const beep = React.useCallback((kind: 'work' | 'rest' | 'transition' | 'done') => {
+    if (!soundOnRef.current) return;
+    if (kind === 'work') playBeep(880, 220);
+    else if (kind === 'rest') playBeep(440, 220);
+    else if (kind === 'transition') playBeep(660, 150);
+    else {
+      // Finish jingle — three ascending beeps instead of one, so the
+      // end of the whole timer is unmistakably different from an
+      // ordinary phase change.
+      playBeep(523, 150);
+      setTimeout(() => playBeep(659, 150), 180);
+      setTimeout(() => playBeep(784, 260), 360);
+    }
+  }, []);
+
+  const startPhase = React.useCallback((next: TimerPhase, round: number, seconds: number) => {
+    phaseRef.current = next;
+    roundRef.current = round;
+    setPhase(next);
+    setCurrentRound(round);
+    setTimeLeft(seconds);
+    phaseEndRef.current = Date.now() + seconds * 1000;
+    if (next === 'work' || next === 'rest' || next === 'transition') beep(next);
+    if (next === 'done') beep('done');
+  }, [beep]);
+
+  const handleStart = () => {
+    if (phaseRef.current === 'idle' || phaseRef.current === 'done') {
+      startPhase('work', 1, workSecondsRef.current);
+    } else if (phaseEndRef.current === 0 && pausedRemainingRef.current > 0) {
+      // Resuming from pause — restart the wall-clock end time from
+      // whatever was left when paused, rather than from the phase's
+      // full duration again.
+      phaseEndRef.current = Date.now() + pausedRemainingRef.current;
+    }
+    setIsRunning(true);
+  };
+
+  const handlePause = () => {
+    pausedRemainingRef.current = Math.max(0, phaseEndRef.current - Date.now());
+    phaseEndRef.current = 0;
+    setIsRunning(false);
+  };
+
+  const handleReset = () => {
+    setIsRunning(false);
+    phaseEndRef.current = 0;
+    pausedRemainingRef.current = 0;
+    phaseRef.current = 'idle';
+    roundRef.current = 0;
+    setPhase('idle');
+    setCurrentRound(0);
+    setTimeLeft(0);
+  };
+
+  React.useEffect(() => {
+    if (!isRunning) return;
+    const id = setInterval(() => {
+      if (phaseEndRef.current === 0) return; // paused mid-tick, nothing to do
+      const remainingMs = phaseEndRef.current - Date.now();
+      const remainingSec = Math.ceil(remainingMs / 1000);
+      if (remainingSec > 0) {
+        setTimeLeft(remainingSec);
+        return;
+      }
+      // Current phase just ended — decide what comes next, reading the
+      // just-finished phase/round from refs (always current, unlike
+      // the state values this closure would otherwise have captured
+      // once when the effect first ran).
+      const prevPhase = phaseRef.current;
+      const prevRound = roundRef.current;
+      if (prevPhase === 'work') {
+        startPhase('rest', prevRound, restSecondsRef.current);
+      } else if (prevPhase === 'rest') {
+        const isLastRound = prevRound >= roundsRef.current;
+        if (isLastRound) {
+          startPhase('done', prevRound, 0);
+          setIsRunning(false);
+        } else if (transitionSecondsRef.current > 0) {
+          startPhase('transition', prevRound, transitionSecondsRef.current);
+        } else {
+          startPhase('work', prevRound + 1, workSecondsRef.current);
+        }
+      } else if (prevPhase === 'transition') {
+        startPhase('work', prevRound + 1, workSecondsRef.current);
+      }
+    }, 200);
+    return () => clearInterval(id);
+  }, [isRunning, startPhase]);
+
+  const phaseLabel = phase === 'work' ? t('gym.timerWork')
+    : phase === 'rest' ? t('gym.timerRest')
+    : phase === 'transition' ? t('gym.timerTransition')
+    : phase === 'done' ? t('gym.timerDone')
+    : t('gym.timerReady');
+
+  const phaseColor = phase === 'work' ? 'text-primary'
+    : phase === 'rest' ? 'text-sky-400'
+    : phase === 'transition' ? 'text-amber-400'
+    : phase === 'done' ? 'text-green-400'
+    : 'text-muted-foreground';
+
+  const canEditSettings = phase === 'idle' || phase === 'done';
+
+  return (
+    <div className="max-w-md mx-auto space-y-5 py-2">
+      <div className="text-center space-y-1">
+        <p className={`text-sm font-semibold ${phaseColor}`}>{phaseLabel}</p>
+        <p className={`text-6xl font-display font-bold tabular-nums ${phaseColor}`}>
+          {String(Math.floor(timeLeft / 60)).padStart(2, '0')}:{String(timeLeft % 60).padStart(2, '0')}
+        </p>
+        {phase !== 'idle' && (
+          <p className="text-xs text-muted-foreground">
+            {t('gym.timerRoundOf').replace('{n}', String(currentRound)).replace('{total}', String(rounds))}
+          </p>
+        )}
+      </div>
+
+      <div className="flex items-center justify-center gap-3">
+        {!isRunning ? (
+          <Button size="lg" className="gap-2 px-8" onClick={handleStart}>
+            <Play className="w-5 h-5" />{phase === 'idle' || phase === 'done' ? t('gym.timerStart') : t('gym.timerResume')}
+          </Button>
+        ) : (
+          <Button size="lg" variant="secondary" className="gap-2 px-8" onClick={handlePause}>
+            <Pause className="w-5 h-5" />{t('gym.timerPause')}
+          </Button>
+        )}
+        <Button size="lg" variant="outline" onClick={handleReset}>
+          <RotateCcw className="w-5 h-5" />
+        </Button>
+        <Button size="lg" variant="ghost" onClick={() => setSoundOn((v) => !v)}>
+          {soundOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5 text-muted-foreground" />}
+        </Button>
+      </div>
+
+      <div className={`grid grid-cols-2 gap-3 ${!canEditSettings ? 'opacity-50 pointer-events-none' : ''}`}>
+        <div className="space-y-1">
+          <Label>{t('gym.timerRounds')}</Label>
+          <Input type="number" min={1} value={rounds} onChange={(e) => setRounds(Math.max(1, Number(e.target.value) || 1))} />
+        </div>
+        <div className="space-y-1">
+          <Label>{t('gym.timerWorkSeconds')}</Label>
+          <Input type="number" min={1} value={workSeconds} onChange={(e) => setWorkSeconds(Math.max(1, Number(e.target.value) || 1))} />
+        </div>
+        <div className="space-y-1">
+          <Label>{t('gym.timerRestSeconds')}</Label>
+          <Input type="number" min={0} value={restSeconds} onChange={(e) => setRestSeconds(Math.max(0, Number(e.target.value) || 0))} />
+        </div>
+        <div className="space-y-1">
+          <Label>{t('gym.timerTransitionSeconds')}</Label>
+          <Input type="number" min={0} value={transitionSeconds} onChange={(e) => setTransitionSeconds(Math.max(0, Number(e.target.value) || 0))} />
+        </div>
+      </div>
+      {!canEditSettings && (
+        <p className="text-xs text-muted-foreground text-center">{t('gym.timerEditHint')}</p>
+      )}
+    </div>
   );
 }
